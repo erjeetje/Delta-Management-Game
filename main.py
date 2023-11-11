@@ -4,30 +4,293 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
 import os
+import sys
+import geopandas as gpd
+import matplotlib.collections
+import matplotlib.style
+
+matplotlib.style.use("fast")
 import process_config_files as model_files
 import process_game_files as game_files
 import transform_functions as transform_func
 import model_to_game as game_sync
 
+
+from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QMessageBox,
+                             QLabel, QDialog, QDesktopWidget, QMainWindow,
+                             QHBoxLayout, QVBoxLayout)
+from PyQt5.QtCore import Qt
+from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+#from matplotlib.backends.qt_compat import QtWidgets
+from matplotlib.figure import Figure
+
+
+
+class ApplicationWindow(QMainWindow):
+    def __init__(self, scenarios, time_info, starting_scenario):
+        super().__init__()
+        self._main = QWidget()
+        self.setWindowTitle('Delta Management Game demonstrator')
+        self.setCentralWidget(self._main)
+        self.scenarios = scenarios
+        self.selected_scenario = starting_scenario
+        self.time_info = time_info
+        self.layout = QHBoxLayout(self._main)
+
+        self.model_canvas = FigureCanvas(Figure(figsize=(5, 5)))
+        # Ideally one would use self.addToolBar here, but it is slightly
+        # incompatible between PyQt6 and other bindings, so we just add the
+        # toolbar as a plain widget instead.
+        self.figure_layout = QVBoxLayout(self._main)
+        self.figure_layout.addWidget(NavigationToolbar(self.model_canvas, self))
+        self.figure_layout.addWidget(self.model_canvas)
+        self.layout.addLayout(self.figure_layout)
+
+        self.control_widget = ControlWidget(gui=self)
+        self.layout.addWidget(self.control_widget)
+        self.add_plot_model()
+        return
+
+    def add_plot_model(self):
+        self.ax = self.model_canvas.figure.subplots()
+        # code below to add a basemap [TODO]
+        #ctx.add_basemap(self.ax, zoom=12, source=ctx.providers.Stamen.TonerLite)
+        self.ax.set_axis_off()
+        scenario_idx = self.scenarios["scenario"] == self.selected_scenario
+        self.running_scenario = self.scenarios[scenario_idx]
+        t_idx = self.time_info["t_idx"]
+        t = self.running_scenario.iloc[t_idx]["time"]
+        idx = self.running_scenario["time"] == t
+        self.plot_data = self.running_scenario[idx]
+        self.plot_data.plot(column="water_salinity", ax=self.ax, cmap="coolwarm")
+
+        pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
+        assert len(pcs) == 1, "expected 1 pathcollection after plotting"
+        self.pc = pcs[0]
+
+
+
+        self.model_timer = self.model_canvas.new_timer(40)
+        self.model_timer.add_callback(self.update_plot_model)
+        self.model_timer.start()
+        return
+
+    @property
+    def t_idx(self):
+        t_idx = self.time_info["t_idx"] % len(self.time_info["time_steps"])
+        return t_idx
+
+    @property
+    def t(self):
+        return self.time_info["time_steps"][self.t_idx]
+
+
+    def change_scenario(self, scenario):
+        if scenario == self.selected_scenario:
+            return
+        elif scenario == 1:
+            self.selected_scenario = "0_0mzss_2000m3s"
+        elif scenario == 2:
+            self.selected_scenario = "0_0mzss_0500m3s"
+        elif scenario == 3:
+            self.selected_scenario = "3mzss_2000m3s"
+        elif scenario == 4:
+            self.selected_scenario = "3mzss_0500m3s"
+        scenario_idx = self.scenarios["scenario"] == self.selected_scenario
+        self.running_scenario = self.scenarios[scenario_idx]
+        return
+
+    def update_plot_model(self):
+        t = self.t
+        idx = self.running_scenario["time"] == t
+        self.plot_data = self.running_scenario[idx]
+        self.pc.set_array(self.plot_data["water_salinity"])
+        self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
+        self.model_canvas.draw()
+        self.time_info["t_idx"] += 1
+        return
+
+
+class GameVisualization(QWidget):
+    def __init__(self, scenarios, time_info, starting_scenario):
+        super().__init__()
+        self.scenarios = scenarios
+        self.selected_scenario = starting_scenario
+        self.time_info = time_info
+        self.setWindowTitle('Game world visualization')
+        self.game_canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        self.layout = QVBoxLayout(self)
+        self.layout.addWidget(NavigationToolbar(self.game_canvas, self))
+        self.layout.addWidget(self.game_canvas)
+        self.add_plot_model()
+        return
+
+    def add_plot_model(self):
+        self.ax = self.game_canvas.figure.subplots()
+        self.ax.set_axis_off()
+        scenario_idx = self.scenarios["scenario"] == self.selected_scenario
+        self.running_scenario = self.scenarios[scenario_idx]
+        t_idx = self.time_info["t_idx"]
+        t = self.running_scenario.iloc[t_idx]["time"]
+        idx = self.running_scenario["time"] == t
+        self.plot_data = self.running_scenario[idx]
+        self.plot_data.plot(column="water_salinity", ax=self.ax, cmap="coolwarm", aspect=1)
+
+        pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
+        assert len(pcs) == 1, "expected 1 pathcollection after plotting"
+        self.pc = pcs[0]
+
+        self.game_timer = self.game_canvas.new_timer(40)
+        self.game_timer.add_callback(self.update_plot_model)
+        self.game_timer.start()
+        return
+
+    @property
+    def t_idx(self):
+        t_idx = self.time_info["t_idx"] % len(self.time_info["time_steps"])
+        return t_idx
+
+    @property
+    def t(self):
+        return self.time_info["time_steps"][self.t_idx]
+
+
+    def change_scenario(self, scenario):
+        if scenario == self.selected_scenario:
+            return
+        elif scenario == 1:
+            self.selected_scenario = "0_0mzss_2000m3s"
+        elif scenario == 2:
+            self.selected_scenario = "0_0mzss_0500m3s"
+        elif scenario == 3:
+            self.selected_scenario = "3mzss_2000m3s"
+        elif scenario == 4:
+            self.selected_scenario = "3mzss_0500m3s"
+        scenario_idx = self.scenarios["scenario"] == self.selected_scenario
+        self.running_scenario = self.scenarios[scenario_idx]
+        return
+
+    def update_plot_model(self):
+        t = self.t
+        idx = self.running_scenario["time"] == t
+        self.plot_data = self.running_scenario[idx]
+        self.pc.set_array(self.plot_data["water_salinity"])
+        self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
+        self.game_canvas.draw()
+        #self.time_info["t_idx"] += 1
+        return
+
+
+class ControlWidget(QWidget):
+    def __init__(self, gui):
+        super().__init__()
+        self.gui = gui
+        self.setFixedSize(400, 800)
+        #self.setWindowFlag(Qt.WindowCloseButtonHint, False)
+        self.initUI()
+        self.show()  # app.exec_()
+
+    def initUI(self):
+        #lbl_update = QLabel('Update controls', self)
+        #lbl_update.move(10, 40)
+        #lbl_update.setFixedWidth(180)
+        #lbl_update.setAlignment(Qt.AlignCenter)
+        self.lbl_variable = QLabel('Variable selection', self)
+        self.lbl_variable.move(10, 180)
+        self.lbl_variable.setFixedWidth(380)
+        self.lbl_variable.setAlignment(Qt.AlignCenter)
+
+        self.btn_salinity = QPushButton('Salinity concentration', self)
+        self.btn_salinity.clicked.connect(self.on_salinity_button_clicked)
+        self.btn_salinity.resize(180, 40)
+        self.btn_salinity.move(10, 240)
+        self.btn_water_level = QPushButton('Water level', self)
+        self.btn_water_level.clicked.connect(self.on_water_level_button_clicked)
+        self.btn_water_level.resize(180, 40)
+        self.btn_water_level.move(210, 240)
+
+        self.lbl_boundary = QLabel('Boundary conditions', self)
+        self.lbl_boundary.move(10, 480)
+        self.lbl_boundary.setFixedWidth(380)
+        self.lbl_boundary.setAlignment(Qt.AlignCenter)
+
+        self.scenario4 = QPushButton('+3m SLR, 500 m/3s', self)
+        self.scenario4.clicked.connect(self.on_scenario4_button_clicked)
+        self.scenario4.resize(180, 40)
+        self.scenario4.move(10, 540)
+        self.scenario3 = QPushButton('+3m SLR, 2000 m/3s', self)
+        self.scenario3.clicked.connect(self.on_scenario3_button_clicked)
+        self.scenario3.resize(180, 40)
+        self.scenario3.move(210, 540)
+        self.scenario2 = QPushButton('+0m SLR, 500 m/3s', self)
+        self.scenario2.clicked.connect(self.on_scenario2_button_clicked)
+        self.scenario2.resize(180, 40)
+        self.scenario2.move(10, 620)
+        self.scenario1 = QPushButton('+0m SLR, 2000 m/3s', self)
+        self.scenario1.clicked.connect(self.on_scenario1_button_clicked)
+        self.scenario1.resize(180, 40)
+        self.scenario1.move(210, 620)
+        return
+
+    def on_salinity_button_clicked(self):
+        print("Changing to salinity visualization")
+        #self.script.update("unit", "salinity")
+        return
+
+    def on_water_level_button_clicked(self):
+        print("Changing to salinity visualization")
+        #self.script.update("unit", "water_level")
+        return
+
+    def on_scenario1_button_clicked(self):
+        #print("Changing to scenario 1")
+        #self.script.update("scenario", "1")
+        self.gui.change_scenario(scenario=1)
+        return
+
+    def on_scenario2_button_clicked(self):
+        #print("Changing to scenario 2")
+        #self.script.update("scenario", "2")
+        self.gui.change_scenario(scenario=2)
+        return
+
+    def on_scenario3_button_clicked(self):
+        #print("Changing to scenario 3")
+        #self.script.update("scenario", "3")
+        self.gui.change_scenario(scenario=3)
+        return
+
+    def on_scenario4_button_clicked(self):
+        #print("Changing to scenario 4")
+        #self.script.update("scenario", "4")
+        self.gui.change_scenario(scenario=4)
+        return
+
+
 class model_locations():
     def __init__(self):
         super(model_locations, self).__init__()
         self.load_variables()
-        self.update_initial_variables()
+        #self.update_initial_variables()
         return
 
     def load_variables(self):
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
-        self.input_path = os.path.join(self.dir_path, 'input_files')
+        self.model_path = r"C:\Users\Robert-Jan\Dropbox\Onderzoeker map\Salti game design\Prototyping\sobek-rmm-vzm-j15_5-v4\sobek-rmm-vzm-j15_5-v4.dsproj_data\rmm_output\dflow1d"
+        self.input_path = r"C:\Users\Robert-Jan\Dropbox\Onderzoeker map\Salti game design\Prototyping\RMM coding\demonstrator_input_files"
         # change the directory below to what works
-        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\03 Low-fi game design\RMM coding (notebooks)\demonstrator_output_check_test"
+        self.save_path = r"C:\Users\Robert-Jan\Dropbox\Onderzoeker map\Salti game design\Prototyping\RMM coding\demonstrator_output_files"
 
         self.test = True
+        self.unit = "salinity"
+        self.scenario = "1"
+        return
 
         # initial model variables
         self.subbranches = game_files.get_subbranches()
         self.branches_model_gdf, self.nodes_model_gdf, self.grid_points_model_gdf = model_files.process_nodes_branches(
-            self.input_path)
+            self.model_path)
         self.branches_model_gdf, self.nodes_game_gdf = game_sync.determine_main_branches(
             self.branches_model_gdf, self.subbranches, self.nodes_model_gdf)
         """
@@ -35,9 +298,9 @@ class model_locations():
         """
         self.merged_branches_model_gdf = model_files.merge_subbranches(self.branches_model_gdf, self.subbranches)
         self.obs_points_model_gdf = model_files.process_obs_points(
-            self.input_path, self.branches_model_gdf, self.merged_branches_model_gdf, self.subbranches)
+            self.model_path, self.branches_model_gdf, self.merged_branches_model_gdf, self.subbranches)
         self.grid_points_model_gdf = model_files.process_cross_sections(
-            self.input_path, self.grid_points_model_gdf, self.branches_model_gdf)
+            self.model_path, self.grid_points_model_gdf, self.branches_model_gdf)
         """
         print("branches")
         print(self.branches_model_gdf)
@@ -117,13 +380,85 @@ class model_locations():
             save_gdf4.to_csv(os.path.join(self.save_path, "game_obs_points.csv"), index=False)
             save_gdf4["prev_branches"] = save_gdf4["prev_branches"].astype(str)
             save_gdf4.to_file(os.path.join(self.save_path, "game_observation_points.geojson"))
+            save_gdf5 = self.grid_points_model_gdf
+            save_gdf5.to_csv(os.path.join(self.save_path, "model_grid_points.csv"), index=False)
+            save_gdf5.to_file(os.path.join(self.save_path, "model_grid_points.geojson"))
         return
 
 
+    def update(self, type_update, variable):
+        if type_update == "unit":
+            self.unit = variable
+        elif type_update == "scenario":
+            self.scenario = variable
+        print("received", type_update, "and", variable)
+        return
 
+
+def load_scenarios():
+    # def add_scenario(ds):
+    #     path_re = re.compile(r'(?P<scenario>(0_)?(?P<slr>\d+)mzss_(?P<discharge>\d+)m3s)(\\)')
+    #     print(ds.encoding['source'])
+    #     match = path_re.search(ds.encoding['source'])
+    #     scenario = match.group("scenario")
+    #     # new dataset contains dates with last day of month, let's keep it consistent
+    #     result = ds.expand_dims(scenario=[scenario])
+    #     return result
+    #
+    # demo_output_dir = r"C:\Users\Robert-Jan\Dropbox\Onderzoeker map\Salti game design\Prototyping\RMM coding\demonstrator_output_files"
+    # obs_file = os.path.join(demo_output_dir, "model_obs_points.csv")
+    # obs_points_model_df = pd.read_csv(obs_file)
+    # obs_points_geo = gpd.GeoSeries.from_wkt(obs_points_model_df["geometry"], crs=28992)
+    # obs_points_model_gdf = gpd.GeoDataFrame(obs_points_model_df, geometry=obs_points_geo)
+    # obs_points_model_gdf = obs_points_model_gdf[["obs_id", "geometry", "branch_rank"]]
+    #
+    # model_path = pathlib.Path(r"C:\Users\Robert-Jan\Dropbox\Onderzoeker map\Salti game design\Prototyping\sobek_rmm_output")
+    # model_files = list(model_path.glob("**/Integrated_Model_output/dflow1d/output/observations.nc"))
+    #
+    # ds_obs = xr.open_mfdataset(model_files, preprocess=add_scenario)
+    # selected = ds_obs[["observation_id", "scenario", "water_salinity", 'water_velocity', 'water_level']]
+    # df_obs = selected.to_dataframe()
+    # df_obs["observation_id"] = df_obs["observation_id"].str.decode("utf-8")
+    # df_obs["observation_id"] = df_obs["observation_id"].str.strip()
+    # df_obs = df_obs.reset_index()
+    #
+    # df_may_idx = np.logical_and(df_obs["time"].dt.month == 5, df_obs["time"].dt.day < 15)
+    # df_obs_selected = df_obs[df_may_idx]
+    #
+    # obs_points_df = pd.merge(df_obs_selected, obs_points_model_gdf, left_on="observation_id", right_on="obs_id")
+    # obs_points_gdf = gpd.GeoDataFrame(obs_points_df, geometry=obs_points_df["geometry"])
+
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    scenario_location = os.path.join(dir_path, "input_files")
+    scenario_model_file = os.path.join(scenario_location, "obs_model_all_scenario_1_day.gpkg")
+    obs_points_model_gdf = gpd.read_file(scenario_model_file)
+    scenario_game_file = os.path.join(scenario_location, "obs_game_all_scenario_1_day.gpkg")
+    obs_points_game_gdf = gpd.read_file(scenario_game_file)
+    return obs_points_model_gdf, obs_points_game_gdf
 
 def main():
-    locations = model_locations()
+    model_scenarios, game_scenarios = load_scenarios()
+    qapp = QApplication.instance()
+    if not qapp:
+        qapp = QApplication(sys.argv)
+    time_info = {}
+    time_info["time_steps"] = list(sorted(set(model_scenarios["time"])))
+    time_info["t_idx"] = 0
+    starting_scenario = "0_0mzss_2000m3s"
+    gui = ApplicationWindow(
+        scenarios=model_scenarios, time_info=time_info, starting_scenario=starting_scenario)
+    side_window = GameVisualization(
+        scenarios=game_scenarios, time_info=time_info, starting_scenario=starting_scenario)
+    gui.show()
+    side_window.show()
+    gui.activateWindow()
+    gui.raise_()
+    qapp.exec()
+    #sys.exit(qapp.exec_())
+    #locations = model_locations()
+
+
+
 
 
 # Press the green button in the gutter to run the script.

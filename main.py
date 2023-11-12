@@ -28,7 +28,7 @@ from matplotlib.figure import Figure
 
 
 class ApplicationWindow(QMainWindow):
-    def __init__(self, scenarios, time_info, viz_tracker):
+    def __init__(self, scenarios, viz_tracker):
         super().__init__()
         self._main = QWidget()
         self.setWindowTitle('Delta Management Game demonstrator')
@@ -36,7 +36,6 @@ class ApplicationWindow(QMainWindow):
         self.scenarios = scenarios
         self.viz_tracker = viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
-        self.time_info = time_info
         self.layout = QHBoxLayout(self._main)
 
         self.model_canvas = FigureCanvas(Figure(figsize=(5, 5)))
@@ -60,7 +59,7 @@ class ApplicationWindow(QMainWindow):
         self.ax.set_axis_off()
         scenario_idx = self.scenarios["scenario"] == self.selected_scenario
         self.running_scenario = self.scenarios[scenario_idx]
-        t_idx = self.time_info["t_idx"]
+        t_idx = self.viz_tracker.time_index
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
@@ -75,37 +74,27 @@ class ApplicationWindow(QMainWindow):
         self.model_timer.start()
         return
 
-    @property
-    def t_idx(self):
-        t_idx = self.time_info["t_idx"] % len(self.time_info["time_steps"])
-        return t_idx
-
-    @property
-    def t(self):
-        return self.time_info["time_steps"][self.t_idx]
-
     def update_plot_model(self):
         if self.selected_scenario != self.viz_tracker.scenario:
             self.selected_scenario = self.viz_tracker.scenario
             scenario_idx = self.scenarios["scenario"] == self.selected_scenario
             self.running_scenario = self.scenarios[scenario_idx]
-        t = self.t
+        t = self.viz_tracker.get_time_index()
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
         self.pc.set_array(self.plot_data["water_salinity"])
         self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
         self.model_canvas.draw()
-        self.time_info["t_idx"] += 1
+        self.viz_tracker.time_index = 1
         return
 
 
 class GameVisualization(QWidget):
-    def __init__(self, scenarios, time_info, viz_tracker):
+    def __init__(self, scenarios, viz_tracker):
         super().__init__()
         self.scenarios = scenarios
         self.viz_tracker=viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
-        self.time_info = time_info
         self.setWindowTitle('Game world visualization')
         self.game_canvas = FigureCanvas(Figure(figsize=(5, 3)))
         self.layout = QVBoxLayout(self)
@@ -119,7 +108,7 @@ class GameVisualization(QWidget):
         self.ax.set_axis_off()
         scenario_idx = self.scenarios["scenario"] == self.selected_scenario
         self.running_scenario = self.scenarios[scenario_idx]
-        t_idx = self.time_info["t_idx"]
+        t_idx = self.viz_tracker.time_index
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
@@ -134,28 +123,17 @@ class GameVisualization(QWidget):
         self.game_timer.start()
         return
 
-    @property
-    def t_idx(self):
-        t_idx = self.time_info["t_idx"] % len(self.time_info["time_steps"])
-        return t_idx
-
-    @property
-    def t(self):
-        return self.time_info["time_steps"][self.t_idx]
-
-
     def update_plot_model(self):
         if self.selected_scenario != self.viz_tracker.scenario:
             self.selected_scenario = self.viz_tracker.scenario
             scenario_idx = self.scenarios["scenario"] == self.selected_scenario
             self.running_scenario = self.scenarios[scenario_idx]
-        t = self.t
+        t = self.viz_tracker.get_time_index()
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
         self.pc.set_array(self.plot_data["water_salinity"])
         self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
         self.game_canvas.draw()
-        #self.time_info["t_idx"] += 1
         return
 
 
@@ -247,10 +225,16 @@ class ControlWidget(QWidget):
         return
 
 class VisualizationTracker():
-    def __init__(self, starting_scenario, starting_variable):
+    def __init__(self, starting_scenario, starting_variable, time_steps, starting_time):
         self._scenario = starting_scenario
         self._variable = starting_variable
+        self._time_steps = time_steps
+        self._time_index = starting_time
         return
+
+    def get_time_index(self):
+        t_idx = self.time_index % len(self.time_steps)
+        return self.time_steps[t_idx]
 
     @property
     def scenario(self):
@@ -260,6 +244,14 @@ class VisualizationTracker():
     def variable(self):
         return self._variable
 
+    @property
+    def time_steps(self):
+        return self._time_steps
+
+    @property
+    def time_index(self):
+        return self._time_index
+
     @scenario.setter
     def scenario(self, scenario):
         self._scenario = scenario
@@ -268,6 +260,16 @@ class VisualizationTracker():
     @variable.setter
     def variable(self, variable):
         self._variable = variable
+        return
+
+    @time_steps.setter
+    def time_steps(self, time_steps):
+        self._time_steps = time_steps
+        return
+
+    @time_index.setter
+    def time_index(self, time_index):
+        self._time_index += time_index
         return
 
 
@@ -446,27 +448,23 @@ def main():
     qapp = QApplication.instance()
     if not qapp:
         qapp = QApplication(sys.argv)
-    time_info = {}
-    time_info["time_steps"] = list(sorted(set(model_scenarios["time"])))
-    time_info["t_idx"] = 0
+    time_steps = list(sorted(set(model_scenarios["time"])))
+    time_index = 0
     starting_scenario = "0_0mzss_2000m3s"
     starting_variable = "water_salinity"
     viz_tracker = VisualizationTracker(
-        starting_scenario=starting_scenario, starting_variable=starting_variable)
+        starting_scenario=starting_scenario, starting_variable=starting_variable,
+        time_steps=time_steps, starting_time=time_index)
     gui = ApplicationWindow(
-        scenarios=model_scenarios, time_info=time_info, viz_tracker=viz_tracker)
+        scenarios=model_scenarios, viz_tracker=viz_tracker)
     side_window = GameVisualization(
-        scenarios=game_scenarios, time_info=time_info, viz_tracker=viz_tracker)
+        scenarios=game_scenarios, viz_tracker=viz_tracker)
     gui.show()
     side_window.show()
     gui.activateWindow()
     gui.raise_()
     qapp.exec()
-    #sys.exit(qapp.exec_())
     #locations = model_locations()
-
-
-
 
 
 # Press the green button in the gutter to run the script.

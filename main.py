@@ -6,6 +6,7 @@
 import os
 import sys
 import geopandas as gpd
+import contextily as ctx
 import matplotlib.collections
 import matplotlib.style
 
@@ -28,7 +29,7 @@ from matplotlib.figure import Figure
 
 
 class ApplicationWindow(QMainWindow):
-    def __init__(self, scenarios, viz_tracker):
+    def __init__(self, scenarios, viz_tracker, bbox):
         super().__init__()
         self._main = QWidget()
         self.setWindowTitle('Delta Management Game demonstrator')
@@ -49,13 +50,16 @@ class ApplicationWindow(QMainWindow):
 
         self.control_widget = ControlWidget(gui=self, viz_tracker=viz_tracker)
         self.layout.addWidget(self.control_widget)
-        self.add_plot_model()
+        self.add_plot_model(bbox)
         return
 
-    def add_plot_model(self):
+    def add_plot_model(self, bbox):
         self.ax = self.model_canvas.figure.subplots()
+        self.ax.axis(bbox)
         # code below to add a basemap [TODO]
+        ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
         #ctx.add_basemap(self.ax, zoom=12, source=ctx.providers.Stamen.TonerLite)
+        #ctx.add_basemap(self.ax, source=ctx.providers.OpenStreetMap.Mapnik)
         self.ax.set_axis_off()
         scenario_idx = self.scenarios["scenario"] == self.selected_scenario
         self.running_scenario = self.scenarios[scenario_idx]
@@ -439,12 +443,18 @@ def load_scenarios():
     scenario_location = os.path.join(dir_path, "input_files")
     scenario_model_file = os.path.join(scenario_location, "obs_model_all_scenario_1_day.gpkg")
     obs_points_model_gdf = gpd.read_file(scenario_model_file)
+    obs_points_model_gdf = obs_points_model_gdf.to_crs(epsg=3857)
+    obs_points_bbox = obs_points_model_gdf.bounds
+    world_bbox = [obs_points_bbox["minx"].min(),
+                  obs_points_bbox["maxx"].max(),
+                  obs_points_bbox["miny"].min(),
+                  obs_points_bbox["maxy"].max()]
     scenario_game_file = os.path.join(scenario_location, "obs_game_all_scenario_1_day.gpkg")
     obs_points_game_gdf = gpd.read_file(scenario_game_file)
-    return obs_points_model_gdf, obs_points_game_gdf
+    return obs_points_model_gdf, obs_points_game_gdf, world_bbox
 
 def main():
-    model_scenarios, game_scenarios = load_scenarios()
+    model_scenarios, game_scenarios, world_bbox = load_scenarios()
     qapp = QApplication.instance()
     if not qapp:
         qapp = QApplication(sys.argv)
@@ -456,7 +466,7 @@ def main():
         starting_scenario=starting_scenario, starting_variable=starting_variable,
         time_steps=time_steps, starting_time=time_index)
     gui = ApplicationWindow(
-        scenarios=model_scenarios, viz_tracker=viz_tracker)
+        scenarios=model_scenarios, viz_tracker=viz_tracker, bbox=world_bbox)
     side_window = GameVisualization(
         scenarios=game_scenarios, viz_tracker=viz_tracker)
     gui.show()

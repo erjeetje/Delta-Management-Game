@@ -28,13 +28,14 @@ from matplotlib.figure import Figure
 
 
 class ApplicationWindow(QMainWindow):
-    def __init__(self, scenarios, time_info, starting_scenario):
+    def __init__(self, scenarios, time_info, viz_tracker):
         super().__init__()
         self._main = QWidget()
         self.setWindowTitle('Delta Management Game demonstrator')
         self.setCentralWidget(self._main)
         self.scenarios = scenarios
-        self.selected_scenario = starting_scenario
+        self.viz_tracker = viz_tracker
+        self.selected_scenario = self.viz_tracker.scenario
         self.time_info = time_info
         self.layout = QHBoxLayout(self._main)
 
@@ -47,7 +48,7 @@ class ApplicationWindow(QMainWindow):
         self.figure_layout.addWidget(self.model_canvas)
         self.layout.addLayout(self.figure_layout)
 
-        self.control_widget = ControlWidget(gui=self)
+        self.control_widget = ControlWidget(gui=self, viz_tracker=viz_tracker)
         self.layout.addWidget(self.control_widget)
         self.add_plot_model()
         return
@@ -69,8 +70,6 @@ class ApplicationWindow(QMainWindow):
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
         self.pc = pcs[0]
 
-
-
         self.model_timer = self.model_canvas.new_timer(40)
         self.model_timer.add_callback(self.update_plot_model)
         self.model_timer.start()
@@ -85,23 +84,11 @@ class ApplicationWindow(QMainWindow):
     def t(self):
         return self.time_info["time_steps"][self.t_idx]
 
-
-    def change_scenario(self, scenario):
-        if scenario == self.selected_scenario:
-            return
-        elif scenario == 1:
-            self.selected_scenario = "0_0mzss_2000m3s"
-        elif scenario == 2:
-            self.selected_scenario = "0_0mzss_0500m3s"
-        elif scenario == 3:
-            self.selected_scenario = "3mzss_2000m3s"
-        elif scenario == 4:
-            self.selected_scenario = "3mzss_0500m3s"
-        scenario_idx = self.scenarios["scenario"] == self.selected_scenario
-        self.running_scenario = self.scenarios[scenario_idx]
-        return
-
     def update_plot_model(self):
+        if self.selected_scenario != self.viz_tracker.scenario:
+            self.selected_scenario = self.viz_tracker.scenario
+            scenario_idx = self.scenarios["scenario"] == self.selected_scenario
+            self.running_scenario = self.scenarios[scenario_idx]
         t = self.t
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
@@ -113,10 +100,11 @@ class ApplicationWindow(QMainWindow):
 
 
 class GameVisualization(QWidget):
-    def __init__(self, scenarios, time_info, starting_scenario):
+    def __init__(self, scenarios, time_info, viz_tracker):
         super().__init__()
         self.scenarios = scenarios
-        self.selected_scenario = starting_scenario
+        self.viz_tracker=viz_tracker
+        self.selected_scenario = self.viz_tracker.scenario
         self.time_info = time_info
         self.setWindowTitle('Game world visualization')
         self.game_canvas = FigureCanvas(Figure(figsize=(5, 3)))
@@ -156,22 +144,11 @@ class GameVisualization(QWidget):
         return self.time_info["time_steps"][self.t_idx]
 
 
-    def change_scenario(self, scenario):
-        if scenario == self.selected_scenario:
-            return
-        elif scenario == 1:
-            self.selected_scenario = "0_0mzss_2000m3s"
-        elif scenario == 2:
-            self.selected_scenario = "0_0mzss_0500m3s"
-        elif scenario == 3:
-            self.selected_scenario = "3mzss_2000m3s"
-        elif scenario == 4:
-            self.selected_scenario = "3mzss_0500m3s"
-        scenario_idx = self.scenarios["scenario"] == self.selected_scenario
-        self.running_scenario = self.scenarios[scenario_idx]
-        return
-
     def update_plot_model(self):
+        if self.selected_scenario != self.viz_tracker.scenario:
+            self.selected_scenario = self.viz_tracker.scenario
+            scenario_idx = self.scenarios["scenario"] == self.selected_scenario
+            self.running_scenario = self.scenarios[scenario_idx]
         t = self.t
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
@@ -183,9 +160,10 @@ class GameVisualization(QWidget):
 
 
 class ControlWidget(QWidget):
-    def __init__(self, gui):
+    def __init__(self, gui, viz_tracker):
         super().__init__()
         self.gui = gui
+        self.viz_tracker=viz_tracker
         self.setFixedSize(400, 800)
         #self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         self.initUI()
@@ -234,38 +212,65 @@ class ControlWidget(QWidget):
         return
 
     def on_salinity_button_clicked(self):
-        print("Changing to salinity visualization")
-        #self.script.update("unit", "salinity")
+        #print("Changing to salinity visualization")
+        #self.viz_tracker.variable = "water_salinity"
         return
 
     def on_water_level_button_clicked(self):
-        print("Changing to salinity visualization")
+        #print("Changing to salinity visualization")
         #self.script.update("unit", "water_level")
+        #self.viz_tracker.variable = "water_level"
         return
 
     def on_scenario1_button_clicked(self):
         #print("Changing to scenario 1")
         #self.script.update("scenario", "1")
-        self.gui.change_scenario(scenario=1)
+        self.viz_tracker.scenario = "0_0mzss_2000m3s"
         return
 
     def on_scenario2_button_clicked(self):
         #print("Changing to scenario 2")
         #self.script.update("scenario", "2")
-        self.gui.change_scenario(scenario=2)
+        self.viz_tracker.scenario = "0_0mzss_0500m3s"
         return
 
     def on_scenario3_button_clicked(self):
         #print("Changing to scenario 3")
         #self.script.update("scenario", "3")
-        self.gui.change_scenario(scenario=3)
+        self.viz_tracker.scenario = "3mzss_2000m3s"
         return
 
     def on_scenario4_button_clicked(self):
         #print("Changing to scenario 4")
         #self.script.update("scenario", "4")
-        self.gui.change_scenario(scenario=4)
+        self.viz_tracker.scenario = "3mzss_0500m3s"
         return
+
+class VisualizationTracker():
+    def __init__(self, starting_scenario, starting_variable):
+        self._scenario = starting_scenario
+        self._variable = starting_variable
+        return
+
+    @property
+    def scenario(self):
+        return self._scenario
+
+    @property
+    def variable(self):
+        return self._variable
+
+    @scenario.setter
+    def scenario(self, scenario):
+        self._scenario = scenario
+        return
+
+    @variable.setter
+    def variable(self, variable):
+        self._variable = variable
+        return
+
+
 
 
 class model_locations():
@@ -445,10 +450,13 @@ def main():
     time_info["time_steps"] = list(sorted(set(model_scenarios["time"])))
     time_info["t_idx"] = 0
     starting_scenario = "0_0mzss_2000m3s"
+    starting_variable = "water_salinity"
+    viz_tracker = VisualizationTracker(
+        starting_scenario=starting_scenario, starting_variable=starting_variable)
     gui = ApplicationWindow(
-        scenarios=model_scenarios, time_info=time_info, starting_scenario=starting_scenario)
+        scenarios=model_scenarios, time_info=time_info, viz_tracker=viz_tracker)
     side_window = GameVisualization(
-        scenarios=game_scenarios, time_info=time_info, starting_scenario=starting_scenario)
+        scenarios=game_scenarios, time_info=time_info, viz_tracker=viz_tracker)
     gui.show()
     side_window.show()
     gui.activateWindow()

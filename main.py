@@ -25,6 +25,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 #from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.figure import Figure
+from matplotlib.colors import Normalize
 
 
 
@@ -37,8 +38,11 @@ class ApplicationWindow(QMainWindow):
         self.scenarios = scenarios
         self.viz_tracker = viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
-        self.layout = QHBoxLayout(self._main)
+        self.selected_variable = self.viz_tracker.variable
 
+        # possible to do: add a Normalize objects for each type of data to the VisualizationTracker class
+
+        self.layout = QHBoxLayout(self._main)
         self.model_canvas = FigureCanvas(Figure(figsize=(5, 5)))
         # Ideally one would use self.addToolBar here, but it is slightly
         # incompatible between PyQt6 and other bindings, so we just add the
@@ -67,7 +71,7 @@ class ApplicationWindow(QMainWindow):
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.plot_data.plot(column="water_salinity", ax=self.ax, cmap="coolwarm")
+        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm")
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
@@ -83,10 +87,20 @@ class ApplicationWindow(QMainWindow):
             self.selected_scenario = self.viz_tracker.scenario
             scenario_idx = self.scenarios["scenario"] == self.selected_scenario
             self.running_scenario = self.scenarios[scenario_idx]
+            self.pc.set_norm(Normalize())
+        if self.selected_variable != self.viz_tracker.variable:
+            self.selected_variable = self.viz_tracker.variable
+            if self.selected_variable == "water_salinity":
+                color_map = "coolwarm"
+            elif self.selected_variable == "water_level":
+                color_map = "viridis"
+            self.pc.set_cmap(color_map)
+            self.pc.set_norm(Normalize()) #vmin=0, vmax=1
+            return
         t = self.viz_tracker.get_time_index()
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.pc.set_array(self.plot_data["water_salinity"])
+        self.pc.set_array(self.plot_data[self.selected_variable])
         self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
         self.model_canvas.draw()
         self.viz_tracker.time_index = 1
@@ -99,6 +113,7 @@ class GameVisualization(QWidget):
         self.scenarios = scenarios
         self.viz_tracker=viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
+        self.selected_variable = self.viz_tracker.variable
         self.setWindowTitle('Game world visualization')
         self.game_canvas = FigureCanvas(Figure(figsize=(5, 3)))
         self.layout = QVBoxLayout(self)
@@ -116,7 +131,7 @@ class GameVisualization(QWidget):
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.plot_data.plot(column="water_salinity", ax=self.ax, cmap="coolwarm", aspect=1)
+        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", aspect=1)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
@@ -132,10 +147,20 @@ class GameVisualization(QWidget):
             self.selected_scenario = self.viz_tracker.scenario
             scenario_idx = self.scenarios["scenario"] == self.selected_scenario
             self.running_scenario = self.scenarios[scenario_idx]
+            self.pc.set_norm(Normalize())
+        if self.selected_variable != self.viz_tracker.variable:
+            self.selected_variable = self.viz_tracker.variable
+            if self.selected_variable == "water_salinity":
+                color_map = "coolwarm"
+            elif self.selected_variable == "water_level":
+                color_map = "viridis"
+            self.pc.set_cmap(color_map)
+            self.pc.set_norm(Normalize())  # vmin=0, vmax=1
+            return
         t = self.viz_tracker.get_time_index()
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.pc.set_array(self.plot_data["water_salinity"])
+        self.pc.set_array(self.plot_data[self.selected_variable])
         self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
         self.game_canvas.draw()
         return
@@ -195,13 +220,13 @@ class ControlWidget(QWidget):
 
     def on_salinity_button_clicked(self):
         #print("Changing to salinity visualization")
-        #self.viz_tracker.variable = "water_salinity"
+        self.viz_tracker.variable = "water_salinity"
         return
 
     def on_water_level_button_clicked(self):
         #print("Changing to salinity visualization")
         #self.script.update("unit", "water_level")
-        #self.viz_tracker.variable = "water_level"
+        self.viz_tracker.variable = "water_level"
         return
 
     def on_scenario1_button_clicked(self):

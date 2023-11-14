@@ -470,10 +470,16 @@ def load_scenarios():
     obs_points_model_gdf = gpd.read_file(scenario_model_file)
     obs_points_model_gdf = obs_points_model_gdf.to_crs(epsg=3857)
     obs_points_bbox = obs_points_model_gdf.bounds
-    world_bbox = [obs_points_bbox["minx"].min(),
-                  obs_points_bbox["maxx"].max(),
-                  obs_points_bbox["miny"].min(),
-                  obs_points_bbox["maxy"].max()]
+    x_min = obs_points_bbox["minx"].min()
+    x_max = obs_points_bbox["maxx"].max()
+    x_margin = 0.05 * (x_max - x_min)
+    y_min = obs_points_bbox["miny"].min()
+    y_max = obs_points_bbox["maxy"].max()
+    y_margin = 0.05 * (y_max - y_min)
+    world_bbox = [x_min - x_margin,
+                  x_max + x_margin,
+                  y_min - y_margin,
+                  y_max + y_margin]
     scenario_game_file = os.path.join(scenario_location, "obs_game_all_scenario_1_day.gpkg")
     obs_points_game_gdf = gpd.read_file(scenario_game_file)
     return obs_points_model_gdf, obs_points_game_gdf, world_bbox

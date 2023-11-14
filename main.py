@@ -76,6 +76,7 @@ class ApplicationWindow(QMainWindow):
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
         self.pc = pcs[0]
+        self.pc.set_norm(self.viz_tracker.salinity_norm)
 
         self.model_timer = self.model_canvas.new_timer(40)
         self.model_timer.add_callback(self.update_plot_model)
@@ -92,10 +93,12 @@ class ApplicationWindow(QMainWindow):
             self.selected_variable = self.viz_tracker.variable
             if self.selected_variable == "water_salinity":
                 color_map = "coolwarm"
+                norm = self.viz_tracker.salinity_norm
             elif self.selected_variable == "water_level":
                 color_map = "viridis"
+                norm = self.viz_tracker.water_level_norm
             self.pc.set_cmap(color_map)
-            self.pc.set_norm(Normalize()) #vmin=0, vmax=1
+            self.pc.set_norm(norm)
             return
         t = self.viz_tracker.get_time_index()
         idx = self.running_scenario["time"] == t
@@ -136,6 +139,7 @@ class GameVisualization(QWidget):
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
         self.pc = pcs[0]
+        self.pc.set_norm(self.viz_tracker.salinity_norm)
 
         self.game_timer = self.game_canvas.new_timer(40)
         self.game_timer.add_callback(self.update_plot_model)
@@ -152,10 +156,12 @@ class GameVisualization(QWidget):
             self.selected_variable = self.viz_tracker.variable
             if self.selected_variable == "water_salinity":
                 color_map = "coolwarm"
+                norm = self.viz_tracker.salinity_norm
             elif self.selected_variable == "water_level":
                 color_map = "viridis"
+                norm = self.viz_tracker.water_level_norm
             self.pc.set_cmap(color_map)
-            self.pc.set_norm(Normalize())  # vmin=0, vmax=1
+            self.pc.set_norm(norm)
             return
         t = self.viz_tracker.get_time_index()
         idx = self.running_scenario["time"] == t
@@ -254,11 +260,14 @@ class ControlWidget(QWidget):
         return
 
 class VisualizationTracker():
-    def __init__(self, starting_scenario, starting_variable, time_steps, starting_time):
+    def __init__(self, starting_scenario, starting_variable, time_steps, starting_time,
+                 salinity_range, water_level_range):
         self._scenario = starting_scenario
         self._variable = starting_variable
         self._time_steps = time_steps
         self._time_index = starting_time
+        self._salinity_norm = salinity_range
+        self._water_level_norm = water_level_range
         return
 
     def get_time_index(self):
@@ -280,6 +289,14 @@ class VisualizationTracker():
     @property
     def time_index(self):
         return self._time_index
+
+    @property
+    def salinity_norm(self):
+        return self._salinity_norm
+
+    @property
+    def water_level_norm(self):
+        return self._water_level_norm
 
     @scenario.setter
     def scenario(self, scenario):
@@ -466,7 +483,7 @@ def load_scenarios():
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     scenario_location = os.path.join(dir_path, "input_files")
-    scenario_model_file = os.path.join(scenario_location, "obs_model_all_scenario_1_day.gpkg")
+    scenario_model_file = os.path.join(scenario_location, "obs_model_all_scenario_2_days.gpkg")
     obs_points_model_gdf = gpd.read_file(scenario_model_file)
     obs_points_model_gdf = obs_points_model_gdf.to_crs(epsg=3857)
     obs_points_bbox = obs_points_model_gdf.bounds
@@ -480,12 +497,15 @@ def load_scenarios():
                   x_max + x_margin,
                   y_min - y_margin,
                   y_max + y_margin]
-    scenario_game_file = os.path.join(scenario_location, "obs_game_all_scenario_1_day.gpkg")
+    salinity_range = Normalize(obs_points_model_gdf["water_salinity"].min(), obs_points_model_gdf["water_salinity"].max())
+    water_level_range = Normalize(obs_points_model_gdf["water_level"].min(), obs_points_model_gdf["water_level"].max())
+    #water_velocity_range = Normalize(obs_points_model_gdf["water_velocity"].min(), obs_points_model_gdf["water_velocity"].max())
+    scenario_game_file = os.path.join(scenario_location, "obs_game_all_scenario_2_days.gpkg")
     obs_points_game_gdf = gpd.read_file(scenario_game_file)
-    return obs_points_model_gdf, obs_points_game_gdf, world_bbox
+    return obs_points_model_gdf, obs_points_game_gdf, world_bbox, salinity_range, water_level_range
 
 def main():
-    model_scenarios, game_scenarios, world_bbox = load_scenarios()
+    model_scenarios, game_scenarios, world_bbox, salinity_range, water_level_range = load_scenarios()
     qapp = QApplication.instance()
     if not qapp:
         qapp = QApplication(sys.argv)
@@ -495,7 +515,8 @@ def main():
     starting_variable = "water_salinity"
     viz_tracker = VisualizationTracker(
         starting_scenario=starting_scenario, starting_variable=starting_variable,
-        time_steps=time_steps, starting_time=time_index)
+        time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,
+        water_level_range=water_level_range)
     gui = ApplicationWindow(
         scenarios=model_scenarios, viz_tracker=viz_tracker, bbox=world_bbox)
     side_window = GameVisualization(

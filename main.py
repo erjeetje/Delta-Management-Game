@@ -25,7 +25,8 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 #from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.figure import Figure
-from matplotlib.colors import Normalize
+from matplotlib.colors import LogNorm, Normalize
+from matplotlib.cm import ScalarMappable
 
 
 
@@ -77,6 +78,8 @@ class ApplicationWindow(QMainWindow):
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
         self.pc = pcs[0]
         self.pc.set_norm(self.viz_tracker.salinity_norm)
+        #self.colorbar = ScalarMappable(self.viz_tracker.salinity_norm, cmap="coolwarm")
+        #self.model_canvas.figure.colorbar(self.colorbar, ax=self.ax)
 
         self.model_timer = self.model_canvas.new_timer(40)
         self.model_timer.add_callback(self.update_plot_model)
@@ -88,7 +91,6 @@ class ApplicationWindow(QMainWindow):
             self.selected_scenario = self.viz_tracker.scenario
             scenario_idx = self.scenarios["scenario"] == self.selected_scenario
             self.running_scenario = self.scenarios[scenario_idx]
-            self.pc.set_norm(Normalize())
         if self.selected_variable != self.viz_tracker.variable:
             self.selected_variable = self.viz_tracker.variable
             if self.selected_variable == "water_salinity":
@@ -151,7 +153,6 @@ class GameVisualization(QWidget):
             self.selected_scenario = self.viz_tracker.scenario
             scenario_idx = self.scenarios["scenario"] == self.selected_scenario
             self.running_scenario = self.scenarios[scenario_idx]
-            self.pc.set_norm(Normalize())
         if self.selected_variable != self.viz_tracker.variable:
             self.selected_variable = self.viz_tracker.variable
             if self.selected_variable == "water_salinity":
@@ -497,7 +498,7 @@ def load_scenarios():
                   x_max + x_margin,
                   y_min - y_margin,
                   y_max + y_margin]
-    salinity_range = Normalize(obs_points_model_gdf["water_salinity"].min(), obs_points_model_gdf["water_salinity"].max())
+    salinity_range = LogNorm(obs_points_model_gdf["water_salinity"].min(), obs_points_model_gdf["water_salinity"].max())
     water_level_range = Normalize(obs_points_model_gdf["water_level"].min(), obs_points_model_gdf["water_level"].max())
     #water_velocity_range = Normalize(obs_points_model_gdf["water_velocity"].min(), obs_points_model_gdf["water_velocity"].max())
     scenario_game_file = os.path.join(scenario_location, "obs_game_all_scenario_2_days.gpkg")

@@ -21,17 +21,19 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QMessageBox,
                              QLabel, QDialog, QDesktopWidget, QMainWindow,
                              QHBoxLayout, QVBoxLayout)
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 #from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm, Normalize
+import matplotlib.image as mpimg
 from matplotlib.cm import ScalarMappable
 
 
 
 class ApplicationWindow(QMainWindow):
-    def __init__(self, scenarios, viz_tracker, bbox):
+    def __init__(self, scenarios, viz_tracker, bbox, salinity_colorbar_image):
         super().__init__()
         self._main = QWidget()
         self.setWindowTitle('Delta Management Game demonstrator')
@@ -40,17 +42,20 @@ class ApplicationWindow(QMainWindow):
         self.viz_tracker = viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
         self.selected_variable = self.viz_tracker.variable
-
-        # possible to do: add a Normalize objects for each type of data to the VisualizationTracker class
+        self.salinity_colorbar_image = salinity_colorbar_image
 
         self.layout = QHBoxLayout(self._main)
-        self.model_canvas = FigureCanvas(Figure(figsize=(5, 5)))
+        self.model_canvas = FigureCanvas(Figure()) #figsize=(5, 5)
         # Ideally one would use self.addToolBar here, but it is slightly
         # incompatible between PyQt6 and other bindings, so we just add the
         # toolbar as a plain widget instead.
         self.figure_layout = QVBoxLayout(self._main)
-        self.figure_layout.addWidget(NavigationToolbar(self.model_canvas, self))
-        self.figure_layout.addWidget(self.model_canvas)
+        #self.figure_layout.addWidget(NavigationToolbar(self.model_canvas, self))
+        self.figure_layout.addWidget(self.model_canvas, stretch=1)
+        self.colorbar_label = QLabel(self._main)
+        self.colorbar_label.setPixmap(self.salinity_colorbar_image)
+        self.colorbar_label.resize(self.salinity_colorbar_image.width(), self.salinity_colorbar_image.height())
+        self.figure_layout.addWidget(self.colorbar_label, alignment=Qt.AlignCenter)
         self.layout.addLayout(self.figure_layout)
 
         self.control_widget = ControlWidget(gui=self, viz_tracker=viz_tracker)
@@ -61,23 +66,24 @@ class ApplicationWindow(QMainWindow):
     def add_plot_model(self, bbox):
         self.ax = self.model_canvas.figure.subplots()
         self.ax.axis(bbox)
-        # code below to add a basemap [TODO]
-        ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
-        #ctx.add_basemap(self.ax, zoom=12, source=ctx.providers.Stamen.TonerLite)
-        #ctx.add_basemap(self.ax, source=ctx.providers.OpenStreetMap.Mapnik)
+        ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.CartoDB.PositronNoLabels)
+        #ctx.add_basemap(self.ax, source=ctx.providers.Esri.WorldGrayCanvas, zoom=12)
+        #ctx.add_basemap(self.ax, source=ctx.providers.OpenStreetMap.Mapnik, alpha=0.5)
         self.ax.set_axis_off()
+        self.ax.set_position([0.1, 0.1, 0.8, 0.8])
         scenario_idx = self.scenarios["scenario"] == self.selected_scenario
         self.running_scenario = self.scenarios[scenario_idx]
         t_idx = self.viz_tracker.time_index
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm")
+        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", markersize=75.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
         self.pc = pcs[0]
         self.pc.set_norm(self.viz_tracker.salinity_norm)
+        # code below adds a colorbar to the image, but makes the plots too slow
         #self.colorbar = ScalarMappable(self.viz_tracker.salinity_norm, cmap="coolwarm")
         #self.model_canvas.figure.colorbar(self.colorbar, ax=self.ax)
 
@@ -136,7 +142,7 @@ class GameVisualization(QWidget):
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", aspect=1)
+        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", aspect=1, markersize=75.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
@@ -505,6 +511,13 @@ def load_scenarios():
     obs_points_game_gdf = gpd.read_file(scenario_game_file)
     return obs_points_model_gdf, obs_points_game_gdf, world_bbox, salinity_range, water_level_range
 
+def load_images():
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    colorbar_location = os.path.join(dir_path, "input_files")
+    colorbar_image_file = os.path.join(colorbar_location, "salinity_colorbar_horizontal.png")
+    colorbar_image = QPixmap(colorbar_image_file)
+    return(colorbar_image)
+
 def main():
     model_scenarios, game_scenarios, world_bbox, salinity_range, water_level_range = load_scenarios()
     qapp = QApplication.instance()
@@ -518,8 +531,10 @@ def main():
         starting_scenario=starting_scenario, starting_variable=starting_variable,
         time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,
         water_level_range=water_level_range)
+    salinity_colorbar_image = load_images()
     gui = ApplicationWindow(
-        scenarios=model_scenarios, viz_tracker=viz_tracker, bbox=world_bbox)
+        scenarios=model_scenarios, viz_tracker=viz_tracker, bbox=world_bbox,
+        salinity_colorbar_image=salinity_colorbar_image)
     side_window = GameVisualization(
         scenarios=game_scenarios, viz_tracker=viz_tracker)
     gui.show()

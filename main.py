@@ -8,6 +8,7 @@ import sys
 import geopandas as gpd
 import contextily as ctx
 import matplotlib.collections
+import matplotlib.pyplot as plt
 import matplotlib.style
 
 matplotlib.style.use("fast")
@@ -27,13 +28,12 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 #from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm, Normalize
-import matplotlib.image as mpimg
 from matplotlib.cm import ScalarMappable
 
 
 
 class ApplicationWindow(QMainWindow):
-    def __init__(self, scenarios, viz_tracker, bbox, salinity_colorbar_image):
+    def __init__(self, scenarios, viz_tracker, bbox, salinity_colorbar_image, basemap_image):
         super().__init__()
         self._main = QWidget()
         self.setWindowTitle('Delta Management Game demonstrator')
@@ -43,8 +43,11 @@ class ApplicationWindow(QMainWindow):
         self.selected_scenario = self.viz_tracker.scenario
         self.selected_variable = self.viz_tracker.variable
         self.salinity_colorbar_image = salinity_colorbar_image
+        self.basemap_image = basemap_image
 
         self.layout = QHBoxLayout(self._main)
+        #self.fig, self.ax2 = plt.subplots()
+        #self.ax2.imshow(basemap_image)
         self.model_canvas = FigureCanvas(Figure()) #figsize=(5, 5)
         # Ideally one would use self.addToolBar here, but it is slightly
         # incompatible between PyQt6 and other bindings, so we just add the
@@ -66,9 +69,9 @@ class ApplicationWindow(QMainWindow):
     def add_plot_model(self, bbox):
         self.ax = self.model_canvas.figure.subplots()
         self.ax.axis(bbox)
-        ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.CartoDB.PositronNoLabels)
+        #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.CartoDB.PositronNoLabels)
         #ctx.add_basemap(self.ax, source=ctx.providers.Esri.WorldGrayCanvas, zoom=12)
-        #ctx.add_basemap(self.ax, source=ctx.providers.OpenStreetMap.Mapnik, alpha=0.5)
+        #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
         self.ax.set_axis_off()
         self.ax.set_position([0.1, 0.1, 0.8, 0.8])
         scenario_idx = self.scenarios["scenario"] == self.selected_scenario
@@ -77,7 +80,7 @@ class ApplicationWindow(QMainWindow):
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", markersize=75.0)
+        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", markersize=150.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
@@ -142,7 +145,7 @@ class GameVisualization(QWidget):
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", aspect=1, markersize=75.0)
+        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", aspect=1, markersize=150.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
@@ -516,7 +519,9 @@ def load_images():
     colorbar_location = os.path.join(dir_path, "input_files")
     colorbar_image_file = os.path.join(colorbar_location, "salinity_colorbar_horizontal.png")
     colorbar_image = QPixmap(colorbar_image_file)
-    return(colorbar_image)
+    basemap_image_file = os.path.join(colorbar_location, "basemap.png")
+    basemap_image = plt.imread(basemap_image_file)
+    return colorbar_image, basemap_image
 
 def main():
     model_scenarios, game_scenarios, world_bbox, salinity_range, water_level_range = load_scenarios()
@@ -531,10 +536,10 @@ def main():
         starting_scenario=starting_scenario, starting_variable=starting_variable,
         time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,
         water_level_range=water_level_range)
-    salinity_colorbar_image = load_images()
+    salinity_colorbar_image, basemap_image = load_images()
     gui = ApplicationWindow(
         scenarios=model_scenarios, viz_tracker=viz_tracker, bbox=world_bbox,
-        salinity_colorbar_image=salinity_colorbar_image)
+        salinity_colorbar_image=salinity_colorbar_image, basemap_image=basemap_image)
     side_window = GameVisualization(
         scenarios=game_scenarios, viz_tracker=viz_tracker)
     gui.show()

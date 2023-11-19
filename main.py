@@ -27,23 +27,28 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 #from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.figure import Figure
-from matplotlib.colors import LogNorm, Normalize
+from matplotlib.colors import LogNorm, Normalize, CenteredNorm
 from matplotlib.cm import ScalarMappable
 
 
 
 class ApplicationWindow(QMainWindow):
-    def __init__(self, scenarios, viz_tracker, bbox, salinity_colorbar_image, basemap_image):
+    def __init__(self, scenarios, viz_tracker, bbox, salinity_colorbar_image, water_level_colorbar_image,
+                 water_velocity_image):
         super().__init__()
         self._main = QWidget()
         self.setWindowTitle('Delta Management Game demonstrator')
         self.setCentralWidget(self._main)
+        self.setStyleSheet("background-color:white; font-weight: bold; font-size: 24")
         self.scenarios = scenarios
         self.viz_tracker = viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
-        self.selected_variable = self.viz_tracker.variable
+        self.selected_model_variable = self.viz_tracker.model_variable
+        self.selected_game_variable = self.viz_tracker.game_variable
         self.salinity_colorbar_image = salinity_colorbar_image
-        self.basemap_image = basemap_image
+        self.water_level_colorbar_image = water_level_colorbar_image
+        self.water_velocity_image = water_velocity_image
+        #self.basemap_image = basemap_image
 
         self.layout = QHBoxLayout(self._main)
         #self.fig, self.ax2 = plt.subplots()
@@ -55,10 +60,28 @@ class ApplicationWindow(QMainWindow):
         self.figure_layout = QVBoxLayout(self._main)
         #self.figure_layout.addWidget(NavigationToolbar(self.model_canvas, self))
         self.figure_layout.addWidget(self.model_canvas, stretch=1)
-        self.colorbar_label = QLabel(self._main)
-        self.colorbar_label.setPixmap(self.salinity_colorbar_image)
-        self.colorbar_label.resize(self.salinity_colorbar_image.width(), self.salinity_colorbar_image.height())
-        self.figure_layout.addWidget(self.colorbar_label, alignment=Qt.AlignCenter)
+
+        self.colorbar_title_layout = QHBoxLayout(self._main)
+        self.colorbar_model_title_label = QLabel(self._main)
+        self.colorbar_model_title_label.setText("Screen colorbar")
+        self.colorbar_model_title_label.setStyleSheet("font-weight: bold; font-size: 36")
+        self.colorbar_title_layout.addWidget(self.colorbar_model_title_label, alignment=Qt.AlignCenter)
+        self.colorbar_game_title_label = QLabel(self._main)
+        self.colorbar_game_title_label.setText("Board colorbar")
+        self.colorbar_game_title_label.setStyleSheet("font-weight: bold; font-size: 36")
+        self.colorbar_title_layout.addWidget(self.colorbar_game_title_label, alignment=Qt.AlignCenter)
+        self.figure_layout.addLayout(self.colorbar_title_layout)
+
+        self.colorbar_layout = QHBoxLayout(self._main)
+        self.colorbar_model_label = QLabel(self._main)
+        self.colorbar_model_label.setPixmap(self.salinity_colorbar_image)
+        self.colorbar_model_label.resize(self.salinity_colorbar_image.width(), self.salinity_colorbar_image.height())
+        self.colorbar_layout.addWidget(self.colorbar_model_label, alignment=Qt.AlignCenter)
+        self.colorbar_game_label = QLabel(self._main)
+        self.colorbar_game_label.setPixmap(self.salinity_colorbar_image)
+        self.colorbar_game_label.resize(self.salinity_colorbar_image.width(), self.salinity_colorbar_image.height())
+        self.colorbar_layout.addWidget(self.colorbar_game_label, alignment=Qt.AlignCenter)
+        self.figure_layout.addLayout(self.colorbar_layout)
         self.layout.addLayout(self.figure_layout)
 
         self.control_widget = ControlWidget(gui=self, viz_tracker=viz_tracker)
@@ -80,14 +103,14 @@ class ApplicationWindow(QMainWindow):
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", markersize=150.0)
+        self.plot_data.plot(column=self.selected_model_variable, ax=self.ax, cmap="coolwarm", markersize=150.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
         self.pc = pcs[0]
         self.pc.set_norm(self.viz_tracker.salinity_norm)
         # code below adds a colorbar to the image, but makes the plots too slow
-        #self.colorbar = ScalarMappable(self.viz_tracker.salinity_norm, cmap="coolwarm")
+        #self.colorbar = ScalarMappable(self.viz_tracker.water_level_norm, cmap="Blues_r")
         #self.model_canvas.figure.colorbar(self.colorbar, ax=self.ax)
 
         self.model_timer = self.model_canvas.new_timer(40)
@@ -100,38 +123,66 @@ class ApplicationWindow(QMainWindow):
             self.selected_scenario = self.viz_tracker.scenario
             scenario_idx = self.scenarios["scenario"] == self.selected_scenario
             self.running_scenario = self.scenarios[scenario_idx]
-        if self.selected_variable != self.viz_tracker.variable:
-            self.selected_variable = self.viz_tracker.variable
-            if self.selected_variable == "water_salinity":
+        if self.selected_model_variable != self.viz_tracker.model_variable:
+            self.selected_model_variable = self.viz_tracker.model_variable
+            if self.selected_model_variable == "water_salinity":
                 color_map = "coolwarm"
                 norm = self.viz_tracker.salinity_norm
-            elif self.selected_variable == "water_level":
-                color_map = "viridis"
+            elif self.selected_model_variable == "water_level":
+                color_map = "viridis_r"
                 norm = self.viz_tracker.water_level_norm
+            elif self.selected_model_variable == "water_velocity":
+                color_map = "Spectral_r"
+                norm = self.viz_tracker.water_velocity_norm
+            elif self.selected_model_variable == "water_depth":
+                color_map = "Blues_r"
+                norm = self.viz_tracker.water_depth_norm
             self.pc.set_cmap(color_map)
             self.pc.set_norm(norm)
-            return
+            self.update_colorbars(to_update="model")
+        if self.selected_game_variable != self.viz_tracker.game_variable:
+            self.selected_game_variable = self.viz_tracker.game_variable
+            self.update_colorbars(to_update="game")
         t = self.viz_tracker.get_time_index()
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.pc.set_array(self.plot_data[self.selected_variable])
-        self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
+        self.pc.set_array(self.plot_data[self.selected_model_variable])
+        self.ax.set_title(f"timestep: {t}")
         self.model_canvas.draw()
         self.viz_tracker.time_index = 1
+        return
+
+    def update_colorbars(self, to_update="model"):
+        if to_update == "model":
+            if self.selected_model_variable == "water_salinity":
+                self.colorbar_model_label.setPixmap(self.salinity_colorbar_image)
+            if self.selected_model_variable == "water_level":
+                self.colorbar_model_label.setPixmap(self.water_level_colorbar_image)
+            if self.selected_model_variable == "water_velocity":
+                self.colorbar_model_label.setPixmap(self.water_velocity_image)
+        elif to_update == "game":
+            if self.selected_game_variable == "water_salinity":
+                self.colorbar_game_label.setPixmap(self.salinity_colorbar_image)
+            if self.selected_game_variable == "water_level":
+                self.colorbar_game_label.setPixmap(self.water_level_colorbar_image)
+            if self.selected_game_variable == "water_velocity":
+                self.colorbar_game_label.setPixmap(self.water_velocity_image)
         return
 
 
 class GameVisualization(QWidget):
     def __init__(self, scenarios, viz_tracker):
         super().__init__()
+        self.setStyleSheet("background-color:white;")
+        #self.setWindowFlags(Qt.FramelessWindowHint)
         self.scenarios = scenarios
         self.viz_tracker=viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
-        self.selected_variable = self.viz_tracker.variable
+        self.selected_variable = self.viz_tracker.game_variable
         self.setWindowTitle('Game world visualization')
         self.game_canvas = FigureCanvas(Figure(figsize=(5, 3)))
         self.layout = QVBoxLayout(self)
-        self.layout.addWidget(NavigationToolbar(self.game_canvas, self))
+        #self.layout.addWidget(NavigationToolbar(self.game_canvas, self))
         self.layout.addWidget(self.game_canvas)
         self.add_plot_model()
         return
@@ -162,14 +213,20 @@ class GameVisualization(QWidget):
             self.selected_scenario = self.viz_tracker.scenario
             scenario_idx = self.scenarios["scenario"] == self.selected_scenario
             self.running_scenario = self.scenarios[scenario_idx]
-        if self.selected_variable != self.viz_tracker.variable:
-            self.selected_variable = self.viz_tracker.variable
+        if self.selected_variable != self.viz_tracker.game_variable:
+            self.selected_variable = self.viz_tracker.game_variable
             if self.selected_variable == "water_salinity":
                 color_map = "coolwarm"
                 norm = self.viz_tracker.salinity_norm
             elif self.selected_variable == "water_level":
-                color_map = "viridis"
+                color_map = "viridis_r"
                 norm = self.viz_tracker.water_level_norm
+            elif self.selected_variable == "water_velocity":
+                color_map = "Spectral_r"
+                norm = self.viz_tracker.water_velocity_norm
+            elif self.selected_variable == "water_depth":
+                color_map = "Blues_r"
+                norm = self.viz_tracker.water_depth_norm
             self.pc.set_cmap(color_map)
             self.pc.set_norm(norm)
             return
@@ -177,7 +234,7 @@ class GameVisualization(QWidget):
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
         self.pc.set_array(self.plot_data[self.selected_variable])
-        self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
+        #self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
         self.game_canvas.draw()
         return
 
@@ -185,11 +242,16 @@ class GameVisualization(QWidget):
 class ControlWidget(QWidget):
     def __init__(self, gui, viz_tracker):
         super().__init__()
+        #self.setStyleSheet("background-color:grey;")
         self.gui = gui
-        self.viz_tracker=viz_tracker
-        self.setFixedSize(400, 800)
+        self.viz_tracker = viz_tracker
+        self.setFixedSize(400, 900)
         #self.setWindowFlag(Qt.WindowCloseButtonHint, False)
+        self.screen_highlight = None
+        self.board_highlight = None
+        self.scenario_highlight = None
         self.initUI()
+        self.change_highlights()
         self.show()  # app.exec_()
 
     def initUI(self):
@@ -197,87 +259,168 @@ class ControlWidget(QWidget):
         #lbl_update.move(10, 40)
         #lbl_update.setFixedWidth(180)
         #lbl_update.setAlignment(Qt.AlignCenter)
-        self.lbl_variable = QLabel('Variable selection', self)
-        self.lbl_variable.move(10, 180)
-        self.lbl_variable.setFixedWidth(380)
-        self.lbl_variable.setAlignment(Qt.AlignCenter)
+        self.lbl_screen_variable = QLabel('Screen variable selection', self)
+        self.lbl_screen_variable.setStyleSheet("font-weight: bold; font-size: 24")
+        self.lbl_screen_variable.move(10, 80)
+        self.lbl_screen_variable.setFixedWidth(180)
+        self.lbl_screen_variable.setAlignment(Qt.AlignCenter)
 
-        self.btn_salinity = QPushButton('Salinity concentration', self)
-        self.btn_salinity.clicked.connect(self.on_salinity_button_clicked)
-        self.btn_salinity.resize(180, 40)
-        self.btn_salinity.move(10, 240)
-        self.btn_water_level = QPushButton('Water level', self)
-        self.btn_water_level.clicked.connect(self.on_water_level_button_clicked)
-        self.btn_water_level.resize(180, 40)
-        self.btn_water_level.move(210, 240)
+        self.btn_screen_salinity = QPushButton('Salinity concentration', self)
+        self.btn_screen_salinity.clicked.connect(self.on_screen_salinity_button_clicked)
+        self.btn_screen_salinity.resize(180, 80)
+        self.btn_screen_salinity.move(10, 140)
+        self.btn_screen_water_level = QPushButton('Water level', self)
+        self.btn_screen_water_level.clicked.connect(self.on_screen_water_level_button_clicked)
+        self.btn_screen_water_level.resize(180, 80)
+        self.btn_screen_water_level.move(10, 260)
+        self.btn_screen_water_velocity = QPushButton('Water velocity', self)
+        self.btn_screen_water_velocity.clicked.connect(self.on_screen_water_velocity_button_clicked)
+        self.btn_screen_water_velocity.resize(180, 80)
+        self.btn_screen_water_velocity.move(10, 380)
 
-        self.lbl_boundary = QLabel('Boundary conditions', self)
-        self.lbl_boundary.move(10, 480)
+        self.lbl_board_variable = QLabel('Screen variable selection', self)
+        self.lbl_board_variable.setStyleSheet("font-weight: bold; font-size: 24")
+        self.lbl_board_variable.move(210, 80)
+        self.lbl_board_variable.setFixedWidth(180)
+        self.lbl_board_variable.setAlignment(Qt.AlignCenter)
+
+        self.btn_board_salinity = QPushButton('Salinity concentration', self)
+        self.btn_board_salinity.clicked.connect(self.on_board_salinity_button_clicked)
+        self.btn_board_salinity.resize(180, 80)
+        self.btn_board_salinity.move(210, 140)
+        self.btn_board_water_level = QPushButton('Water level', self)
+        self.btn_board_water_level.clicked.connect(self.on_board_water_level_button_clicked)
+        self.btn_board_water_level.resize(180, 80)
+        self.btn_board_water_level.move(210, 260)
+        self.btn_board_water_velocity = QPushButton('Water velocity', self)
+        self.btn_board_water_velocity.clicked.connect(self.on_board_water_velocity_button_clicked)
+        self.btn_board_water_velocity.resize(180, 80)
+        self.btn_board_water_velocity.move(210, 380)
+
+        self.lbl_boundary = QLabel('scenario selection', self)
+        self.lbl_boundary.setStyleSheet("font-weight: bold; font-size: 24")
+        self.lbl_boundary.move(10, 520)
         self.lbl_boundary.setFixedWidth(380)
         self.lbl_boundary.setAlignment(Qt.AlignCenter)
 
         self.scenario4 = QPushButton('+3m SLR, 500 m/3s', self)
         self.scenario4.clicked.connect(self.on_scenario4_button_clicked)
-        self.scenario4.resize(180, 40)
-        self.scenario4.move(10, 540)
+        self.scenario4.resize(180, 80)
+        self.scenario4.move(10, 580)
         self.scenario3 = QPushButton('+3m SLR, 2000 m/3s', self)
         self.scenario3.clicked.connect(self.on_scenario3_button_clicked)
-        self.scenario3.resize(180, 40)
-        self.scenario3.move(210, 540)
+        self.scenario3.resize(180, 80)
+        self.scenario3.move(210, 580)
         self.scenario2 = QPushButton('+0m SLR, 500 m/3s', self)
         self.scenario2.clicked.connect(self.on_scenario2_button_clicked)
-        self.scenario2.resize(180, 40)
-        self.scenario2.move(10, 620)
+        self.scenario2.resize(180, 80)
+        self.scenario2.move(10, 700)
         self.scenario1 = QPushButton('+0m SLR, 2000 m/3s', self)
         self.scenario1.clicked.connect(self.on_scenario1_button_clicked)
-        self.scenario1.resize(180, 40)
-        self.scenario1.move(210, 620)
+        self.scenario1.resize(180, 80)
+        self.scenario1.move(210, 700)
         return
 
-    def on_salinity_button_clicked(self):
-        #print("Changing to salinity visualization")
-        self.viz_tracker.variable = "water_salinity"
+    def on_screen_salinity_button_clicked(self):
+        self.viz_tracker.model_variable = "water_salinity"
+        self.change_highlights()
         return
 
-    def on_water_level_button_clicked(self):
-        #print("Changing to salinity visualization")
-        #self.script.update("unit", "water_level")
-        self.viz_tracker.variable = "water_level"
+    def on_screen_water_level_button_clicked(self):
+        self.viz_tracker.model_variable = "water_level"
+        self.change_highlights()
+        return
+
+    def on_screen_water_velocity_button_clicked(self):
+        self.viz_tracker.model_variable = "water_velocity"
+        self.change_highlights()
+        return
+
+    def on_board_salinity_button_clicked(self):
+        self.viz_tracker.game_variable = "water_salinity"
+        self.change_highlights()
+        return
+
+    def on_board_water_level_button_clicked(self):
+        self.viz_tracker.game_variable = "water_level"
+        self.change_highlights()
+        return
+
+    def on_board_water_velocity_button_clicked(self):
+        self.viz_tracker.game_variable = "water_velocity"
+        self.change_highlights()
         return
 
     def on_scenario1_button_clicked(self):
-        #print("Changing to scenario 1")
-        #self.script.update("scenario", "1")
         self.viz_tracker.scenario = "0_0mzss_2000m3s"
+        self.change_highlights()
         return
 
     def on_scenario2_button_clicked(self):
-        #print("Changing to scenario 2")
-        #self.script.update("scenario", "2")
         self.viz_tracker.scenario = "0_0mzss_0500m3s"
+        self.change_highlights()
         return
 
     def on_scenario3_button_clicked(self):
-        #print("Changing to scenario 3")
-        #self.script.update("scenario", "3")
         self.viz_tracker.scenario = "3mzss_2000m3s"
+        self.change_highlights()
         return
 
     def on_scenario4_button_clicked(self):
-        #print("Changing to scenario 4")
-        #self.script.update("scenario", "4")
         self.viz_tracker.scenario = "3mzss_0500m3s"
+        self.change_highlights()
+        return
+
+    def change_highlights(self):
+        if self.screen_highlight != self.viz_tracker.model_variable:
+            self.screen_highlight = self.viz_tracker.model_variable
+            self.btn_screen_salinity.setStyleSheet("background-color:lightgray;")
+            self.btn_screen_water_level.setStyleSheet("background-color:lightgray;")
+            self.btn_screen_water_velocity.setStyleSheet("background-color:lightgray;")
+            if self.screen_highlight == "water_salinity":
+                self.btn_screen_salinity.setStyleSheet("background-color:red;")
+            elif self.screen_highlight == "water_level":
+                self.btn_screen_water_level.setStyleSheet("background-color:blue;")
+            elif self.screen_highlight == "water_velocity":
+                self.btn_screen_water_velocity.setStyleSheet("background-color:green;")
+        if self.board_highlight != self.viz_tracker.game_variable:
+            self.board_highlight = self.viz_tracker.game_variable
+            self.btn_board_salinity.setStyleSheet("background-color:lightgray;")
+            self.btn_board_water_level.setStyleSheet("background-color:lightgray;")
+            self.btn_board_water_velocity.setStyleSheet("background-color:lightgray;")
+            if self.board_highlight == "water_salinity":
+                self.btn_board_salinity.setStyleSheet("background-color:red;")
+            elif self.board_highlight == "water_level":
+                self.btn_board_water_level.setStyleSheet("background-color:blue;")
+            elif self.board_highlight == "water_velocity":
+                self.btn_board_water_velocity.setStyleSheet("background-color:green;")
+        if self.scenario_highlight != self.viz_tracker.scenario:
+            self.scenario_highlight = self.viz_tracker.scenario
+            self.scenario1.setStyleSheet("background-color:lightgray;")
+            self.scenario2.setStyleSheet("background-color:lightgray;")
+            self.scenario3.setStyleSheet("background-color:lightgray;")
+            self.scenario4.setStyleSheet("background-color:lightgray;")
+            if self.scenario_highlight == "0_0mzss_2000m3s":
+                self.scenario1.setStyleSheet("background-color:cyan;")
+            elif self.scenario_highlight == "0_0mzss_0500m3s":
+                self.scenario2.setStyleSheet("background-color:magenta;")
+            elif self.scenario_highlight == "3mzss_2000m3s":
+                self.scenario3.setStyleSheet("background-color:yellow;")
+            elif self.scenario_highlight == "3mzss_0500m3s":
+                self.scenario4.setStyleSheet("background-color:black;")
         return
 
 class VisualizationTracker():
     def __init__(self, starting_scenario, starting_variable, time_steps, starting_time,
-                 salinity_range, water_level_range):
+                 salinity_range, water_level_range, water_velocity_range):
         self._scenario = starting_scenario
-        self._variable = starting_variable
+        self._model_variable = starting_variable
+        self._game_variable = starting_variable
         self._time_steps = time_steps
         self._time_index = starting_time
         self._salinity_norm = salinity_range
         self._water_level_norm = water_level_range
+        self._water_velocity_norm = water_velocity_range
         return
 
     def get_time_index(self):
@@ -289,8 +432,12 @@ class VisualizationTracker():
         return self._scenario
 
     @property
-    def variable(self):
-        return self._variable
+    def model_variable(self):
+        return self._model_variable
+
+    @property
+    def game_variable(self):
+        return self._game_variable
 
     @property
     def time_steps(self):
@@ -308,14 +455,23 @@ class VisualizationTracker():
     def water_level_norm(self):
         return self._water_level_norm
 
+    @property
+    def water_velocity_norm(self):
+        return self._water_velocity_norm
+
     @scenario.setter
     def scenario(self, scenario):
         self._scenario = scenario
         return
 
-    @variable.setter
-    def variable(self, variable):
-        self._variable = variable
+    @model_variable.setter
+    def model_variable(self, variable):
+        self._model_variable = variable
+        return
+
+    @game_variable.setter
+    def game_variable(self, variable):
+        self._game_variable = variable
         return
 
     @time_steps.setter
@@ -509,22 +665,29 @@ def load_scenarios():
                   y_max + y_margin]
     salinity_range = LogNorm(obs_points_model_gdf["water_salinity"].min(), obs_points_model_gdf["water_salinity"].max())
     water_level_range = Normalize(obs_points_model_gdf["water_level"].min(), obs_points_model_gdf["water_level"].max())
-    #water_velocity_range = Normalize(obs_points_model_gdf["water_velocity"].min(), obs_points_model_gdf["water_velocity"].max())
+    low_velocity_value = obs_points_model_gdf["water_velocity"].min()
+    high_velocity_value = obs_points_model_gdf["water_velocity"].max()
+    water_velocity_range = CenteredNorm(halfrange=max(abs(low_velocity_value), abs(high_velocity_value)))
+    #water_depth_range = Normalize(obs_points_model_gdf["water_depth"].min(), obs_points_model_gdf["water_depth"].max())
     scenario_game_file = os.path.join(scenario_location, "obs_game_all_scenario_2_days.gpkg")
     obs_points_game_gdf = gpd.read_file(scenario_game_file)
-    return obs_points_model_gdf, obs_points_game_gdf, world_bbox, salinity_range, water_level_range
+    return obs_points_model_gdf, obs_points_game_gdf, world_bbox, salinity_range, water_level_range, water_velocity_range
 
 def load_images():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     colorbar_location = os.path.join(dir_path, "input_files")
-    colorbar_image_file = os.path.join(colorbar_location, "salinity_colorbar_horizontal.png")
-    colorbar_image = QPixmap(colorbar_image_file)
-    basemap_image_file = os.path.join(colorbar_location, "basemap.png")
-    basemap_image = plt.imread(basemap_image_file)
-    return colorbar_image, basemap_image
+    colorbar_salinity_file = os.path.join(colorbar_location, "colorbar_salinity_small.png")
+    colorbar_salinity = QPixmap(colorbar_salinity_file)
+    colorbar_water_level_file = os.path.join(colorbar_location, "colorbar_water_level_small.png")
+    colorbar_water_level = QPixmap(colorbar_water_level_file)
+    colorbar_water_velocity_file = os.path.join(colorbar_location, "colorbar_water_velocity_small.png")
+    colorbar_water_velocity = QPixmap(colorbar_water_velocity_file)
+    #basemap_image_file = os.path.join(colorbar_location, "basemap.png")
+    #basemap_image = plt.imread(basemap_image_file)
+    return colorbar_salinity, colorbar_water_level, colorbar_water_velocity
 
 def main():
-    model_scenarios, game_scenarios, world_bbox, salinity_range, water_level_range = load_scenarios()
+    model_scenarios, game_scenarios, world_bbox, salinity_range, water_level_range, water_velocity_range = load_scenarios()
     qapp = QApplication.instance()
     if not qapp:
         qapp = QApplication(sys.argv)
@@ -535,11 +698,12 @@ def main():
     viz_tracker = VisualizationTracker(
         starting_scenario=starting_scenario, starting_variable=starting_variable,
         time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,
-        water_level_range=water_level_range)
-    salinity_colorbar_image, basemap_image = load_images()
+        water_level_range=water_level_range, water_velocity_range=water_velocity_range)
+    colorbar_salinity, colorbar_water_level, colorbar_water_velocity = load_images()
     gui = ApplicationWindow(
         scenarios=model_scenarios, viz_tracker=viz_tracker, bbox=world_bbox,
-        salinity_colorbar_image=salinity_colorbar_image, basemap_image=basemap_image)
+        salinity_colorbar_image=colorbar_salinity, water_level_colorbar_image=colorbar_water_level,
+        water_velocity_image=colorbar_water_velocity)
     side_window = GameVisualization(
         scenarios=game_scenarios, viz_tracker=viz_tracker)
     gui.show()

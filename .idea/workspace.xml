@@ -6,8 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="cb7d7745-aae4-44d0-ac63-029b8620a9c8" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/input_files/obs_game_all_scenario_2_days.gpkg" beforeDir="false" afterPath="$PROJECT_DIR$/input_files/obs_game_all_scenario_2_days.gpkg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/input_files/obs_model_all_scenario_2_days.gpkg" beforeDir="false" afterPath="$PROJECT_DIR$/input_files/obs_model_all_scenario_2_days.gpkg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

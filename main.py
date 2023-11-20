@@ -91,7 +91,7 @@ class ApplicationWindow(QMainWindow):
 
     def add_plot_model(self, bbox):
         self.ax = self.model_canvas.figure.subplots()
-        self.ax.axis(bbox)
+        #self.ax.axis(bbox)
         #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.CartoDB.PositronNoLabels)
         #ctx.add_basemap(self.ax, source=ctx.providers.Esri.WorldGrayCanvas, zoom=12)
         #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
@@ -171,24 +171,45 @@ class ApplicationWindow(QMainWindow):
 
 
 class GameVisualization(QWidget):
-    def __init__(self, scenarios, viz_tracker):
+    def __init__(self, scenarios, viz_tracker, bbox):
         super().__init__()
         self.setStyleSheet("background-color:white;")
+        #self.setFixedSize(1280, 720)
         #self.setWindowFlags(Qt.FramelessWindowHint)
         self.scenarios = scenarios
         self.viz_tracker=viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
         self.selected_variable = self.viz_tracker.game_variable
         self.setWindowTitle('Game world visualization')
-        self.game_canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        x_min = -50
+        x_max = 1445
+        y_min = -20
+        y_max = 1020
+        dpi=96
+        bbox = [x_min,
+                x_max,
+                y_min,
+                y_max]
+        self.game_canvas = FigureCanvas(Figure(figsize=((x_max-x_min)/dpi,(y_max-y_min)/dpi), dpi=dpi, tight_layout=True))
+        self.game_canvas.setParent(self)
+        #self.game_canvas.updateGeometry(self)
         self.layout = QVBoxLayout(self)
         #self.layout.addWidget(NavigationToolbar(self.game_canvas, self))
-        self.layout.addWidget(self.game_canvas)
-        self.add_plot_model()
+        self.layout.addWidget(self.game_canvas, stretch=1)
+
+        display_monitor = 1
+        monitor = QDesktopWidget().screenGeometry(display_monitor)
+        self.move(monitor.left(), monitor.top())
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.showFullScreen()
+
+        self.add_plot_model(bbox)
         return
 
-    def add_plot_model(self):
+    def add_plot_model(self, bbox):
         self.ax = self.game_canvas.figure.subplots()
+        #self.ax.set_aspect(1)
+        self.ax.axis(bbox)
         self.ax.set_axis_off()
         scenario_idx = self.scenarios["scenario"] == self.selected_scenario
         self.running_scenario = self.scenarios[scenario_idx]
@@ -196,7 +217,7 @@ class GameVisualization(QWidget):
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
-        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", aspect=1, markersize=150.0)
+        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", aspect=1, markersize=200.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
@@ -255,10 +276,6 @@ class ControlWidget(QWidget):
         self.show()  # app.exec_()
 
     def initUI(self):
-        #lbl_update = QLabel('Update controls', self)
-        #lbl_update.move(10, 40)
-        #lbl_update.setFixedWidth(180)
-        #lbl_update.setAlignment(Qt.AlignCenter)
         self.lbl_screen_variable = QLabel('Screen variable selection', self)
         self.lbl_screen_variable.setStyleSheet("font-weight: bold; font-size: 24")
         self.lbl_screen_variable.move(10, 80)
@@ -278,7 +295,7 @@ class ControlWidget(QWidget):
         self.btn_screen_water_velocity.resize(180, 80)
         self.btn_screen_water_velocity.move(10, 380)
 
-        self.lbl_board_variable = QLabel('Screen variable selection', self)
+        self.lbl_board_variable = QLabel('Board variable selection', self)
         self.lbl_board_variable.setStyleSheet("font-weight: bold; font-size: 24")
         self.lbl_board_variable.move(210, 80)
         self.lbl_board_variable.setFixedWidth(180)
@@ -671,7 +688,13 @@ def load_scenarios():
     #water_depth_range = Normalize(obs_points_model_gdf["water_depth"].min(), obs_points_model_gdf["water_depth"].max())
     scenario_game_file = os.path.join(scenario_location, "obs_game_all_scenario_2_days.gpkg")
     obs_points_game_gdf = gpd.read_file(scenario_game_file)
-    return obs_points_model_gdf, obs_points_game_gdf, world_bbox, salinity_range, water_level_range, water_velocity_range
+    obs_points_bbox = obs_points_game_gdf.bounds
+    game_bbox = [obs_points_bbox["minx"].min(),
+                 obs_points_bbox["maxx"].max(),
+                 obs_points_bbox["miny"].min(),
+                 obs_points_bbox["maxy"].max()]
+    print(game_bbox)
+    return obs_points_model_gdf, obs_points_game_gdf, world_bbox, game_bbox, salinity_range, water_level_range, water_velocity_range
 
 def load_images():
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -687,7 +710,7 @@ def load_images():
     return colorbar_salinity, colorbar_water_level, colorbar_water_velocity
 
 def main():
-    model_scenarios, game_scenarios, world_bbox, salinity_range, water_level_range, water_velocity_range = load_scenarios()
+    model_scenarios, game_scenarios, world_bbox, game_bbox, salinity_range, water_level_range, water_velocity_range = load_scenarios()
     qapp = QApplication.instance()
     if not qapp:
         qapp = QApplication(sys.argv)
@@ -705,7 +728,7 @@ def main():
         salinity_colorbar_image=colorbar_salinity, water_level_colorbar_image=colorbar_water_level,
         water_velocity_image=colorbar_water_velocity)
     side_window = GameVisualization(
-        scenarios=game_scenarios, viz_tracker=viz_tracker)
+        scenarios=game_scenarios, viz_tracker=viz_tracker, bbox=game_bbox)
     gui.show()
     side_window.show()
     gui.activateWindow()

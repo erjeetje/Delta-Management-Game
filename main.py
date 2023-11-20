@@ -399,7 +399,7 @@ class ControlWidget(QWidget):
             self.scenario1.setStyleSheet("background-color:lightgray;")
             self.scenario2.setStyleSheet("background-color:lightgray;")
             self.scenario3.setStyleSheet("background-color:lightgray;")
-            self.scenario4.setStyleSheet("background-color:lightgray;")
+            self.scenario4.setStyleSheet("background-color:lightgray; color: black;")
             if self.scenario_highlight == "0_0mzss_2000m3s":
                 self.scenario1.setStyleSheet("background-color:cyan;")
             elif self.scenario_highlight == "0_0mzss_0500m3s":
@@ -407,7 +407,7 @@ class ControlWidget(QWidget):
             elif self.scenario_highlight == "3mzss_2000m3s":
                 self.scenario3.setStyleSheet("background-color:yellow;")
             elif self.scenario_highlight == "3mzss_0500m3s":
-                self.scenario4.setStyleSheet("background-color:black;")
+                self.scenario4.setStyleSheet("background-color:black; color: white;")
         return
 
 class VisualizationTracker():

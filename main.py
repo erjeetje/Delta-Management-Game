@@ -669,6 +669,9 @@ def load_scenarios():
     scenario_model_file = os.path.join(scenario_location, "obs_model_all_scenario_2_days.gpkg")
     obs_points_model_gdf = gpd.read_file(scenario_model_file)
     obs_points_model_gdf = obs_points_model_gdf.to_crs(epsg=3857)
+    print(obs_points_model_gdf.columns)
+    print(obs_points_model_gdf.head())
+    print(obs_points_model_gdf.iloc[0]["time"])
     obs_points_bbox = obs_points_model_gdf.bounds
     x_min = obs_points_bbox["minx"].min()
     x_max = obs_points_bbox["maxx"].max()

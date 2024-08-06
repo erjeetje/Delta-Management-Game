@@ -147,7 +147,8 @@ class ApplicationWindow(QMainWindow):
         idx = self.running_scenario["time"] == t
         self.plot_data = self.running_scenario[idx]
         self.pc.set_array(self.plot_data[self.selected_model_variable])
-        self.ax.set_title(f"timestep: {t}")
+        title_string = "scenario: " + self.selected_scenario + " - " + f"timestep: {t}"
+        self.ax.set_title(title_string[:-8])
         self.model_canvas.draw()
         self.viz_tracker.time_index = 1
         return
@@ -320,19 +321,21 @@ class ControlWidget(QWidget):
         self.lbl_boundary.setFixedWidth(380)
         self.lbl_boundary.setAlignment(Qt.AlignCenter)
 
+        """
         self.scenario4 = QPushButton('+3m SLR, 500 m/3s', self)
         self.scenario4.clicked.connect(self.on_scenario4_button_clicked)
         self.scenario4.resize(180, 80)
         self.scenario4.move(10, 580)
-        self.scenario3 = QPushButton('+3m SLR, 2000 m/3s', self)
+        """
+        self.scenario3 = QPushButton('2100he', self)
         self.scenario3.clicked.connect(self.on_scenario3_button_clicked)
         self.scenario3.resize(180, 80)
         self.scenario3.move(210, 580)
-        self.scenario2 = QPushButton('+0m SLR, 500 m/3s', self)
+        self.scenario2 = QPushButton('2018', self)
         self.scenario2.clicked.connect(self.on_scenario2_button_clicked)
         self.scenario2.resize(180, 80)
         self.scenario2.move(10, 700)
-        self.scenario1 = QPushButton('+0m SLR, 2000 m/3s', self)
+        self.scenario1 = QPushButton('2017', self)
         self.scenario1.clicked.connect(self.on_scenario1_button_clicked)
         self.scenario1.resize(180, 80)
         self.scenario1.move(210, 700)
@@ -369,24 +372,26 @@ class ControlWidget(QWidget):
         return
 
     def on_scenario1_button_clicked(self):
-        self.viz_tracker.scenario = "0_0mzss_2000m3s"
+        self.viz_tracker.scenario = "2017"
         self.change_highlights()
         return
 
     def on_scenario2_button_clicked(self):
-        self.viz_tracker.scenario = "0_0mzss_0500m3s"
+        self.viz_tracker.scenario = "2018"
         self.change_highlights()
         return
 
     def on_scenario3_button_clicked(self):
-        self.viz_tracker.scenario = "3mzss_2000m3s"
+        self.viz_tracker.scenario = "2100he"
         self.change_highlights()
         return
 
+    """
     def on_scenario4_button_clicked(self):
         self.viz_tracker.scenario = "3mzss_0500m3s"
         self.change_highlights()
         return
+    """
 
     def change_highlights(self):
         if self.screen_highlight != self.viz_tracker.model_variable:
@@ -416,15 +421,12 @@ class ControlWidget(QWidget):
             self.scenario1.setStyleSheet("background-color:lightgray;")
             self.scenario2.setStyleSheet("background-color:lightgray;")
             self.scenario3.setStyleSheet("background-color:lightgray;")
-            self.scenario4.setStyleSheet("background-color:lightgray; color: black;")
-            if self.scenario_highlight == "0_0mzss_2000m3s":
+            if self.scenario_highlight == "2017":
                 self.scenario1.setStyleSheet("background-color:cyan;")
-            elif self.scenario_highlight == "0_0mzss_0500m3s":
+            elif self.scenario_highlight == "2018":
                 self.scenario2.setStyleSheet("background-color:magenta;")
-            elif self.scenario_highlight == "3mzss_2000m3s":
+            elif self.scenario_highlight == "2100he":
                 self.scenario3.setStyleSheet("background-color:yellow;")
-            elif self.scenario_highlight == "3mzss_0500m3s":
-                self.scenario4.setStyleSheet("background-color:black; color: white;")
         return
 
 class VisualizationTracker():
@@ -668,12 +670,9 @@ def load_scenarios():
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     scenario_location = os.path.join(dir_path, "input_files")
-    scenario_model_file = os.path.join(scenario_location, "Bouke_model_output_time_dependent.gpkg")
+    scenario_model_file = os.path.join(scenario_location, "Bouke_model_output_NCR_scenarios.gpkg")
     obs_points_model_gdf = gpd.read_file(scenario_model_file)
     obs_points_model_gdf = obs_points_model_gdf.to_crs(epsg=3857)
-    print(obs_points_model_gdf.columns)
-    print(obs_points_model_gdf.head())
-    print(obs_points_model_gdf.iloc[0]["time"])
     obs_points_bbox = obs_points_model_gdf.bounds
     x_min = obs_points_bbox["minx"].min()
     x_max = obs_points_bbox["maxx"].max()
@@ -691,14 +690,13 @@ def load_scenarios():
     #high_velocity_value = obs_points_model_gdf["water_velocity"].max()
     #water_velocity_range = CenteredNorm(halfrange=max(abs(low_velocity_value), abs(high_velocity_value)))
     #water_depth_range = Normalize(obs_points_model_gdf["water_depth"].min(), obs_points_model_gdf["water_depth"].max())
-    scenario_game_file = os.path.join(scenario_location, "Bouke_game_output_time_dependent.gpkg")
+    scenario_game_file = os.path.join(scenario_location, "Bouke_game_output_NCR_scenarios.gpkg")
     obs_points_game_gdf = gpd.read_file(scenario_game_file)
     obs_points_bbox = obs_points_game_gdf.bounds
     game_bbox = [obs_points_bbox["minx"].min(),
                  obs_points_bbox["maxx"].max(),
                  obs_points_bbox["miny"].min(),
                  obs_points_bbox["maxy"].max()]
-    print(game_bbox)
     return obs_points_model_gdf, obs_points_game_gdf, world_bbox, game_bbox, salinity_range #, water_level_range, water_velocity_range
 
 def load_images():
@@ -721,7 +719,7 @@ def main():
         qapp = QApplication(sys.argv)
     time_steps = list(sorted(set(model_scenarios["time"])))
     time_index = 0
-    starting_scenario = "default"
+    starting_scenario = "2017"
     starting_variable = "water_salinity"
     viz_tracker = VisualizationTracker(
         starting_scenario=starting_scenario, starting_variable=starting_variable,

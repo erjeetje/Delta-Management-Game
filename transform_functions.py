@@ -1,13 +1,11 @@
 import os
 import geojson
 import cv2
+import json
 import numpy as np
-from shapely import geometry
-from scipy.spatial import cKDTree
-from copy import deepcopy
 
 
-def create_calibration_file(bbox=None, save=False, path=""):
+def create_calibration_file(polygons, save=False, path=""):
     """
     Function that creates the calibration file (json format) and returns the
     transforms that can be used by other functions.
@@ -24,7 +22,7 @@ def create_calibration_file(bbox=None, save=False, path=""):
             "model",
             "img",
             "img_flipped",
-            "warped",
+            "polygons",
             "beamer",
             "tygron"
         ]
@@ -68,17 +66,36 @@ def create_calibration_file(bbox=None, save=False, path=""):
     world_bottom_left = [426804, 6726933]
     world_bottom_right = [530228, 6726933]
     """
+    """
     # EPSG:28992
     world_top_left = [48518, 454868]
     world_top_right = [112205, 453213]
     world_bottom_left = [47381, 401643]
     world_bottom_right = [111205, 400643]
+    """
+    # EPSG:4326
+    world_top_left = [3.834043, 52.0718455]
+    world_top_right = [4.7631053, 52.0655544]
+    world_bottom_left = [3.8340423, 51.5933656]
+    world_bottom_right = [4.7551842, 51.5929827]
 
     x_world_min = 530228  # left side
     x_world_max = 426804  # right side
 
     y_world_max = 6813127  # top
     y_world_min = 6726933  # bottom
+
+    def get_bbox(polygons):
+        x_coor = []
+        y_coor = []
+        for feature in polygons.features:
+            for point in feature['geometry']['coordinates'][0]:
+                x_coor.append(point[0])
+                y_coor.append(point[1])
+        return [min(x_coor), max(x_coor), min(y_coor), max(y_coor)]
+
+    x_min, x_max, y_min, y_max = get_bbox(polygons)
+
     # calibration['model'] = [62259, 448539], [113255, 448539], [113255, 406910], [62259, 406910]
     calibration['model'] = world_top_right, world_top_left, world_bottom_left, world_bottom_right
     # resolution camera; pixels of recut image of calibration points
@@ -86,12 +103,7 @@ def create_calibration_file(bbox=None, save=False, path=""):
     # resolution camera; pixels of recut image of calibration points - y flipped
     calibration['img_flipped'] = [0, img_y], [img_x, img_y], [img_x, 0], [0, 0]
     # warped hexagon features, illustrator file (pixels)
-    if bbox != None:
-        x_min = bbox[0]
-        x_max = bbox[1]
-        y_min = bbox[2]
-        y_max = bbox[3]
-        calibration['warped'] = [x_max, y_min], [x_min, y_min], [x_min, y_max], [x_max, y_max]
+    calibration['polygons'] = [x_max, y_min], [x_min, y_min], [x_min, y_max], [x_max, y_max]
     # resolution beamer; based on current VRG implementation
     calibration['beamer'] = [0, 0], [600, 0], [600, 450], [0, 450]
     # resolution tygron; 1000 x 750 meters in Tygron world
@@ -136,7 +148,7 @@ def transform(features, transforms, export=None, path=""):
     elif export == "tygron":
         transform = transforms['img2tygron']
     elif export == "warped":
-        transform = transforms['warped2model']
+        transform = transforms['polygons2model']
     else:
         print("unknown export method")
         return features

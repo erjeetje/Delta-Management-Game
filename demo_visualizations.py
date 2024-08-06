@@ -7,7 +7,7 @@ matplotlib.style.use("fast")
 import process_config_files as model_files
 import process_game_files as game_files
 import transform_functions as transform_func
-import model_to_game as game_sync
+import model_to_game_old as game_sync
 
 
 from PyQt5.QtWidgets import (QWidget, QPushButton, QLabel, QDesktopWidget, QMainWindow, QHBoxLayout, QVBoxLayout)

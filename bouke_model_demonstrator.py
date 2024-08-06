@@ -3,10 +3,13 @@
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
+import os
 import sys
 from PyQt5.QtWidgets import QApplication
 import demo_visualizations as visualizer
 import load_functions as load_files
+import model_to_game as game_sync
+import transform_functions as transform_func
 
 sys.path.insert(1, r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\version 4.3.4\IMSIDE netw\mod 4.3.4 netw')
 import runfile_td_v1 as imside_model
@@ -14,9 +17,30 @@ import runfile_td_v1 as imside_model
 
 
 def main():
-    # model = imside_model.IMSIDE()
-    # model_output = model.output
-    # print(model_output.head())
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    input_files = os.path.join(dir_path, "input_files")
+
+    model = imside_model.IMSIDE()
+    # network_df = model.network
+    output_df = model.output
+    print(output_df.columns)
+    print(output_df.iloc[0])
+    # this is NOT the network file --> grab it from the IMSIDE model!
+    output_df = game_sync.process_model_output(output_df)
+    print(output_df.head())
+
+    world_polygons = load_files.read_json_features(filename='hexagon_shapes_in_layers_Bouke_network.json', path=input_files)
+    game_hexagons = load_files.read_geojson(filename='hexagons_clean0.geojson', path=input_files)
+    # bbox = game_sync.get_bbox(world_polygons)
+    transform_calibration = transform_func.create_calibration_file(world_polygons)
+    world_polygons = transform_func.transform(world_polygons, transform_calibration, export="warped", path="")
+    print(world_polygons.features[29])
+
+    game_hexagons = game_sync.find_neighbours(game_hexagons)
+
+    world_polygons = game_sync.match_hexagon_properties(world_polygons, game_hexagons, "neighbours")
+    print(world_polygons.features[29])
+
     model_scenarios, game_scenarios, world_bbox, game_bbox, salinity_range = load_files.load_scenarios() # , water_level_range, water_velocity_range
     qapp = QApplication.instance()
     if not qapp:

@@ -15,41 +15,68 @@ import transform_functions as transform_func
 sys.path.insert(1, r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\version 4.3.4\IMSIDE netw\mod 4.3.4 netw')
 import runfile_td_v1 as imside_model
 
+class DMG():
+    def __init__(self):
+        self.load_paths()
+        self.load_model()
+        self.load_shapes()
+        self.transform_functions()
+        self.build_game_network()
+        print("we are here")
+        return
 
+
+    def load_paths(self):
+        """
+        set any core paths that need to be accessed.
+        """
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.input_files = os.path.join(dir_path, "input_files")
+        return
+
+    def load_model(self):
+        """
+        load the IMSIDE model and extract network.
+        """
+        self.model = imside_model.IMSIDE()
+        model_network_df = self.model.network
+        self.model_network_gdf = game_sync.process_model_output(model_network_df)
+        self.output_df = self.model.output
+        return
+
+    def load_shapes(self):
+        """
+        load polygons (world map) and hexagon shapes (board).
+        """
+        self.world_polygons = load_files.read_json_features(filename='hexagon_shapes_in_layers_Bouke_network.json',
+                                                       path=self.input_files)
+        self.game_hexagons = load_files.read_geojson(filename='hexagons_clean0.geojson', path=self.input_files)
+        return
+
+    def transform_functions(self):
+        """
+        create transform functions and transform polygons to correct (world) coordinates
+        """
+        self.transform_calibration = transform_func.create_calibration_file(self.world_polygons)
+        self.world_polygons = transform_func.transform(self.world_polygons, self.transform_calibration,
+                                                       export="warped", path="")
+        self.game_hexagons = game_sync.find_neighbours(self.game_hexagons)
+        self.world_polygons = game_sync.match_hexagon_properties(self.world_polygons, self.game_hexagons,
+                                                                 "neighbours")
+        return
+
+    def build_game_network(self):
+        self.game_hexagons = game_sync.find_neighbour_edges(self.game_hexagons)
+        self.world_polygons, self.model_network_gdf = game_sync.find_branch_intersections(deepcopy(self.world_polygons),
+                                                                                self.model_network_gdf)
+        self.game_hexagons = game_sync.match_hexagon_properties(deepcopy(self.game_hexagons), self.world_polygons,
+                                                           ["branches", "branch_crossing"])
+        self.model_network_gdf = game_sync.determine_polygon_intersections(self.model_network_gdf, self.world_polygons)
+        self.game_network_gdf = game_sync.draw_branch_network(self.game_hexagons, self.model_network_gdf)
+        return
 
 def main():
-    # define paths
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    input_files = os.path.join(dir_path, "input_files")
-
-    # load model and extract network
-    model = imside_model.IMSIDE()
-    model_network_df = model.network
-    output_df = model.output
-    print(model_network_df.columns)
-    print(model_network_df.iloc[0])
-    model_network_gdf = game_sync.process_model_output(model_network_df)
-    print(model_network_gdf.head())
-    print("we are here 1")
-
-    # load polygons (world map) and hexagon shapes (board)
-    world_polygons = load_files.read_json_features(filename='hexagon_shapes_in_layers_Bouke_network.json', path=input_files)
-    game_hexagons = load_files.read_geojson(filename='hexagons_clean0.geojson', path=input_files)
-
-    # create transform functions and transform polygons to correct (world) coordinates
-    transform_calibration = transform_func.create_calibration_file(world_polygons)
-    world_polygons = transform_func.transform(world_polygons, transform_calibration, export="warped", path="")
-    game_hexagons = game_sync.find_neighbours(game_hexagons)
-    world_polygons = game_sync.match_hexagon_properties(world_polygons, game_hexagons, "neighbours")
-
-    # find neighbours and network across polygons
-    game_hexagons = game_sync.find_neighbour_edges(game_hexagons)
-    world_polygons, model_network_gdf = game_sync.find_branch_intersections(deepcopy(world_polygons), model_network_gdf)
-    game_hexagons = game_sync.match_hexagon_properties(deepcopy(game_hexagons), world_polygons,
-                                                       ["branches", "branch_crossing"])
-    model_network_gdf = game_sync.determine_polygon_intersections(model_network_gdf, world_polygons)
-    game_network_gdf = game_sync.draw_branch_network(game_hexagons, model_network_gdf)
-    print("we are here 2")
+    game = DMG()
 
 
 
@@ -57,7 +84,7 @@ def main():
 
 
 
-
+    """
     model_scenarios, game_scenarios, world_bbox, game_bbox, salinity_range = load_files.load_scenarios() # , water_level_range, water_velocity_range
     qapp = QApplication.instance()
     if not qapp:
@@ -83,6 +110,7 @@ def main():
     gui.raise_()
     qapp.exec()
     #locations = model_locations()
+    """
 
 
 # Press the green button in the gutter to run the script.

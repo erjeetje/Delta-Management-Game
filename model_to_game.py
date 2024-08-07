@@ -13,7 +13,7 @@ from scipy.spatial import cKDTree
 from copy import deepcopy
 
 
-def process_model_output(model_network_df):
+def process_model_network(model_network_df):
     model_network_df = model_network_df.reset_index()
     model_network_df = model_network_df.rename(columns={"Name": "index", "index": "Name"})
     model_network_df = model_network_df.set_index("index")
@@ -238,8 +238,6 @@ def draw_branch_network(hexagons, branches_gdf):
             hex_geom = shape(hexagon_ref.geometry)
             mid_point = np.asarray(hex_geom.centroid.xy)
             line_points.append(mid_point)
-        if branch["Name"] == "Hollands Diep 1":
-            print(line_points)
         if len(line_points) > 1:
             branch_line = LineString(line_points)
             branches_properties_df.loc[index, "geometry"] = branch_line
@@ -252,3 +250,135 @@ def draw_branch_network(hexagons, branches_gdf):
     branches_game_gdf = branches_game_gdf.rename(columns={"polygon_ids": "hexagon_ids"})
     branches_game_gdf = branches_game_gdf.set_index("index")
     return branches_game_gdf
+
+def process_model_output(model_output_df):
+    if False:
+        row=3
+        print("number of points:", len(model_output_df.iloc[row]["px"]))
+        salinity_values = model_output_df.iloc[row]["sb_st"]
+        print("timesteps?", len(salinity_values))
+        print("salinity values matching points?", len(salinity_values[0]))
+        for values in model_output_df.iloc[0]:
+            print(len(values))
+    if True:
+        print(type(model_output_df.iloc[0]["sb_st"]))
+    timesteps = list(range(len(model_output_df.iloc[0]["sb_st"])))
+    timeseries = pd.to_datetime(pd.Timestamp('2020-06-01')) + pd.to_timedelta(timesteps, unit='D')
+    model_output_df["time"] = [timeseries for i in model_output_df.index]
+    columns_to_explode = ["sss", "sb_st", "sn_st", "sp_st", "s_st", "time"]
+
+    # just a quick check for element counts
+    for i in range(len(model_output_df)):
+        for column in columns_to_explode:
+            print("element count", column, ":", len(model_output_df.iloc[i][column]))
+        print("")
+    exploded_output_df = model_output_df.explode(columns_to_explode)
+
+    def add_point_ids(points, name):
+        number_of_points = list(range(len(points)))
+        branch_name = [name for point in points]
+        point_ids = []
+        for n in range(len(branch_name)):
+            point_ids.append("" + branch_name[n] + "_" + str(number_of_points[n]))
+        return point_ids
+
+    exploded_output_df["id"] = exploded_output_df.apply(lambda row: add_point_ids(row["px"], row.name), axis=1)
+
+    def add_branch_rank(points):
+        return list(range(1, len(points) + 1))
+
+    exploded_output_df['branch_rank'] = exploded_output_df.apply(lambda row: add_branch_rank(row["px"]), axis=1)
+    for values in exploded_output_df.iloc[0]:
+        if isinstance(values, np.ndarray):
+            print(len(values))
+
+    next_columns_to_explode = ["px", "sb_st", "sn_st", "s_st", "plot xs", "plot ys", "points", "id", "branch_rank"]
+
+    # just a quick check for element counts
+    for i in range(len(exploded_output_df)):
+        print(exploded_output_df.iloc[i].name)
+        for column in next_columns_to_explode:
+            print("element count", column, ":", len(exploded_output_df.iloc[i][column]))
+        print("")
+
+    double_exploded_output_df = exploded_output_df.explode(next_columns_to_explode)
+    output_points_geometry = gpd.points_from_xy(double_exploded_output_df['plot xs'],
+                                                double_exploded_output_df['plot ys'], crs="EPSG:4326")
+    network_model_output_gdf = gpd.GeoDataFrame(double_exploded_output_df[['id', 'branch_rank', 'time', 'sb_st']],
+                                                geometry=output_points_geometry)
+    return network_model_output_gdf, exploded_output_df
+
+def add_polygon_ids(network_model_output_gdf, polygons):
+    def match_points_to_polygon(point, polygon):
+        for polygon in polygon.features:
+            poly_geom = shape(polygon.geometry)
+            if poly_geom.contains(point):
+                return polygon.id
+        return np.nan
+
+    network_model_output_gdf["polygon_id"] = network_model_output_gdf.apply(
+        lambda row: match_points_to_polygon(row["geometry"], polygons), axis=1)
+    network_model_output_gdf = network_model_output_gdf.dropna()
+
+    def update_branch_ranks(rank, branch, correction):
+        branch_correction = correction[branch]
+        return rank - branch_correction
+
+    branches = list(set(network_model_output_gdf.index))
+
+    ranks_to_update = {}
+    for branch in branches:
+        rank_value = min(network_model_output_gdf.loc[branch]["branch_rank"]) - 1
+        ranks_to_update[branch] = rank_value
+    print(ranks_to_update)
+
+    network_model_output_gdf["branch_rank"] = network_model_output_gdf.apply(
+        lambda row: update_branch_ranks(row["branch_rank"], row.name, ranks_to_update), axis=1)
+    return network_model_output_gdf
+
+
+def model_output_to_game_locations(game_network_gdf, network_model_output_gdf, exploded_output_df):
+    date = exploded_output_df.iloc[0]["time"]
+    output_point_location_gdf = network_model_output_gdf.loc[network_model_output_gdf['time'] == date]
+    output_locations_count_series = output_point_location_gdf.groupby(level=0).branch_rank.agg('count')
+
+    game_network_gdf = game_network_gdf.reset_index()
+    game_network_gdf = game_network_gdf.rename(columns={"index": "Name", "Name": "index"})
+    game_network_gdf = game_network_gdf.set_index("index")
+
+    print(len(game_network_gdf))
+    print(len(output_locations_count_series))
+
+    game_network_gdf = game_network_gdf.merge(output_locations_count_series.to_frame(), left_index=True,
+                                              right_index=True)
+    game_network_gdf = game_network_gdf.rename(columns={"branch_rank": "obs_count"})
+
+    def create_game_obs_points(obs_points_model_gdf, branches_game_gdf):
+        def update_obs_point_geometry(obs_branch_id, obs_branch_rank, branches):
+            branch_dist = branches.loc[obs_branch_id, "distance"]
+            branch_obs_count = branches.loc[obs_branch_id, "obs_count"]
+            branch_spacing = branch_dist / branch_obs_count
+            obs_to_line = -0.5 * branch_spacing + obs_branch_rank * branch_spacing
+            point = line_interpolate_point(branches.loc[obs_branch_id, "geometry"], obs_to_line)
+            return point
+
+        obs_points_game_df = obs_points_model_gdf.drop(columns="geometry")
+        obs_points_game_df = obs_points_game_df.reset_index()
+        obs_points_game_df["geometry"] = obs_points_game_df.apply(
+            lambda row: update_obs_point_geometry(row["index"], row["branch_rank"], branches_game_gdf), axis=1)
+        obs_points_game_gdf = gpd.GeoDataFrame(obs_points_game_df, geometry=obs_points_game_df["geometry"])
+        return obs_points_game_gdf
+
+    game_output_gdf = create_game_obs_points(network_model_output_gdf, game_network_gdf)
+    return game_output_gdf
+
+def output_to_timeseries(output_gdf, scenario=None):
+    timeseries_gdf = output_gdf.reset_index()
+    timeseries_gdf["id"] = timeseries_gdf["index"] + "_" + timeseries_gdf[
+        "branch_rank"].astype(str)
+    timeseries_gdf["sb_st"] = timeseries_gdf["sb_st"].astype(float)
+    #timeseries_gdf["water_salinity"] = timeseries_gdf["sb_st"]
+    timeseries_gdf = timeseries_gdf.rename(columns={"sb_st": "water_salinity"})
+    if scenario is not None:
+        timeseries_gdf["scenario"] = scenario
+    return timeseries_gdf

@@ -5,6 +5,7 @@
 
 import os
 import sys
+import pandas as pd
 from copy import deepcopy
 from PyQt5.QtWidgets import QApplication
 import demo_visualizations as visualizer
@@ -22,7 +23,8 @@ class DMG():
         self.load_shapes()
         self.transform_functions()
         self.build_game_network()
-        self.run_model()
+        model_output_df = self.run_model()
+        self.model_output_to_game(model_output_df)
         print("we are here")
         return
 
@@ -41,7 +43,7 @@ class DMG():
         """
         self.model = imside_model.IMSIDE()
         model_network_df = self.model.network
-        self.model_network_gdf = game_sync.process_model_output(model_network_df)
+        self.model_network_gdf = game_sync.process_model_network(model_network_df)
         return
 
     def load_shapes(self):
@@ -77,9 +79,17 @@ class DMG():
 
     def run_model(self):
         self.model.run_model()
-        self.output_df = self.model.output
-        return
+        return self.model.output
 
+    def model_output_to_game(self, model_output_df):
+        model_output_gdf, exploded_output_df = game_sync.process_model_output(model_output_df)
+        self.model_output_gdf = game_sync.add_polygon_ids(model_output_gdf, self.world_polygons)
+        # NOTE: first point in Lek is double ? check source
+        # NOTE 2: first and last points all match earlier runs, but there are less points in Lek ? check source
+        self.game_output_gdf = game_sync.model_output_to_game_locations(self.game_network_gdf, self.model_output_gdf,
+                                                                        exploded_output_df)
+        self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, scenario="2100he")
+        self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, scenario="2100he")
 def main():
     game = DMG()
 

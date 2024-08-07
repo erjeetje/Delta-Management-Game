@@ -22,6 +22,7 @@ class DMG():
         self.load_shapes()
         self.transform_functions()
         self.build_game_network()
+        self.run_model()
         print("we are here")
         return
 
@@ -41,7 +42,6 @@ class DMG():
         self.model = imside_model.IMSIDE()
         model_network_df = self.model.network
         self.model_network_gdf = game_sync.process_model_output(model_network_df)
-        self.output_df = self.model.output
         return
 
     def load_shapes(self):
@@ -73,6 +73,11 @@ class DMG():
                                                            ["branches", "branch_crossing"])
         self.model_network_gdf = game_sync.determine_polygon_intersections(self.model_network_gdf, self.world_polygons)
         self.game_network_gdf = game_sync.draw_branch_network(self.game_hexagons, self.model_network_gdf)
+        return
+
+    def run_model(self):
+        self.model.run_model()
+        self.output_df = self.model.output
         return
 
 def main():

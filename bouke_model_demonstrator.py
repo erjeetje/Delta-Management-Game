@@ -5,6 +5,7 @@
 
 import os
 import sys
+from copy import deepcopy
 from PyQt5.QtWidgets import QApplication
 import demo_visualizations as visualizer
 import load_functions as load_files
@@ -17,29 +18,45 @@ import runfile_td_v1 as imside_model
 
 
 def main():
+    # define paths
     dir_path = os.path.dirname(os.path.realpath(__file__))
     input_files = os.path.join(dir_path, "input_files")
 
+    # load model and extract network
     model = imside_model.IMSIDE()
-    # network_df = model.network
+    model_network_df = model.network
     output_df = model.output
-    print(output_df.columns)
-    print(output_df.iloc[0])
-    # this is NOT the network file --> grab it from the IMSIDE model!
-    output_df = game_sync.process_model_output(output_df)
-    print(output_df.head())
+    print(model_network_df.columns)
+    print(model_network_df.iloc[0])
+    model_network_gdf = game_sync.process_model_output(model_network_df)
+    print(model_network_gdf.head())
+    print("we are here 1")
 
+    # load polygons (world map) and hexagon shapes (board)
     world_polygons = load_files.read_json_features(filename='hexagon_shapes_in_layers_Bouke_network.json', path=input_files)
     game_hexagons = load_files.read_geojson(filename='hexagons_clean0.geojson', path=input_files)
-    # bbox = game_sync.get_bbox(world_polygons)
+
+    # create transform functions and transform polygons to correct (world) coordinates
     transform_calibration = transform_func.create_calibration_file(world_polygons)
     world_polygons = transform_func.transform(world_polygons, transform_calibration, export="warped", path="")
-    print(world_polygons.features[29])
-
     game_hexagons = game_sync.find_neighbours(game_hexagons)
-
     world_polygons = game_sync.match_hexagon_properties(world_polygons, game_hexagons, "neighbours")
-    print(world_polygons.features[29])
+
+    # find neighbours and network across polygons
+    game_hexagons = game_sync.find_neighbour_edges(game_hexagons)
+    world_polygons, model_network_gdf = game_sync.find_branch_intersections(deepcopy(world_polygons), model_network_gdf)
+    game_hexagons = game_sync.match_hexagon_properties(deepcopy(game_hexagons), world_polygons,
+                                                       ["branches", "branch_crossing"])
+    model_network_gdf = game_sync.determine_polygon_intersections(model_network_gdf, world_polygons)
+    game_network_gdf = game_sync.draw_branch_network(game_hexagons, model_network_gdf)
+    print("we are here 2")
+
+
+
+
+
+
+
 
     model_scenarios, game_scenarios, world_bbox, game_bbox, salinity_range = load_files.load_scenarios() # , water_level_range, water_velocity_range
     qapp = QApplication.instance()

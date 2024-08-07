@@ -5,13 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="761f18cf-aed8-4002-b562-2aab5055ed9d" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/model_to_game_old.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bouke_model_demonstrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/bouke_model_demonstrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo_visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo_visualizations.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/load_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/load_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/model_to_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_to_game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transform_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/transform_functions.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -24,9 +24,13 @@ class DMG():
         self.transform_functions()
         self.build_game_network()
         model_output_df = self.run_model()
-        self.model_output_to_game(model_output_df)
+        self.model_output_to_game(model_output_df, initialize=True)
         print("we are here")
         return
+
+    def update(self):
+        model_output_df = self.run_model(turn=2)
+        self.model_output_to_game(model_output_df)
 
 
     def load_paths(self):
@@ -35,6 +39,7 @@ class DMG():
         """
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.input_files = os.path.join(dir_path, "input_files")
+        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 DMG design\coding (notebooks)\live demonstrator coding"
         return
 
     def load_model(self):
@@ -77,21 +82,45 @@ class DMG():
         self.game_network_gdf = game_sync.draw_branch_network(self.game_hexagons, self.model_network_gdf)
         return
 
-    def run_model(self):
-        self.model.run_model()
+    def run_model(self, turn=1):
+        self.model.run_model(turn=turn)
         return self.model.output
 
-    def model_output_to_game(self, model_output_df):
-        model_output_gdf, exploded_output_df = game_sync.process_model_output(model_output_df)
-        self.model_output_gdf = game_sync.add_polygon_ids(model_output_gdf, self.world_polygons)
-        # NOTE: first point in Lek is double ? check source
-        # NOTE 2: first and last points all match earlier runs, but there are less points in Lek ? check source
-        self.game_output_gdf = game_sync.model_output_to_game_locations(self.game_network_gdf, self.model_output_gdf,
-                                                                        exploded_output_df)
-        self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, scenario="2100he")
-        self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, scenario="2100he")
+    def model_output_to_game(self, model_output_df, initialize=False):
+        double_exploded_output_df, exploded_output_df = game_sync.process_model_output(model_output_df)
+        if initialize == True:
+            model_output_gdf = game_sync.output_df_to_gdf(double_exploded_output_df)
+            self.model_output_gdf = game_sync.add_polygon_ids(model_output_gdf, self.world_polygons)
+            # NOTE: first point in Lek is double ? check source
+            # NOTE 2: first and last points all match earlier runs, but there are less points in Lek ? check source
+            self.game_output_gdf = game_sync.model_output_to_game_locations(self.game_network_gdf,
+                                                                            self.model_output_gdf, exploded_output_df)
+            timestep_0 = self.model_output_gdf.iloc[0]["time"]
+            self.model_output_ref_gdf = self.model_output_gdf.loc[self.model_output_gdf['time'] == timestep_0]
+            self.model_output_ref_gdf = self.model_output_ref_gdf.drop(columns=["time", "sb_st"])
+            self.game_output_ref_gdf = self.game_output_gdf.loc[self.game_output_gdf['time'] == timestep_0]
+            self.game_output_ref_gdf = self.game_output_ref_gdf.drop(columns=["time", "sb_st"])
+            self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, scenario="2100he")
+            self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, scenario="2100he")
+        else:
+            output_to_merge_df = double_exploded_output_df[["id", "time", "sb_st"]]
+            self.model_output_gdf = self.model_output_ref_gdf.merge(output_to_merge_df, on="id")
+            self.game_output_gdf = self.game_output_ref_gdf.merge(output_to_merge_df, on="id")
+            self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, scenario="2100le")
+            self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, scenario="2100le")
+        if True:
+            self.model_output_gdf.to_excel(os.path.join(self.save_path, "model_network_gdf.xlsx"), index=False)
+            self.game_output_gdf.to_excel(os.path.join(self.save_path, "game_network_gdf.xlsx"), index=False)
+        return
+
+
+
+
 def main():
     game = DMG()
+    print("initiliazed")
+    game.update()
+    print("updated")
 
 
 

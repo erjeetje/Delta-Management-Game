@@ -3,10 +3,12 @@ import re
 import json
 import geojson
 import cv2
+import time
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
+from datetime import timedelta
 from shapely import intersects, get_coordinates, line_interpolate_point
 from shapely.geometry import Point, LineString, shape
 from scipy.spatial import cKDTree
@@ -205,7 +207,8 @@ def determine_polygon_intersections(branches_gdf, polygons):
                 if poly_geom.contains(point):
                     if polygon.id not in intersecting_polygons:
                         intersecting_polygons.append(polygon.id)
-        print(i, intersecting_polygons)
+        if False:
+            print(i, intersecting_polygons)
         if intersecting_polygons:
             return intersecting_polygons
         else:
@@ -252,9 +255,12 @@ def draw_branch_network(hexagons, branches_gdf):
     return branches_game_gdf
 
 def process_model_output(model_output_df):
+    #starttime = time.perf_counter()
     timesteps = list(range(len(model_output_df.iloc[0]["sb_st"])))
     timeseries = pd.to_datetime(pd.Timestamp('2020-06-01')) + pd.to_timedelta(timesteps, unit='D')
     model_output_df["time"] = [timeseries for i in model_output_df.index]
+    #duration = timedelta(seconds=time.perf_counter() - starttime)
+    #print('Job took: ', duration)
     columns_to_explode = ["sss", "sb_st", "sn_st", "sp_st", "s_st", "time"]
 
     # just a quick check for element counts
@@ -295,11 +301,15 @@ def process_model_output(model_output_df):
             print("")
 
     double_exploded_output_df = exploded_output_df.explode(next_columns_to_explode)
+    return double_exploded_output_df, exploded_output_df
+
+
+def output_df_to_gdf(double_exploded_output_df):
     output_points_geometry = gpd.points_from_xy(double_exploded_output_df['plot xs'],
                                                 double_exploded_output_df['plot ys'], crs="EPSG:4326")
     network_model_output_gdf = gpd.GeoDataFrame(double_exploded_output_df[['id', 'branch_rank', 'time', 'sb_st']],
                                                 geometry=output_points_geometry)
-    return network_model_output_gdf, exploded_output_df
+    return network_model_output_gdf
 
 def add_polygon_ids(network_model_output_gdf, polygons):
     def match_points_to_polygon(point, polygon):
@@ -359,18 +369,19 @@ def model_output_to_game_locations(game_network_gdf, network_model_output_gdf, e
         obs_points_game_df["geometry"] = obs_points_game_df.apply(
             lambda row: update_obs_point_geometry(row["index"], row["branch_rank"], branches_game_gdf), axis=1)
         obs_points_game_gdf = gpd.GeoDataFrame(obs_points_game_df, geometry=obs_points_game_df["geometry"])
+        obs_points_game_gdf = obs_points_game_gdf.set_index("index")
         return obs_points_game_gdf
 
     game_output_gdf = create_game_obs_points(network_model_output_gdf, game_network_gdf)
     return game_output_gdf
 
 def output_to_timeseries(output_gdf, scenario=None):
-    timeseries_gdf = output_gdf.reset_index()
-    timeseries_gdf["id"] = timeseries_gdf["index"] + "_" + timeseries_gdf[
-        "branch_rank"].astype(str)
-    timeseries_gdf["sb_st"] = timeseries_gdf["sb_st"].astype(float)
+    #timeseries_gdf = output_gdf.reset_index()
+    #timeseries_gdf["id"] = timeseries_gdf["index"] + "_" + timeseries_gdf[
+    #    "branch_rank"].astype(str)
+    output_gdf["sb_st"] = output_gdf["sb_st"].astype(float)
     #timeseries_gdf["water_salinity"] = timeseries_gdf["sb_st"]
-    timeseries_gdf = timeseries_gdf.rename(columns={"sb_st": "water_salinity"})
+    output_gdf = output_gdf.rename(columns={"sb_st": "water_salinity"})
     if scenario is not None:
-        timeseries_gdf["scenario"] = scenario
-    return timeseries_gdf
+        output_gdf["scenario"] = scenario
+    return output_gdf

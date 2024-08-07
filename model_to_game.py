@@ -186,7 +186,7 @@ def find_branch_intersections(polygons, branches):
                                 #    print(neighbour_midpoint.distance(midpoint))
                                 if neighbour_midpoint.distance(midpoint) < 0.006:
                                     polygon.properties["branch_crossing"][neighbour_polygon.id] = branch["Name"]
-                                    print("branch crossing between", polygon.id, "and", neighbour_polygon.id)
+                                    #print("branch crossing between", polygon.id, "and", neighbour_polygon.id)
                                     #print(branch.properties["id"], coords)
                                     #polygon.properties["branch_crossing_coor"][branch.properties["id"]] = coords
     return polygons, branches
@@ -252,26 +252,17 @@ def draw_branch_network(hexagons, branches_gdf):
     return branches_game_gdf
 
 def process_model_output(model_output_df):
-    if False:
-        row=3
-        print("number of points:", len(model_output_df.iloc[row]["px"]))
-        salinity_values = model_output_df.iloc[row]["sb_st"]
-        print("timesteps?", len(salinity_values))
-        print("salinity values matching points?", len(salinity_values[0]))
-        for values in model_output_df.iloc[0]:
-            print(len(values))
-    if True:
-        print(type(model_output_df.iloc[0]["sb_st"]))
     timesteps = list(range(len(model_output_df.iloc[0]["sb_st"])))
     timeseries = pd.to_datetime(pd.Timestamp('2020-06-01')) + pd.to_timedelta(timesteps, unit='D')
     model_output_df["time"] = [timeseries for i in model_output_df.index]
     columns_to_explode = ["sss", "sb_st", "sn_st", "sp_st", "s_st", "time"]
 
     # just a quick check for element counts
-    for i in range(len(model_output_df)):
-        for column in columns_to_explode:
-            print("element count", column, ":", len(model_output_df.iloc[i][column]))
-        print("")
+    if False:
+        for i in range(len(model_output_df)):
+            for column in columns_to_explode:
+                print("element count", column, ":", len(model_output_df.iloc[i][column]))
+            print("")
     exploded_output_df = model_output_df.explode(columns_to_explode)
 
     def add_point_ids(points, name):
@@ -288,18 +279,20 @@ def process_model_output(model_output_df):
         return list(range(1, len(points) + 1))
 
     exploded_output_df['branch_rank'] = exploded_output_df.apply(lambda row: add_branch_rank(row["px"]), axis=1)
-    for values in exploded_output_df.iloc[0]:
-        if isinstance(values, np.ndarray):
-            print(len(values))
+    if False:
+        for values in exploded_output_df.iloc[0]:
+            if isinstance(values, np.ndarray):
+                print(len(values))
 
     next_columns_to_explode = ["px", "sb_st", "sn_st", "s_st", "plot xs", "plot ys", "points", "id", "branch_rank"]
 
     # just a quick check for element counts
-    for i in range(len(exploded_output_df)):
-        print(exploded_output_df.iloc[i].name)
-        for column in next_columns_to_explode:
-            print("element count", column, ":", len(exploded_output_df.iloc[i][column]))
-        print("")
+    if False:
+        for i in range(len(exploded_output_df)):
+            print(exploded_output_df.iloc[i].name)
+            for column in next_columns_to_explode:
+                print("element count", column, ":", len(exploded_output_df.iloc[i][column]))
+            print("")
 
     double_exploded_output_df = exploded_output_df.explode(next_columns_to_explode)
     output_points_geometry = gpd.points_from_xy(double_exploded_output_df['plot xs'],
@@ -330,7 +323,7 @@ def add_polygon_ids(network_model_output_gdf, polygons):
     for branch in branches:
         rank_value = min(network_model_output_gdf.loc[branch]["branch_rank"]) - 1
         ranks_to_update[branch] = rank_value
-    print(ranks_to_update)
+    #print(ranks_to_update)
 
     network_model_output_gdf["branch_rank"] = network_model_output_gdf.apply(
         lambda row: update_branch_ranks(row["branch_rank"], row.name, ranks_to_update), axis=1)
@@ -346,8 +339,7 @@ def model_output_to_game_locations(game_network_gdf, network_model_output_gdf, e
     game_network_gdf = game_network_gdf.rename(columns={"index": "Name", "Name": "index"})
     game_network_gdf = game_network_gdf.set_index("index")
 
-    print(len(game_network_gdf))
-    print(len(output_locations_count_series))
+    assert len(game_network_gdf) == len(output_locations_count_series)
 
     game_network_gdf = game_network_gdf.merge(output_locations_count_series.to_frame(), left_index=True,
                                               right_index=True)

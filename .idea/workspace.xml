@@ -5,7 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="761f18cf-aed8-4002-b562-2aab5055ed9d" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/demo_processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bouke_model_demonstrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/bouke_model_demonstrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo_visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo_visualizations.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/model_to_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_to_game.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -38,6 +41,7 @@
   "keyToString": {
     "Python.bouke_model_demonstrator.executor": "Run",
     "Python.main.executor": "Run",
+    "Python.model_to_game.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",

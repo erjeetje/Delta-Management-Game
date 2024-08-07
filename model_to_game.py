@@ -1,13 +1,7 @@
-import os
-import re
-import json
-import geojson
-import cv2
 import time
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-import matplotlib.pyplot as plt
 from datetime import timedelta
 from shapely import intersects, get_coordinates, line_interpolate_point
 from shapely.geometry import Point, LineString, shape
@@ -369,7 +363,7 @@ def model_output_to_game_locations(game_network_gdf, network_model_output_gdf, e
         obs_points_game_df["geometry"] = obs_points_game_df.apply(
             lambda row: update_obs_point_geometry(row["index"], row["branch_rank"], branches_game_gdf), axis=1)
         obs_points_game_gdf = gpd.GeoDataFrame(obs_points_game_df, geometry=obs_points_game_df["geometry"])
-        obs_points_game_gdf = obs_points_game_gdf.set_index("index")
+        obs_points_game_gdf = obs_points_game_gdf.drop(columns="index")
         return obs_points_game_gdf
 
     game_output_gdf = create_game_obs_points(network_model_output_gdf, game_network_gdf)

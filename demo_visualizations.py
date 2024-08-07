@@ -313,6 +313,10 @@ class ControlWidget(QWidget):
         self.scenario4.resize(180, 80)
         self.scenario4.move(10, 580)
         """
+        self.scenario4 = QPushButton('2100le', self)
+        self.scenario4.clicked.connect(self.on_scenario4_button_clicked)
+        self.scenario4.resize(180, 80)
+        self.scenario4.move(10, 580)
         self.scenario3 = QPushButton('2100he', self)
         self.scenario3.clicked.connect(self.on_scenario3_button_clicked)
         self.scenario3.resize(180, 80)
@@ -369,6 +373,11 @@ class ControlWidget(QWidget):
 
     def on_scenario3_button_clicked(self):
         self.viz_tracker.scenario = "2100he"
+        self.change_highlights()
+        return
+
+    def on_scenario4_button_clicked(self):
+        self.viz_tracker.scenario = "2100le"
         self.change_highlights()
         return
 

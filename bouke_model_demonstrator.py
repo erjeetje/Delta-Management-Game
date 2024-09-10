@@ -72,30 +72,25 @@ class DMG():
         self.model.change_forcings(scenario=self.scenario)
         return
 
-    def update_channel_geometries(self, turn=1):
-        if turn == 1:
-            scenario = "2017"
-        if turn == 2:
-            scenario = "2018"
+    def update_channel_geometries(self, change_type):
+        if self.turn == 1:
+            return
+        elif self.turn == 2:
             channels_to_update = ["Nieuwe Waterweg v2"]
             for channel in channels_to_update:
-                self.model.change_channel_geometry(channel, change_type="deepen")
-        elif turn == 3:
-            scenario = "2100le"
+                self.model.change_channel_geometry(channel, change_type=change_type)
+        elif self.turn == 3:
             channels_to_update = ["Nieuwe Maas 1 old", "Nieuwe Maas 2 old"]
             for channel in channels_to_update:
-                self.model.change_channel_geometry(channel, change_type="deepen")
-        elif turn == 4:
-            scenario = "2100he"
+                self.model.change_channel_geometry(channel, change_type=change_type)
+        elif self.turn == 4:
             channels_to_update = ["Oude Maas 1", "Oude Maas 2", "Oude Maas 3", "Oude Maas 4"]
             for channel in channels_to_update:
-                self.model.change_channel_geometry(channel, change_type="deepen")
+                self.model.change_channel_geometry(channel, change_type=change_type)
         else:
             print("unsupported turn")
-        model_output_df = self.run_model()
-        self.model_output_to_game(model_output_df, scenario=scenario)
-        if turn == 4:
-            self.create_visualizations()
+            return
+        return
 
 
     def load_paths(self):
@@ -235,18 +230,12 @@ class DMG():
 def main():
     game = DMG()
     print("initiliazed")
-    game.turn = 2
-    game.update_forcings()
-    game.update()
-    print("updated to turn 2")
-    game.turn = 3
-    game.update_forcings()
-    game.update()
-    print("updated to turn 3")
-    game.turn = 4
-    game.update_forcings()
-    game.update()
-    print("updated to turn 4")
+    for turn in range(2,5):
+        game.turn = turn
+        game.update_forcings()
+        game.update_channel_geometries(change_type="undeepen")
+        game.update()
+        print("updated to turn ", turn)
     """
 
     game.update_geometries_test(turn=2)

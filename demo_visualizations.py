@@ -313,22 +313,22 @@ class ControlWidget(QWidget):
         self.scenario4.resize(180, 80)
         self.scenario4.move(10, 580)
         """
-        self.scenario4 = QPushButton('2100le', self)
+        self.scenario4 = QPushButton('2100he +\n undeepened Oude Maas', self)
         self.scenario4.clicked.connect(self.on_scenario4_button_clicked)
         self.scenario4.resize(180, 80)
-        self.scenario4.move(10, 580)
-        self.scenario3 = QPushButton('2100he', self)
+        self.scenario4.move(210, 700)
+        self.scenario3 = QPushButton('2100le +\n undeepened Nieuwe Maas', self)
         self.scenario3.clicked.connect(self.on_scenario3_button_clicked)
         self.scenario3.resize(180, 80)
-        self.scenario3.move(210, 580)
-        self.scenario2 = QPushButton('2018', self)
+        self.scenario3.move(10, 700)
+        self.scenario2 = QPushButton('2018 +\n undeepened Nieuwe Waterweg', self)
         self.scenario2.clicked.connect(self.on_scenario2_button_clicked)
         self.scenario2.resize(180, 80)
-        self.scenario2.move(10, 700)
+        self.scenario2.move(210, 580)
         self.scenario1 = QPushButton('2017', self)
         self.scenario1.clicked.connect(self.on_scenario1_button_clicked)
         self.scenario1.resize(180, 80)
-        self.scenario1.move(210, 700)
+        self.scenario1.move(10, 580)
         return
 
     def on_screen_salinity_button_clicked(self):
@@ -372,12 +372,12 @@ class ControlWidget(QWidget):
         return
 
     def on_scenario3_button_clicked(self):
-        self.viz_tracker.scenario = "2100he"
+        self.viz_tracker.scenario = "2100le"
         self.change_highlights()
         return
 
     def on_scenario4_button_clicked(self):
-        self.viz_tracker.scenario = "2100le"
+        self.viz_tracker.scenario = "2100he"
         self.change_highlights()
         return
 

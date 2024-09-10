@@ -52,13 +52,21 @@ class DMG():
         return
 
     def update(self):
+        """
+        function that handles running the model and retrieving the model output.
+        """
         model_output_df = self.run_model()
+        # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
+        # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
         self.model_output_to_game(model_output_df, scenario=self.scenario)
         if self.turn == 4:
             self.create_visualizations()
         return
 
     def update_forcings(self):
+        """
+        function that handles updating the model forcings to subsequent turns (final scenario forcings to be determined)
+        """
         if self.turn == 1:
             self.scenario = "2017"
         elif self.turn == 2:
@@ -73,6 +81,10 @@ class DMG():
         return
 
     def update_channel_geometries(self, change_type):
+        """
+        function that handles any players actions to update the correct geometry in the model. Currently hard-coded,
+        will be updated with the live board link.
+        """
         if self.turn == 1:
             return
         elif self.turn == 2:
@@ -88,8 +100,7 @@ class DMG():
             for channel in channels_to_update:
                 self.model.change_channel_geometry(channel, change_type=change_type)
         else:
-            print("unsupported turn")
-            return
+            print("unsupported turn, no change to any geometry")
         return
 
 
@@ -122,7 +133,7 @@ class DMG():
 
     def transform_functions(self):
         """
-        create transform functions and transform polygons to correct (world) coordinates
+        create transform functions and transform polygons to correct (world) coordinates.
         """
         self.transform_calibration = transform_func.create_calibration_file(self.world_polygons)
         self.world_polygons = transform_func.transform(self.world_polygons, self.transform_calibration,
@@ -133,6 +144,9 @@ class DMG():
         return
 
     def build_game_network(self):
+        """
+        function that calls all functions to process the model network to the game network on a regular grid.
+        """
         self.game_hexagons = game_sync.find_neighbour_edges(self.game_hexagons)
         self.world_polygons, self.model_network_gdf = game_sync.find_branch_intersections(deepcopy(self.world_polygons),
                                                                                           self.model_network_gdf)
@@ -143,10 +157,16 @@ class DMG():
         return
 
     def run_model(self, scenario="2017"):
+        """
+        call the function run_model function of the model object and retrieve the output.
+        """
         self.model.run_model()
         return self.model.output
 
     def model_output_to_game(self, model_output_df, initialize=False, scenario="2017"):
+        """
+        function to process the model output to the model and game output geodataframes respectively.
+        """
         start_time = time.perf_counter()
         double_exploded_output_df, exploded_output_df = game_sync.process_model_output(model_output_df)
         if initialize == True:
@@ -196,6 +216,9 @@ class DMG():
         return
 
     def create_visualizations(self):
+        """
+        function that sets up and runs the demonstrator visualizations.
+        """
         world_bbox = demo_processing.get_bbox(self.model_output_gdf, gdf_type="world")
         game_bbox = demo_processing.get_bbox(self.game_output_gdf, gdf_type="game")
         salinity_range = demo_processing.get_salinity_scale(self.model_output_gdf)
@@ -223,8 +246,6 @@ class DMG():
         gui.raise_()
         qapp.exec()
         return
-
-
 
 
 def main():

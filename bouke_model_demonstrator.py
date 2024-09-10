@@ -26,24 +26,73 @@ class DMG():
         self.load_shapes()
         self.transform_functions()
         self.build_game_network()
+        self._turn = 1
+        self._scenario = "2017"
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
         #self.create_visualizations()
         print("we are here")
         return
 
-    def update(self, turn=1):
-        if turn == 1:
-            scenario = "2017"
-        elif turn == 2:
-            scenario = "2018"
-        elif turn == 3:
-            scenario = "2100le"
-        elif turn == 4:
-            scenario = "2100he"
+    @property
+    def turn(self):
+        return self._turn
+    @turn.setter
+    def turn(self, turn):
+        self._turn = turn
+        return
+
+    @property
+    def scenario(self):
+        return self._scenario
+
+    @scenario.setter
+    def scenario(self, scenario):
+        self._scenario = scenario
+        return
+
+    def update(self):
+        model_output_df = self.run_model()
+        self.model_output_to_game(model_output_df, scenario=self.scenario)
+        if self.turn == 4:
+            self.create_visualizations()
+        return
+
+    def update_forcings(self):
+        if self.turn == 1:
+            self.scenario = "2017"
+        elif self.turn == 2:
+            self.scenario = "2018"
+        elif self.turn == 3:
+            self.scenario = "2100le"
+        elif self.turn == 4:
+            self.scenario = "2100he"
         else:
             print("unsupported turn")
-        model_output_df = self.run_model(scenario=scenario)
+        self.model.change_forcings(scenario=self.scenario)
+        return
+
+    def update_channel_geometries(self, turn=1):
+        if turn == 1:
+            scenario = "2017"
+        if turn == 2:
+            scenario = "2018"
+            channels_to_update = ["Nieuwe Waterweg v2"]
+            for channel in channels_to_update:
+                self.model.change_channel_geometry(channel, change_type="deepen")
+        elif turn == 3:
+            scenario = "2100le"
+            channels_to_update = ["Nieuwe Maas 1 old", "Nieuwe Maas 2 old"]
+            for channel in channels_to_update:
+                self.model.change_channel_geometry(channel, change_type="deepen")
+        elif turn == 4:
+            scenario = "2100he"
+            channels_to_update = ["Oude Maas 1", "Oude Maas 2", "Oude Maas 3", "Oude Maas 4"]
+            for channel in channels_to_update:
+                self.model.change_channel_geometry(channel, change_type="deepen")
+        else:
+            print("unsupported turn")
+        model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, scenario=scenario)
         if turn == 4:
             self.create_visualizations()
@@ -99,7 +148,7 @@ class DMG():
         return
 
     def run_model(self, scenario="2017"):
-        self.model.run_model(scenario=scenario)
+        self.model.run_model()
         return self.model.output
 
     def model_output_to_game(self, model_output_df, initialize=False, scenario="2017"):
@@ -186,12 +235,28 @@ class DMG():
 def main():
     game = DMG()
     print("initiliazed")
-    game.update(turn=2)
+    game.turn = 2
+    game.update_forcings()
+    game.update()
     print("updated to turn 2")
-    game.update(turn=3)
+    game.turn = 3
+    game.update_forcings()
+    game.update()
     print("updated to turn 3")
-    game.update(turn=4)
+    game.turn = 4
+    game.update_forcings()
+    game.update()
     print("updated to turn 4")
+    """
+
+    game.update_geometries_test(turn=2)
+    print("updated to turn 2")
+    game.update_geometries_test(turn=3)
+    print("updated to turn 3")
+    game.update_geometries_test(turn=4)
+    print("updated to turn 4")
+    """
+
 
 
 

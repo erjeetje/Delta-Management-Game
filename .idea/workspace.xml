@@ -5,11 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="761f18cf-aed8-4002-b562-2aab5055ed9d" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/demo_processing.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/model_manipulations.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bouke_model_demonstrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/bouke_model_demonstrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo_visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo_visualizations.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_to_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_to_game.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,18 +35,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.bouke_model_demonstrator.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.model_to_game.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/HaanRJ/OneDrive - University of Twente/Documents/GitHub/Delta-Management-Game",
-    "settings.editor.selected.configurable": "vcs.Git"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.bouke_model_demonstrator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.model_to_game.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/HaanRJ/OneDrive - University of Twente/Documents/GitHub/Delta-Management-Game&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;vcs.Git&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\HaanRJ\OneDrive - University of Twente\Documents\GitHub\Delta-Management-Game" />

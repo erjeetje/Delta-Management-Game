@@ -313,11 +313,11 @@ class ControlWidget(QWidget):
         self.scenario4.resize(180, 80)
         self.scenario4.move(10, 580)
         """
-        self.scenario4 = QPushButton('2100he +\n undeepened Oude Maas', self)
+        self.scenario4 = QPushButton('2100he (+1m SLR) +\n undeepened Oude Maas', self)
         self.scenario4.clicked.connect(self.on_scenario4_button_clicked)
         self.scenario4.resize(180, 80)
         self.scenario4.move(210, 700)
-        self.scenario3 = QPushButton('2100le +\n undeepened Nieuwe Maas', self)
+        self.scenario3 = QPushButton('2100le (+1m SLR) +\n undeepened Nieuwe Maas', self)
         self.scenario3.clicked.connect(self.on_scenario3_button_clicked)
         self.scenario3.resize(180, 80)
         self.scenario3.move(10, 700)

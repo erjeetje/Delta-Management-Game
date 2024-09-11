@@ -80,6 +80,10 @@ class DMG():
         self.model.change_forcings(scenario=self.scenario)
         return
 
+    def add_sea_level_rise(self, slr):
+        self.model.add_sea_level_rise(slr)
+        return
+
     def update_channel_geometries(self, change_type):
         """
         function that handles any players actions to update the correct geometry in the model. Currently hard-coded,
@@ -254,6 +258,8 @@ def main():
     for turn in range(2,5):
         game.turn = turn
         game.update_forcings()
+        if turn == 3:
+            game.add_sea_level_rise(slr=1)
         game.update_channel_geometries(change_type="undeepen")
         game.update()
         print("updated to turn ", turn)

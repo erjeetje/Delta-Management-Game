@@ -94,7 +94,7 @@ def forc_RMD_fromSOBEK(date_start, date_stop):
     for q in [Q1,Q2,Q3,Q4,Q5]:
         if len(np.where(np.isnan(q)==True)[0]) >0:
             print('ERROR: no(t all) forcing discharge available for this period')
-            sy.exit()
+            sys.exit()
 
     #interpolate daily discharge to chosen time grid
     #make time grid

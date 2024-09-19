@@ -1,3 +1,4 @@
+import os
 # =============================================================================
 # code where I group the physical and geometric input for the delta in a class
 # =============================================================================
@@ -47,8 +48,6 @@ geo_pars = geo_RMD9()
 #forc_pars = forc_RMD5()
 #forc_pars = forc_RMD_fromJesse(33,18700,18750)
 #forc_pars = forc_RMD20()
-forc_pars = forc_RMD_fromcsv_old(r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\forcings',
-                                 r'\forcing_2017_dummy.csv')
 #forc_pars = forc_RMD_fromSOBEK('01-07-2021' , '01-08-2021')
 # forc_pars = forc_RMD_fromcsv('/Users/biemo004/Documents/UU phd Saltisolutions/Databestanden/RM_data/MO_Q2122/','Q_daily_mean_Hag-Tie-Meg-Har-Gou_2021-2022_Bouke030524.csv',
 #                         '01-01-2022', '31-12-2022')
@@ -57,18 +56,19 @@ forc_pars = forc_RMD_fromcsv_old(r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\0
 phys_pars = phys_RMD2()
 
 def set_forcing(scenario="2017"):
-    print(scenario)
+    file_dir = os.path.dirname(os.path.realpath('__file__'))
+    input_dir = os.path.join(file_dir, "model", "inpu", "forcing_files")
     if scenario == "2017":
-        forc_pars = forc_RMD_fromcsv_old(r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\forcings',
+        forc_pars = forc_RMD_fromcsv_old(input_dir,
                                          r'\forcing_2017_dummy.csv')
     elif scenario == "2018":
-        forc_pars = forc_RMD_fromcsv_old(r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\forcings',
+        forc_pars = forc_RMD_fromcsv_old(input_dir,
                                          r'\forcing_2018_dummy.csv')
     elif scenario == "2100le":
-        forc_pars = forc_RMD_fromcsv_old(r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\forcings',
+        forc_pars = forc_RMD_fromcsv_old(input_dir,
                                          r'\forcing_2100le_dummy.csv')
     elif scenario == "2100he":
-        forc_pars = forc_RMD_fromcsv_old(r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\forcings',
+        forc_pars = forc_RMD_fromcsv_old(input_dir,
                                          r'\forcing_2100he_dummy.csv')
     else:
         print("unknown scenario, no update to forcing conditions")

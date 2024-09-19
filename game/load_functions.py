@@ -2,9 +2,9 @@ import os
 import re
 import json
 import geojson
-import geopandas as gpd
+#import geopandas as gpd
 from PyQt5.QtGui import QPixmap
-from matplotlib.colors import LogNorm, Normalize, CenteredNorm
+#from matplotlib.colors import LogNorm, Normalize, CenteredNorm
 
 
 def read_json_features(filename="hexagon_shapes_warped.json", path=""):

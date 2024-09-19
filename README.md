@@ -2,6 +2,6 @@ This repository is the code base for the Delta Management Game, a serious game o
 
 To run the demonstrator, the shape files of the channels in the estuary are required as input files that are currently not included in this repository. These may be added later.
 
-The game integrates the 4.3.7 network version of the IMSIDE model, an idealized model on salt intrusion in Deltas and Estuaries. The model is developed in a separate project of the Salti Solutions research program, the repository with all versions is here: https://github.com/nietBouke/IMSIDE/tree/main. the IMSIDE model version used is adapted to interface with other parts of the game.
+The game integrates the 4.3.7 network version of the IMSIDE model, an idealized model on salt intrusion in Deltas and Estuaries. The model is developed in a separate project of the Salti Solutions research program, the repository with all versions is here: https://github.com/nietBouke/IMSIDE/. the IMSIDE model version used is adapted to interface with other parts of the game.
 
 You can use the DMGclean.yml file or requirements.txt to create a Python environment with all used libraries. 

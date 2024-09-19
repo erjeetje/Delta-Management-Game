@@ -51,7 +51,7 @@ class DMG():
         set any core paths that need to be accessed.
         """
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        self.input_files = os.path.join(dir_path, "input_files")
+        self.input_files = os.path.join(dir_path, "game", "input_files")
         self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 DMG design\coding (notebooks)\live demonstrator coding"
         return
 

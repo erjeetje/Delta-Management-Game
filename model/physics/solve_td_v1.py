@@ -449,7 +449,7 @@ def run_model(self):
     # =============================================================================
     self.out = model_td(self, inita)
     
-    print('The total simualation time is ' , time.time()-tijd2, ' seconds')
+    print('The total simulation time is ' , time.time()-tijd2, ' seconds')
 
 
 

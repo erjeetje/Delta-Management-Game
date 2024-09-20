@@ -271,6 +271,7 @@ def process_model_output(model_output_df):
         point_ids = []
         for n in range(len(branch_name)):
             point_ids.append("" + branch_name[n] + "_" + str(number_of_points[n]))
+        #print(point_ids)
         return point_ids
 
     exploded_output_df["id"] = exploded_output_df.apply(lambda row: add_point_ids(row["px"], row.name), axis=1)
@@ -279,6 +280,8 @@ def process_model_output(model_output_df):
         return list(range(1, len(points) + 1))
 
     exploded_output_df['branch_rank'] = exploded_output_df.apply(lambda row: add_branch_rank(row["px"]), axis=1)
+    #print(exploded_output_df.iloc[-1])
+    #print(exploded_output_df.iloc[-1].name)
     if False:
         for values in exploded_output_df.iloc[0]:
             if isinstance(values, np.ndarray):
@@ -295,6 +298,12 @@ def process_model_output(model_output_df):
             print("")
 
     double_exploded_output_df = exploded_output_df.explode(next_columns_to_explode)
+    #print("")
+    #print(exploded_output_df)
+    #print(exploded_output_df.shape)
+    #print("")
+    #print(double_exploded_output_df)
+    #print(double_exploded_output_df.shape)
     return double_exploded_output_df, exploded_output_df
 
 
@@ -358,7 +367,8 @@ def model_output_to_game_locations(game_network_gdf, network_model_output_gdf, e
             point = line_interpolate_point(branches.loc[obs_branch_id, "geometry"], obs_to_line)
             return point
 
-        obs_points_game_df = obs_points_model_gdf.drop(columns="geometry")
+        obs_points_game_df = obs_points_model_gdf.copy()
+        obs_points_game_df = obs_points_game_df.drop(columns="geometry")
         obs_points_game_df = obs_points_game_df.reset_index()
         obs_points_game_df["geometry"] = obs_points_game_df.apply(
             lambda row: update_obs_point_geometry(row["index"], row["branch_rank"], branches_game_gdf), axis=1)
@@ -379,3 +389,24 @@ def output_to_timeseries(output_gdf, scenario=None):
     if scenario is not None:
         output_gdf["scenario"] = scenario
     return output_gdf
+
+def update_split_channel_ids(output_df, update_dict):
+    for key, values in update_dict.items():
+        split_1_df = output_df.loc[values[0]].copy()
+        split_2_df = output_df.loc[values[1]].copy()
+        max_rank_1 = max(split_1_df["branch_rank"].tolist())
+        max_rank_2 = max(split_2_df["branch_rank"].tolist())
+        """
+        it seems the output is exactly mirrored from what is expected, so the code below is not as neat. Once fixed,
+        the code below can be used instead.
+        
+        output_df.loc[values[0], "id"] = split_1_df.apply(
+            lambda row: key + "_" + str(row["branch_rank"] - 1), axis=1)
+        output_df.loc[values[1], "id"] = split_2_df.apply(
+            lambda row: key + "_" + str(row["branch_rank"] + max_rank - 1), axis=1)
+        """
+        output_df.loc[values[0], "id"] = split_1_df.apply(
+            lambda row: key + "_" + str(max_rank_1 + max_rank_2 - row["branch_rank"] - 2), axis=1)
+        output_df.loc[values[1], "id"] = split_2_df.apply(
+            lambda row: key + "_" + str(max_rank_2 - row["branch_rank"] - 1), axis=1)
+    return output_df

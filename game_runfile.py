@@ -24,6 +24,7 @@ class DMG():
         self._turn = 1
         self._scenario = "2017"
         self.weir_tracker = 3 # there are already 2 weirs in the default schematization, next number to add is 3
+        self.split_channels = {}
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
         print("we are here")
@@ -52,7 +53,7 @@ class DMG():
         """
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.input_files = os.path.join(dir_path, "game", "input_files")
-        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 DMG design\coding (notebooks)\live demonstrator coding"
+        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 DMG design\coding (notebooks)\game to IMSIDE"
         return
 
     def load_model(self):
@@ -130,6 +131,7 @@ class DMG():
 
     def split_channel(self, channel):
         if isinstance(channel, str):
+            self.split_channels[channel] = [channel + "_1", channel + "_2"]
             self.model.split_channel(channel_to_split=channel, next_weir_number=self.weir_tracker)
             self.weir_tracker += 2 #functions adds two weirs, one to each channel
         else:
@@ -165,6 +167,8 @@ class DMG():
         """
         function to process the model output to the model and game output geodataframes respectively.
         """
+        filename = "model_output_gdf_" + str(self.turn) + ".xlsx"
+        model_output_df.to_excel(os.path.join(self.save_path, filename), index=True)
         start_time = time.perf_counter()
         double_exploded_output_df, exploded_output_df = game_sync.process_model_output(model_output_df)
         if initialize == True:
@@ -198,7 +202,10 @@ class DMG():
             """
 
             # The code below appends the output GeoDataFrames
-            output_to_merge_df = double_exploded_output_df[["id", "time", "sb_st"]]
+            output_to_merge_df = double_exploded_output_df[["id", "branch_rank", "time", "sb_st"]]
+            if self.split_channels:
+                output_to_merge_df = game_sync.update_split_channel_ids(output_to_merge_df, self.split_channels)
+            output_to_merge_df = output_to_merge_df.drop(columns=["branch_rank"])
             model_output_gdf = self.model_output_ref_gdf.merge(output_to_merge_df, on="id")
             game_output_gdf = self.game_output_ref_gdf.merge(output_to_merge_df, on="id")
             model_output_gdf = game_sync.output_to_timeseries(model_output_gdf, scenario=self.scenario)
@@ -207,11 +214,13 @@ class DMG():
             self.game_output_gdf = pd.concat([self.game_output_gdf, game_output_gdf])
             duration = timedelta(seconds=time.perf_counter() - start_time)
             print('Update output processing took: ', duration)
-        #print(self.model_output_gdf)
-        if False:
-            self.model_output_gdf.to_excel(os.path.join(self.save_path, "model_network_gdf.xlsx"), index=False)
-            self.game_output_gdf.to_excel(os.path.join(self.save_path, "game_network_gdf.xlsx"), index=False)
         return
+
+    def export_output(self):
+        self.model_network_gdf.to_excel(os.path.join(self.save_path, "model_network_gdf.xlsx"), index=True)
+        self.game_network_gdf.to_excel(os.path.join(self.save_path, "game_network_gdf.xlsx"), index=True)
+        self.model_output_gdf.to_excel(os.path.join(self.save_path, "model_output_gdf.xlsx"), index=True)
+        self.game_output_gdf.to_excel(os.path.join(self.save_path, "game_output_gdf.xlsx"), index=True)
 
     def create_visualizations(self):
         """
@@ -259,6 +268,7 @@ def main():
             game.split_channel(channel="Hartelkanaal v2")
         game.update()
         print("updated to turn", turn)
+    #game.export_output()
     game.create_visualizations()
     return
 

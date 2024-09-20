@@ -100,11 +100,11 @@ class IMSIDE():
         # split channel, example HK:
         # becomes HK1 & HK2 --> one junction to HK1, another to HK2
         old_channel = deepcopy(self.delta.ch_gegs[channel_to_split])
-        # print(old_channel)
+
         new_channel1 = deepcopy(old_channel)
         new_channel2 = deepcopy(old_channel)
-        new_channel1['Name'] = new_channel1['Name'] + "1"
-        new_channel2['Name'] = new_channel2['Name'] + "2"
+        new_channel1['Name'] = new_channel1['Name'] + "_1"
+        new_channel2['Name'] = new_channel2['Name'] + "_2"
         # currently, this function only works for channels with one segment
         # TODO update for multiple segments
         if len(new_channel1['L']) == 1:
@@ -126,13 +126,16 @@ class IMSIDE():
             line_points = get_coordinates(line_geometry)
             new_line1_coordinates.append(list(line_points[0]))
             for i in range(len(line_points) - 1):
+                # create LineString and use .length instead?
                 dist = sqrt(
                     (line_points[i + 1][0] - line_points[i][0]) ** 2 + (line_points[i + 1][1] - line_points[i][1]) ** 2)
                 if distance <= dist:
+                    """
                     line_segment = LineString(
                         [(line_points[i][0], line_points[i][1]), (line_points[i + 1][0], line_points[i + 1][1])])
                     split_point = line_interpolate_point(line_segment, distance)
                     new_line1_coordinates.append([split_point.x, split_point.y])
+                    """
                     break
                 else:
                     new_line1_coordinates.append(list(line_points[i + 1]))
@@ -155,8 +158,8 @@ class IMSIDE():
         new_channel2['plot x'] = new_line2[:, 0]
         new_channel2['plot y'] = new_line2[:, 1]
 
-        key1 = new_channel1['Name']
-        key2 = new_channel2['Name']
+        key1 = channel_to_split + "_1"
+        key2 = channel_to_split + "_2"
 
         self.delta.ch_gegs.pop(channel_to_split)
         self.delta.ch_pars.pop(channel_to_split)

@@ -132,7 +132,7 @@ class DMG():
     def split_channel(self, channel):
         if isinstance(channel, str):
             self.split_channels[channel] = [channel + "_1", channel + "_2"]
-            self.model.split_channel(channel_to_split=channel, next_weir_number=self.weir_tracker)
+            self.model.split_channel(channel_to_split=channel, location=0.5, next_weir_number=self.weir_tracker)
             self.weir_tracker += 2 #functions adds two weirs, one to each channel
         else:
             print("no channel key provided (should be string), channel not split")

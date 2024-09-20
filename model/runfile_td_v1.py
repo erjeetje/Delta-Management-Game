@@ -110,11 +110,11 @@ class IMSIDE():
         if len(new_channel1['L']) == 1:
             # channel 1 is sea side, channel 2 land side - check
             width_at_break_location = ((old_channel['b'][1] - old_channel['b'][0]) * location) + old_channel['b'][0]
-            new_channel1['L'] = new_channel1['L'] / 2
+            new_channel1['L'] = new_channel1['L'] * location
             new_channel1['b'][0] = width_at_break_location
             new_channel1['loc x=-L'] = 'w' + str(next_weir_number)
 
-            new_channel2['L'] = new_channel2['L'] / 2
+            new_channel2['L'] = new_channel2['L'] * (1 - location)
             new_channel2['b'][1] = width_at_break_location
             new_channel2['loc x=0'] = 'w' + str(next_weir_number + 1)
 

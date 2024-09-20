@@ -406,7 +406,7 @@ def update_split_channel_ids(output_df, update_dict):
             lambda row: key + "_" + str(row["branch_rank"] + max_rank - 1), axis=1)
         """
         output_df.loc[values[0], "id"] = split_1_df.apply(
-            lambda row: key + "_" + str(max_rank_1 + max_rank_2 - row["branch_rank"] - 2), axis=1)
+            lambda row: key + "_" + str(max_rank_1 + max_rank_2 - row["branch_rank"]), axis=1)
         output_df.loc[values[1], "id"] = split_2_df.apply(
-            lambda row: key + "_" + str(max_rank_2 - row["branch_rank"] - 1), axis=1)
+            lambda row: key + "_" + str(max_rank_2 - row["branch_rank"]), axis=1)
     return output_df

@@ -432,10 +432,15 @@ def run_model(self):
     
     tijd2 = time.time()
     #preparations
+    print("1")
     self.indices()
+    print("2")
     self.prep_junc()
+    print("3")
     self.tide_calc()
+    print("4")
     self.subtidal_module()
+    print("5")
     
     # =============================================================================
     # first run the equilibrium simulation for the start of the simulation

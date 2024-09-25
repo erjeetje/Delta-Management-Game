@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import pandas as pd
+import numpy as np
 from datetime import timedelta
 from copy import deepcopy
 from PyQt5.QtWidgets import QApplication
@@ -21,6 +22,7 @@ class DMG():
         self.load_shapes()
         self.transform_functions()
         self.build_game_network()
+        self.segments_to_network()
         self._turn = 1
         self._scenario = "2017"
         self.weir_tracker = 3 # there are already 2 weirs in the default schematization, next number to add is 3
@@ -130,6 +132,10 @@ class DMG():
         return
 
     def split_channel(self, channel):
+        """
+
+        TODO: track which channels are split, so that a channel can also be "unsplit"
+        """
         if isinstance(channel, str):
             self.split_channels[channel] = [channel + "_1", channel + "_2"]
             self.model.split_channel(channel_to_split=channel, location=0.5, next_weir_number=self.weir_tracker)
@@ -160,7 +166,12 @@ class DMG():
         self.game_hexagons = game_sync.match_hexagon_properties(deepcopy(self.game_hexagons), self.world_polygons,
                                                                 ["branches", "branch_crossing"])
         self.model_network_gdf = game_sync.determine_polygon_intersections(self.model_network_gdf, self.world_polygons)
+        self.model_network_gdf = game_sync.branches_to_segment(self.model_network_gdf)
+        self.model.add_segments_to_channels(self.model_network_gdf)
         self.game_network_gdf = game_sync.draw_branch_network(self.game_hexagons, self.model_network_gdf)
+        return
+
+    def segments_to_network(self):
         return
 
     def model_output_to_game(self, model_output_df, initialize=False):
@@ -217,7 +228,15 @@ class DMG():
         return
 
     def export_output(self):
-        self.model_network_gdf.to_excel(os.path.join(self.save_path, "model_network_gdf.xlsx"), index=True)
+        """
+        The part before saving is only to make it easier to convert the output back into numpy arrays in a jupyter
+        notebook, as the output file has to be read in raw binary mode (making all values in the DataFrame strings).
+        This way, all numpy arrays are saved as a list with the "," separator.
+        """
+        df_copy = self.model_network_gdf.copy()
+        for column in ["Hn", "L", "b", "dx", "plot x", "plot y"]:
+            df_copy[column] = df_copy.apply(lambda row: row[column].tolist(), axis=1)
+        df_copy.to_excel(os.path.join(self.save_path, "model_network_gdf.xlsx"), index=True)
         self.game_network_gdf.to_excel(os.path.join(self.save_path, "game_network_gdf.xlsx"), index=True)
         self.model_output_gdf.to_excel(os.path.join(self.save_path, "model_output_gdf.xlsx"), index=True)
         self.game_output_gdf.to_excel(os.path.join(self.save_path, "game_output_gdf.xlsx"), index=True)

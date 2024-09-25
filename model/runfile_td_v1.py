@@ -58,6 +58,15 @@ class IMSIDE():
                 self.delta.swe = np.vstack([self.delta.swe, np.array([0.15 + np.zeros(len(self.delta.swe[0]))])])
         return
 
+    def add_segments_to_channels(self, model_network_gdf):
+        model_network_gdf = model_network_gdf.set_index("Name")
+        for index, row in model_network_gdf.iterrows():
+            for key in ["Hn", "L", "b", "dx"]:
+                self.delta.ch_gegs[index][key] = row[key]
+            self.delta.add_properties(index, initial_update=True)
+        self.delta.run_checks()
+        return
+
     def add_sea_level_rise(self, slr):
         """
         Adds SLR by increasing the depth of channels. The fraction of SLR on water level increase is close to 1.0 for

@@ -69,7 +69,7 @@ class mod42_netw:
             self.add_properties(key)
         self.run_checks()
 
-    def add_properties(self, key):
+    def add_properties(self, key, initial_update=False):
         self.ch_pars[key] = {}
         self.ch_outp[key] = {}
         self.ch_tide[key] = {}
@@ -99,8 +99,9 @@ class mod42_netw:
             self.ch_gegs[key]['dx'] = np.concatenate((self.ch_gegs[key]['dx'],[self.dx_riv]))
 
         #make list with all channel endings
-        self.ends.append(self.ch_gegs[key]['loc x=0'])
-        self.ends.append(self.ch_gegs[key]['loc x=-L'])
+        if not initial_update:
+            self.ends.append(self.ch_gegs[key]['loc x=0'])
+            self.ends.append(self.ch_gegs[key]['loc x=-L'])
 
         # =============================================================================
         # indices, making lists of inputs, etc
@@ -257,7 +258,7 @@ class mod42_netw:
                 ends_h.append(self.ends[i])
             else:
                 print('Unregcognised channel end')
-
+        print(self.ends)
         if ends_r != list(dict.fromkeys(ends_r)): print('ERROR: Duplicates in river points!')
         if ends_s != list(dict.fromkeys(ends_s)): print('ERROR: Duplicates in sea points!')
         if ends_w != list(dict.fromkeys(ends_w)): print('ERROR: Duplicates in weir points!')

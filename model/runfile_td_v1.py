@@ -58,9 +58,33 @@ class IMSIDE():
                 self.delta.swe = np.vstack([self.delta.swe, np.array([0.15 + np.zeros(len(self.delta.swe[0]))])])
         return
 
+    """
     def add_segments_to_channels(self, model_network_gdf):
         model_network_gdf = model_network_gdf.set_index("Name")
         for index, row in model_network_gdf.iterrows():
+            for key in ["Hn", "L", "b", "dx"]:
+                self.delta.ch_gegs[index][key] = row[key]
+            self.delta.add_properties(index, initial_update=False)
+        self.delta.run_checks()
+        return
+    """
+
+    def update_channel_geometries(self, model_network_gdf):
+        model_network_gdf = model_network_gdf.set_index("Name")
+        for index, row in model_network_gdf.iterrows():
+            if row["changed"]:
+                for key in ["Hn", "L", "b", "dx"]:
+                    old = self.delta.ch_gegs[index][key]
+                    print("changed:", key, "of", index, "from", old, "to", row[key])
+                    self.delta.ch_gegs[index][key] = row[key]
+                self.delta.add_properties(index, initial_update=False)
+        self.delta.run_checks()
+        return
+
+    def update_channels_geometry(self, model_network_gdf):
+        channels_to_change = model_network_gdf.loc[model_network_gdf['changed'] == True]
+        channels_to_change = channels_to_change.set_index("Name")
+        for index, row in channels_to_change.iterrows():
             for key in ["Hn", "L", "b", "dx"]:
                 self.delta.ch_gegs[index][key] = row[key]
             self.delta.add_properties(index, initial_update=True)

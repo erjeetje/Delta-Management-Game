@@ -22,7 +22,7 @@ from model.inpu.load_forcing_td import forc_RMD20, forc_RMD_fromcsv_old
 # =============================================================================
 # load geometry
 # =============================================================================
-from model.inpu.load_geo_RMD import geo_RMD9, geo_RMD10
+from model.inpu.load_geo_RMD import geo_RMD9, geo_RMD10, geo_RMD_game
 #from model.inpu.load_geo_test import geo_test1
 #from model.inpu.funn import geo_fun
 # =============================================================================
@@ -43,7 +43,8 @@ phys_pars = phys_test1()
 #choose physical constants
 constants = phys_gen()
 #choose geometry
-geo_pars = geo_RMD9()
+#geo_pars = geo_RMD9()
+geo_pars = geo_RMD_game()
 #choose forcing.
 #forc_pars = forc_RMD5()
 #forc_pars = forc_RMD_fromJesse(33,18700,18750)

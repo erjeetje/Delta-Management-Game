@@ -223,7 +223,7 @@ def determine_polygon_intersections(branches_gdf, polygons):
         lambda row: determine_polygons(row["geometry"], polygons), axis=1)
     return branches_gdf.dropna()
 
-
+"""
 def branches_to_segment(network_gdf):
     new_network_gdf = network_gdf.copy()
 
@@ -232,7 +232,7 @@ def branches_to_segment(network_gdf):
         segment_length = sum(branch_length) / number_of_segments
         segments = [segment_length for segments in range(number_of_segments + len(branch_length) - 1)]
         index_to_update = {}
-        """
+        
         if a channel already has segments, split it exactly where it's current segments end
 
         TODO: This works well for all channels that are completely inside the polygons. Some
@@ -240,7 +240,7 @@ def branches_to_segment(network_gdf):
         account, polygon based updates there will yield incorrect results. Update is needed
         to also track what part of the channel is inside the polygon and only divide that part
         into segments.
-        """
+        
         if len(branch_length) > 1:
             for s in range(number_of_segments):
                 for i, l in enumerate(branch_length):
@@ -277,7 +277,8 @@ def branches_to_segment(network_gdf):
     new_network_gdf[["new_L", "segment_ids"]] = new_network_gdf.apply(
         lambda row: add_segments(row["L"], row["polygon_ids"]), axis=1)
 
-    def old_to_new_L(branch_segments, old_branch_length):
+    
+    def old_to_new_L_obsolete(branch_segments, old_branch_length):
         old_L_idx = [0] * len(branch_segments)
         if len(old_branch_length) > 1:
             for j, old_L in enumerate(old_branch_length):
@@ -287,7 +288,29 @@ def branches_to_segment(network_gdf):
                         old_L_idx[i] = j
         return np.array(old_L_idx)
 
-    new_network_gdf["old_L_idx"] = new_network_gdf.apply(lambda row: old_to_new_L(row["new_L"], row["L"]), axis=1)
+
+    def old_to_new_L(branch_segments, old_branch_length, branch_dx):
+        old_L_idx = [0] * len(branch_segments)
+        if len(old_branch_length) > 1:
+            for j, old_L in enumerate(old_branch_length):
+                for i, new_L in enumerate(branch_segments):
+                    if np.sum(branch_segments[:i]) >= np.sum(old_branch_length[:j]):
+                        # new_depths[i] = branch_depth[j]
+                        old_L_idx[i] = j
+        branch_segments_dx = []
+        dx_fraction_ref = 0
+        for i, idx in enumerate(old_L_idx):
+            dx_fraction = round(np.sum(branch_segments[:i + 1]) / branch_dx[idx], 0)
+            # print(np.sum(branch_segments[:i+1]), branch_dx[idx],dx_fraction)
+            new_segment = ((dx_fraction - dx_fraction_ref) * branch_dx[idx])
+            branch_segments_dx.append(new_segment)
+            dx_fraction_ref = dx_fraction
+        return pd.Series([np.array(old_L_idx), np.array(branch_segments_dx)])
+
+    new_network_gdf[["old_L_idx", "new_L"]] = new_network_gdf.apply(
+        lambda row: old_to_new_L(row["new_L"], row["L"], row["dx"]), axis=1)
+
+    #new_network_gdf["old_L_idx"] = new_network_gdf.apply(lambda row: old_to_new_L(row["new_L"], row["L"]), axis=1)
 
     def update_width(branch_width, branch_segments, old_branch_length):
         segments = np.concatenate(([0], branch_segments))
@@ -298,7 +321,7 @@ def branches_to_segment(network_gdf):
 
     new_network_gdf["new_b"] = new_network_gdf.apply(lambda row: update_width(row["b"], row["new_L"], row["L"]), axis=1)
 
-    """
+    
     def update_depth(branch_depth, branch_segments, old_branch_length):
         new_depths = [branch_depth[0]] * len(branch_segments)
         if len(old_branch_length) > 1:
@@ -309,7 +332,7 @@ def branches_to_segment(network_gdf):
         print(new_depths)
         return np.array(new_depths)
     new_network_gdf["new_Hn"] = new_network_gdf.apply(lambda row: update_depth(row["Hn"], row["new_L"], row["L"]), axis=1)
-    """
+    
 
     def update_depth(branch_depth, segment_idx):
         new_branch_depth = [branch_depth[i] for i in segment_idx]
@@ -317,7 +340,7 @@ def branches_to_segment(network_gdf):
 
     new_network_gdf["new_Hn"] = new_network_gdf.apply(lambda row: update_depth(row["Hn"], row["old_L_idx"]), axis=1)
 
-    """
+    
     def update_dx(branch_dx, branch_segments, old_branch_length):
         new_dx = []
         if len(old_branch_length) == 1:
@@ -349,14 +372,13 @@ def branches_to_segment(network_gdf):
         #            new_dx[i] = (branch_segments[j] / old_branch_length[j]) * branch_dx[j]
         return np.array(new_dx)
     new_network_gdf["new_dx"] = new_network_gdf.apply(lambda row: update_dx(row["dx"], row["new_L"], row["L"]), axis=1)
-    """
+    
 
     def update_dx(branch_dx, branch_segments, old_branch_length, segment_idx):
-        new_dx = [(branch_segments[0] / old_branch_length[0]) * branch_dx[0]] * len(branch_segments)
+        new_dx = [branch_dx[0]] * len(branch_segments)
         if len(old_branch_length) > 1:
             for i, idx in enumerate(segment_idx):
-                old_L_ref = old_branch_length[idx]
-                new_dx[i] = (branch_segments[i] / old_L_ref) * branch_dx[idx]
+                new_dx[i] = branch_dx[idx]
         return np.array(new_dx)
 
     new_network_gdf["new_dx"] = new_network_gdf.apply(
@@ -365,6 +387,7 @@ def branches_to_segment(network_gdf):
     new_network_gdf = new_network_gdf.drop(columns=["Hn", "L", "b", "dx"])
     new_network_gdf = new_network_gdf.rename(columns={"new_Hn": "Hn", "new_L": "L", "new_b": "b", "new_dx": "dx"})
     return new_network_gdf
+    """
 
 def draw_branch_network(hexagons, branches_gdf):
     # possibly, below could also be done with branches_gdf.drop(columns="geometry"),
@@ -458,6 +481,7 @@ def output_df_to_gdf(double_exploded_output_df):
     return network_model_output_gdf
 
 def add_polygon_ids(network_model_output_gdf, polygons):
+    output_gdf = network_model_output_gdf.copy()
     def match_points_to_polygon(point, polygon):
         for polygon in polygon.features:
             poly_geom = shape(polygon.geometry)
@@ -465,25 +489,25 @@ def add_polygon_ids(network_model_output_gdf, polygons):
                 return polygon.id
         return np.nan
 
-    network_model_output_gdf["polygon_id"] = network_model_output_gdf.apply(
+    output_gdf["polygon_id"] = output_gdf.apply(
         lambda row: match_points_to_polygon(row["geometry"], polygons), axis=1)
-    network_model_output_gdf = network_model_output_gdf.dropna()
+    output_gdf = output_gdf.dropna()
 
     def update_branch_ranks(rank, branch, correction):
         branch_correction = correction[branch]
         return rank - branch_correction
 
-    branches = list(set(network_model_output_gdf.index))
+    branches = list(set(output_gdf.index))
 
     ranks_to_update = {}
     for branch in branches:
-        rank_value = min(network_model_output_gdf.loc[branch]["branch_rank"]) - 1
+        rank_value = min(output_gdf.loc[branch]["branch_rank"]) - 1
         ranks_to_update[branch] = rank_value
     #print(ranks_to_update)
 
-    network_model_output_gdf["branch_rank"] = network_model_output_gdf.apply(
+    output_gdf["branch_rank"] = output_gdf.apply(
         lambda row: update_branch_ranks(row["branch_rank"], row.name, ranks_to_update), axis=1)
-    return network_model_output_gdf
+    return output_gdf
 
 
 def model_output_to_game_locations(game_network_gdf, network_model_output_gdf, exploded_output_df):

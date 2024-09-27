@@ -69,7 +69,7 @@ class mod42_netw:
             self.add_properties(key)
         self.run_checks()
 
-    def add_properties(self, key, initial_update=False):
+    def add_properties(self, key, initial_update=True):
         self.ch_pars[key] = {}
         self.ch_outp[key] = {}
         self.ch_tide[key] = {}
@@ -99,16 +99,24 @@ class mod42_netw:
             self.ch_gegs[key]['dx'] = np.concatenate((self.ch_gegs[key]['dx'],[self.dx_riv]))
 
         #make list with all channel endings
-        if not initial_update:
+        if initial_update:
+            print("adding", key)
             self.ends.append(self.ch_gegs[key]['loc x=0'])
             self.ends.append(self.ch_gegs[key]['loc x=-L'])
+
 
         # =============================================================================
         # indices, making lists of inputs, etc
         # =============================================================================
         self.ch_pars[key]['n_seg'] = len(self.ch_gegs[key]['L']) #nubmer of segments
+        #print("dx:", self.ch_gegs[key]['dx'], "Lsc:", self.Lsc)
         self.ch_pars[key]['dln'] = self.ch_gegs[key]['dx']/self.Lsc #normalised dx
-        self.ch_pars[key]['nxn'] = np.array(self.ch_gegs[key]['L']/self.ch_gegs[key]['dx']+1,dtype=int) #number of points in segments
+        #print(self.ch_pars[key]['dln'])
+        # TODO: check with Bouke, removed the +1 to ensure that nxn stays constant regardless of the number of segments
+        #self.ch_pars[key]['nxn'] = np.array(self.ch_gegs[key]['L']/self.ch_gegs[key]['dx']+1,dtype=int) #number of points in segments
+        self.ch_pars[key]['nxn'] = np.array(self.ch_gegs[key]['L'] / self.ch_gegs[key]['dx'],
+                                            dtype=int)  # number of points in segments
+        #print(self.ch_pars[key]['nxn'])
 
         self.ch_pars[key]['di'] = np.zeros(self.ch_pars[key]['n_seg']+1,dtype=int) #starting indices of segments
         for i in range(1,self.ch_pars[key]['n_seg']):   self.ch_pars[key]['di'][i] = np.sum(self.ch_pars[key]['nxn'][:i])
@@ -258,7 +266,6 @@ class mod42_netw:
                 ends_h.append(self.ends[i])
             else:
                 print('Unregcognised channel end')
-        print(self.ends)
         if ends_r != list(dict.fromkeys(ends_r)): print('ERROR: Duplicates in river points!')
         if ends_s != list(dict.fromkeys(ends_s)): print('ERROR: Duplicates in sea points!')
         if ends_w != list(dict.fromkeys(ends_w)): print('ERROR: Duplicates in weir points!')

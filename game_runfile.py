@@ -11,21 +11,25 @@ from game import load_functions as load_files
 from game import model_to_game as game_sync
 from game import transform_functions as transform_func
 from game import demo_processing
+from game import index_channels as indexing
+from game import channel_manipulations as update_func
 
 #sys.path.insert(1, r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\version 4.3.4\IMSIDE netw\mod 4.3.4 netw')
 from model import runfile_td_v1 as imside_model
 
 class DMG():
     def __init__(self):
+        self._turn = 1
+        self._scenario = "2017"
+        self.weir_tracker = 3  # there are already 2 weirs in the default schematization, next number to add is 3
+        self.hexagon_index = None
+        self.hexagons_tracker = None
         self.load_paths()
         self.load_model()
         self.load_shapes()
         self.transform_functions()
         self.build_game_network()
-        self.segments_to_network()
-        self._turn = 1
-        self._scenario = "2017"
-        self.weir_tracker = 3 # there are already 2 weirs in the default schematization, next number to add is 3
+        self.index_channels()
         self.split_channels = {}
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
@@ -87,11 +91,41 @@ class DMG():
         """
         function that handles running the model and retrieving the model output.
         """
+        if self.turn == 2:
+            """
+            The update_markers simulates changes on the board, key = polygon id, value = [# red markers, # blue markers]
+            """
+            update_markers = {59: [0, 1], 49: [0, 1], 39: [0, 1], 29: [0, 1]}
+        elif self.turn == 3:
+            update_markers = {70: [0,1], 60: [0,1], 59: [0,1], 49: [0,1], 39: [0,1], 29: [0,1], 98: [0,1], 88: [0,1], 79: [0,1]}
+        elif self.turn == 4:
+            update_markers = {70: [0,0], 60: [0,0], 59: [0,0], 49: [0,0], 39: [0,0], 29: [0,0], 80: [0,0]}
+        self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagon_index, update_markers)
+        turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
+        turn_change = update_func.to_change(turn_change)
+        new_model_network_df = self.model_network_gdf.copy()
+        new_model_network_df = update_func.geometry_to_update(turn_change, new_model_network_df)
+        new_model_network_df = update_func.update_channel_length(new_model_network_df)
+
+        new_model_network_df = update_func.update_channel_references(new_model_network_df)
+        new_model_network_df = update_func.update_channel_geometry(new_model_network_df)
+        self.model.update_channel_geometries(new_model_network_df)
+        self.model_network_gdf = new_model_network_df
         model_output_df = self.run_model()
         # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
         # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
         #self.model_output_to_game(model_output_df, scenario=self.scenario)
         self.model_output_to_game(model_output_df)
+        return
+
+    def end_round(self):
+        self.hexagons_tracker["ref_red_marker"] = self.hexagons_tracker["red_marker"]
+        self.hexagons_tracker["ref_blue_marker"] = self.hexagons_tracker["blue_marker"]
+        self.model_network_gdf["ref_L"] = self.model_network_gdf["L"]
+        self.model_network_gdf["ref_b"] = self.model_network_gdf["b"]
+        self.model_network_gdf["ref_Hn"] = self.model_network_gdf["Hn"]
+        self.model_network_gdf["ref_dx"] = self.model_network_gdf["dx"]
+        #self.turn += 1 # this should be handled here eventually when changes are not hardcoded
         return
 
     def update_forcings(self):
@@ -114,10 +148,16 @@ class DMG():
 
     def add_sea_level_rise(self, slr=0):
         if slr != 0:
+            print(type(self.model_network_gdf["ref_Hn"]))
+            self.model_network_gdf["ref_Hn"] = self.model_network_gdf["ref_Hn"].apply(
+                lambda x: np.array([y + slr for y in x]))
+            self.model_network_gdf["Hn"] = self.model_network_gdf["Hn"].apply(
+                lambda x: np.array([y + slr for y in x]))
             self.model.add_sea_level_rise(slr)
         else:
-            print("no sea level rise (in meters) provided or set to 0, no sea level rise added model")
+            print("no sea level rise (in meters) provided or set to 0, no sea level rise added in model")
         return
+
 
     def update_channel_geometries(self, channels_to_update=[], change_type="deepen"):
         """
@@ -166,20 +206,22 @@ class DMG():
         self.game_hexagons = game_sync.match_hexagon_properties(deepcopy(self.game_hexagons), self.world_polygons,
                                                                 ["branches", "branch_crossing"])
         self.model_network_gdf = game_sync.determine_polygon_intersections(self.model_network_gdf, self.world_polygons)
-        self.model_network_gdf = game_sync.branches_to_segment(self.model_network_gdf)
-        self.model.add_segments_to_channels(self.model_network_gdf)
+        #self.model_network_gdf = game_sync.branches_to_segment(self.model_network_gdf)
+        #self.model.add_segments_to_channels(self.model_network_gdf)
         self.game_network_gdf = game_sync.draw_branch_network(self.game_hexagons, self.model_network_gdf)
         return
 
-    def segments_to_network(self):
+    def index_channels(self):
+        self.model_network_gdf = indexing.index_polygons_to_channel_geometry(self.model_network_gdf)
+        self.hexagon_index = indexing.create_polygon_id_tracker(self.model_network_gdf)
         return
 
     def model_output_to_game(self, model_output_df, initialize=False):
         """
         function to process the model output to the model and game output geodataframes respectively.
         """
-        filename = "model_output_gdf_" + str(self.turn) + ".xlsx"
-        model_output_df.to_excel(os.path.join(self.save_path, filename), index=True)
+        #filename = "model_output_gdf_" + str(self.turn) + ".xlsx"
+        #model_output_df.to_excel(os.path.join(self.save_path, filename), index=True)
         start_time = time.perf_counter()
         double_exploded_output_df, exploded_output_df = game_sync.process_model_output(model_output_df)
         if initialize == True:
@@ -277,15 +319,17 @@ class DMG():
 def main():
     game = DMG()
     print("initialized")
-    channels_to_update = [["Nieuwe Waterweg v2"], ["Nieuwe Maas 1 old", "Nieuwe Maas 2 old"], ["Oude Maas 1", "Oude Maas 2", "Oude Maas 3", "Oude Maas 4"]]
+    #channels_to_update = [["Nieuwe Waterweg v2"], ["Nieuwe Maas 1 old", "Nieuwe Maas 2 old"], ["Oude Maas 1", "Oude Maas 2", "Oude Maas 3", "Oude Maas 4"]]
     for turn in range(2, 5):
         game.turn = turn
         game.update_forcings()
-        game.update_channel_geometries(channels_to_update=channels_to_update[turn-2], change_type="undeepen")
+        #game.update_channel_geometries(channels_to_update=channels_to_update[turn-2], change_type="undeepen")
         if turn == 3:
             game.add_sea_level_rise(slr=1)
-            game.split_channel(channel="Hartelkanaal v2")
+            # TODO: update split_channel function to be called from update() & to take polygon change as input
+            #game.split_channel(channel="Hartelkanaal v2")
         game.update()
+        game.end_round()
         print("updated to turn", turn)
     #game.export_output()
     game.create_visualizations()

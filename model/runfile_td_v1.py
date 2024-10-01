@@ -64,20 +64,30 @@ class IMSIDE():
         for index, row in model_network_gdf.iterrows():
             for key in ["Hn", "L", "b", "dx"]:
                 self.delta.ch_gegs[index][key] = row[key]
-            self.delta.add_properties(index, initial_update=False)
+            self.delta.add_properties(index, new_channel=False)
         self.delta.run_checks()
         return
     """
 
     def update_channel_geometries(self, model_network_gdf):
-        model_network_gdf = model_network_gdf.set_index("Name")
-        for index, row in model_network_gdf.iterrows():
-            if row["changed"]:
-                for key in ["Hn", "L", "b", "dx"]:
-                    old = self.delta.ch_gegs[index][key]
-                    print("changed:", key, "of", index, "from", old, "to", row[key])
-                    self.delta.ch_gegs[index][key] = row[key]
-                self.delta.add_properties(index, initial_update=False)
+        model_network_change_gdf = model_network_gdf.loc[model_network_gdf['changed'] == True]
+        model_network_change_gdf = model_network_change_gdf.set_index("Name")
+        for index, row in model_network_change_gdf.iterrows():
+            print("old", index, "geometry:",
+                  self.delta.ch_gegs[index]["Hn"], "(Hn)",
+                  self.delta.ch_gegs[index]["L"], "(L)",
+                  self.delta.ch_gegs[index]["b"], "(b)",
+                  self.delta.ch_gegs[index]["dx"], "(dx)")
+            for key in ["Hn", "L", "b", "dx"]:
+                old = self.delta.ch_gegs[index][key]
+                #print("changed:", key, "of", index, "from", old, "to", row[key])
+                self.delta.ch_gegs[index][key] = row[key]
+            self.delta.add_properties(index, new_channel=False)
+            print("new", index, "geometry:",
+                  self.delta.ch_gegs[index]["Hn"], "(Hn)",
+                  self.delta.ch_gegs[index]["L"], "(L)",
+                  self.delta.ch_gegs[index]["b"], "(b)",
+                  self.delta.ch_gegs[index]["dx"], "(dx)")
         self.delta.run_checks()
         return
 
@@ -87,7 +97,7 @@ class IMSIDE():
         for index, row in channels_to_change.iterrows():
             for key in ["Hn", "L", "b", "dx"]:
                 self.delta.ch_gegs[index][key] = row[key]
-            self.delta.add_properties(index, initial_update=True)
+            self.delta.add_properties(index, new_channel=True)
         self.delta.run_checks()
         return
 

@@ -322,7 +322,7 @@ def branches_to_segment(network_gdf):
     new_network_gdf["new_b"] = new_network_gdf.apply(lambda row: update_width(row["b"], row["new_L"], row["L"]), axis=1)
 
     
-    def update_depth(branch_depth, branch_segments, old_branch_length):
+    def update_depth_old(branch_depth, branch_segments, old_branch_length):
         new_depths = [branch_depth[0]] * len(branch_segments)
         if len(old_branch_length) > 1:
             for j, old_L in enumerate(old_branch_length):
@@ -341,7 +341,7 @@ def branches_to_segment(network_gdf):
     new_network_gdf["new_Hn"] = new_network_gdf.apply(lambda row: update_depth(row["Hn"], row["old_L_idx"]), axis=1)
 
     
-    def update_dx(branch_dx, branch_segments, old_branch_length):
+    def update_dx_old(branch_dx, branch_segments, old_branch_length):
         new_dx = []
         if len(old_branch_length) == 1:
             new_dx = [(branch_segments[0] / old_branch_length[0]) * branch_dx[0]] * len(branch_segments)

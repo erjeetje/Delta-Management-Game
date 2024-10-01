@@ -95,20 +95,28 @@ class DMG():
             """
             The update_markers simulates changes on the board, key = polygon id, value = [# red markers, # blue markers]
             """
-            update_markers = {59: [0, 1], 49: [0, 1], 39: [0, 1], 29: [0, 1]}
+            # deepening part of Nieuwe Waterweg
+            update_markers = {
+                59: [0, 1], 49: [0, 1], 39: [0, 1], 29: [0, 1]}
         elif self.turn == 3:
-            update_markers = {70: [0,1], 60: [0,1], 59: [0,1], 49: [0,1], 39: [0,1], 29: [0,1], 98: [0,1], 88: [0,1], 79: [0,1]}
+            # deepening rest of Nieuwe Waterweg and Nieuwe Maas
+            update_markers = {
+                70: [0,1], 60: [0,1], 59: [0,1], 49: [0,1], 39: [0,1], 29: [0,1], 98: [0,1], 88: [0,1], 79: [0,1]}
         elif self.turn == 4:
-            update_markers = {70: [0,0], 60: [0,0], 59: [0,0], 49: [0,0], 39: [0,0], 29: [0,0], 80: [0,0]}
+            # widening Nieuwe Waterweg
+            update_markers = {
+                70: [0,2], 60: [0,2], 59: [0,2], 49: [0,2], 39: [0,2], 29: [0,2], 80: [0,2]}
         self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagon_index, update_markers)
         turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
         turn_change = update_func.to_change(turn_change)
         new_model_network_df = self.model_network_gdf.copy()
         new_model_network_df = update_func.geometry_to_update(turn_change, new_model_network_df)
+        # TODO: consider how to cut channels into segments, as otherwise width changes also affect unchanged polygons
         new_model_network_df = update_func.update_channel_length(new_model_network_df)
 
         new_model_network_df = update_func.update_channel_references(new_model_network_df)
         new_model_network_df = update_func.update_channel_geometry(new_model_network_df)
+        # TODO: add a check function if segments can be "knitted" back together (basically, ensure lowest # of segments)
         self.model.update_channel_geometries(new_model_network_df)
         self.model_network_gdf = new_model_network_df
         model_output_df = self.run_model()

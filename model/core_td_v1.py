@@ -69,7 +69,7 @@ class mod42_netw:
             self.add_properties(key)
         self.run_checks()
 
-    def add_properties(self, key, initial_update=True):
+    def add_properties(self, key, new_channel=True):
         self.ch_pars[key] = {}
         self.ch_outp[key] = {}
         self.ch_tide[key] = {}
@@ -99,7 +99,7 @@ class mod42_netw:
             self.ch_gegs[key]['dx'] = np.concatenate((self.ch_gegs[key]['dx'],[self.dx_riv]))
 
         #make list with all channel endings
-        if initial_update:
+        if new_channel:
             print("adding", key)
             self.ends.append(self.ch_gegs[key]['loc x=0'])
             self.ends.append(self.ch_gegs[key]['loc x=-L'])

@@ -20,7 +20,8 @@ def get_bbox(output_gdf, gdf_type="world"):
                 obs_points_bbox["maxy"].max()]
     return bbox
 
-def get_salinity_scale(output_gdf):
-    salinity_range = Normalize(output_gdf["water_salinity"].min(),
-                               output_gdf["water_salinity"].max())
+def get_salinity_scale(output_gdf, column="water_salinity"):
+    salinity_range = Normalize(output_gdf[column].min(),
+                               output_gdf[column].max())
+    print(column, output_gdf[column].min(), output_gdf[column].max())
     return salinity_range

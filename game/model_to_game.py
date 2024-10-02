@@ -547,12 +547,15 @@ def model_output_to_game_locations(game_network_gdf, network_model_output_gdf, e
     return game_output_gdf
 
 def output_to_timeseries(output_gdf, scenario=None):
-    #timeseries_gdf = output_gdf.reset_index()
-    #timeseries_gdf["id"] = timeseries_gdf["index"] + "_" + timeseries_gdf[
-    #    "branch_rank"].astype(str)
     output_gdf["sb_st"] = output_gdf["sb_st"].astype(float)
-    #timeseries_gdf["water_salinity"] = timeseries_gdf["sb_st"]
     output_gdf = output_gdf.rename(columns={"sb_st": "water_salinity"})
+    # change bins (and names) below for different salinity concentration categories
+    bins = [0, 0.5, 1.5, 2.5, 10, 30, np.inf]
+    # TODO test with categorical data
+    #names = ['<0.5', '0.5-1.5', '1.5-2.5', '2.5-10', '10-30', '30+']
+    values = [i + 1 for i in range(len(bins) - 1)]
+    output_gdf['salinity_category'] = pd.cut(output_gdf['water_salinity'], bins, labels=values)
+
     if scenario is not None:
         output_gdf["scenario"] = scenario
     return output_gdf

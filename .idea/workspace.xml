@@ -6,10 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="761f18cf-aed8-4002-b562-2aab5055ed9d" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game/demo_processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/demo_processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game/demo_visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/demo_visualizations.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game/model_to_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/model_to_game.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game_runfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/game_runfile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/core_td_v1.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/core_td_v1.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/runfile_td_v1.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/runfile_td_v1.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -156,7 +156,6 @@ class DMG():
 
     def add_sea_level_rise(self, slr=0):
         if slr != 0:
-            print(type(self.model_network_gdf["ref_Hn"]))
             self.model_network_gdf["ref_Hn"] = self.model_network_gdf["ref_Hn"].apply(
                 lambda x: np.array([y + slr for y in x]))
             self.model_network_gdf["Hn"] = self.model_network_gdf["Hn"].apply(
@@ -295,9 +294,11 @@ class DMG():
         """
         function that sets up and runs the demonstrator visualizations.
         """
+        print(self.model_output_gdf.iloc[0])
         world_bbox = demo_processing.get_bbox(self.model_output_gdf, gdf_type="world")
         game_bbox = demo_processing.get_bbox(self.game_output_gdf, gdf_type="game")
         salinity_range = demo_processing.get_salinity_scale(self.model_output_gdf)
+        salinity_category = demo_processing.get_salinity_scale(self.model_output_gdf, column="salinity_category")
         qapp = QApplication.instance()
         if not qapp:
             qapp = QApplication(sys.argv)
@@ -307,7 +308,8 @@ class DMG():
         starting_variable = "water_salinity"
         viz_tracker = visualizer.VisualizationTracker(
             starting_scenario=starting_scenario, starting_variable=starting_variable,
-            time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range)
+            time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,
+            salinity_category=salinity_category)
         # ,water_level_range = water_level_range, water_velocity_range = water_velocity_range
         colorbar_salinity, colorbar_water_level, colorbar_water_velocity = load_files.load_images()
         gui = visualizer.ApplicationWindow(

@@ -50,12 +50,10 @@ def read_geojson(filename='hexagons_warped.geojson', path=""):
 def load_images():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     colorbar_location = os.path.join(dir_path, "input_files")
-    colorbar_salinity_file = os.path.join(colorbar_location, "colorbar_salinity_small.png")
+    colorbar_salinity_file = os.path.join(colorbar_location, "salinity_colorbar_horizontal_small.png")
     colorbar_salinity = QPixmap(colorbar_salinity_file)
-    colorbar_water_level_file = os.path.join(colorbar_location, "colorbar_water_level_small.png")
-    colorbar_water_level = QPixmap(colorbar_water_level_file)
-    colorbar_water_velocity_file = os.path.join(colorbar_location, "colorbar_water_velocity_small.png")
-    colorbar_water_velocity = QPixmap(colorbar_water_velocity_file)
+    labels_salinity_categories_file = os.path.join(colorbar_location, "salinity_categorized_labels_horizontal_small.png")
+    labels_salinity_categories = QPixmap(labels_salinity_categories_file)
     #basemap_image_file = os.path.join(colorbar_location, "basemap.png")
     #basemap_image = plt.imread(basemap_image_file)
-    return colorbar_salinity, colorbar_water_level, colorbar_water_velocity
+    return colorbar_salinity, labels_salinity_categories

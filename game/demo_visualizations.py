@@ -14,8 +14,7 @@ from matplotlib.figure import Figure
 
 
 class ApplicationWindow(QMainWindow):
-    def __init__(self, scenarios, viz_tracker, bbox, salinity_colorbar_image, water_level_colorbar_image,
-                 water_velocity_image):
+    def __init__(self, scenarios, viz_tracker, bbox, salinity_colorbar_image, salinity_category_image):
         super().__init__()
         self._main = QWidget()
         self.setWindowTitle('Delta Management Game demonstrator')
@@ -27,8 +26,7 @@ class ApplicationWindow(QMainWindow):
         self.selected_model_variable = self.viz_tracker.model_variable
         self.selected_game_variable = self.viz_tracker.game_variable
         self.salinity_colorbar_image = salinity_colorbar_image
-        self.water_level_colorbar_image = water_level_colorbar_image
-        self.water_velocity_image = water_velocity_image
+        self.salinity_category_image = salinity_category_image
         #self.basemap_image = basemap_image
 
         self.layout = QHBoxLayout(self._main)
@@ -142,16 +140,12 @@ class ApplicationWindow(QMainWindow):
             if self.selected_model_variable == "water_salinity":
                 self.colorbar_model_label.setPixmap(self.salinity_colorbar_image)
             if self.selected_model_variable == "salinity_category":
-                self.colorbar_model_label.setPixmap(self.salinity_colorbar_image)
-            if self.selected_model_variable == "water_velocity":
-                self.colorbar_model_label.setPixmap(self.water_velocity_image)
+                self.colorbar_model_label.setPixmap(self.salinity_category_image)
         elif to_update == "game":
             if self.selected_game_variable == "water_salinity":
                 self.colorbar_game_label.setPixmap(self.salinity_colorbar_image)
             if self.selected_game_variable == "salinity_category":
-                self.colorbar_game_label.setPixmap(self.salinity_colorbar_image)
-            if self.selected_game_variable == "water_velocity":
-                self.colorbar_game_label.setPixmap(self.water_velocity_image)
+                self.colorbar_game_label.setPixmap(self.salinity_category_image)
         return
 
 
@@ -220,6 +214,7 @@ class GameVisualization(QWidget):
             scenario_idx = self.scenarios["scenario"] == self.selected_scenario
             self.running_scenario = self.scenarios[scenario_idx]
         if self.selected_variable != self.viz_tracker.game_variable:
+            print(9)
             self.selected_variable = self.viz_tracker.game_variable
             if self.selected_variable == "water_salinity":
                 color_map = "RdBu_r"
@@ -227,9 +222,11 @@ class GameVisualization(QWidget):
             elif self.selected_variable == "water_level":
                 color_map = "viridis_r"
                 norm = self.viz_tracker.water_level_norm
-            elif self.selected_model_variable == "salinity_category":
+            elif self.selected_variable == "salinity_category":
+                print(10)
                 color_map = "RdBu_r"
                 norm = self.viz_tracker.salinity_category_norm
+                print(11)
             elif self.selected_variable == "water_velocity":
                 color_map = "Spectral_r"
                 norm = self.viz_tracker.water_velocity_norm
@@ -352,8 +349,11 @@ class ControlWidget(QWidget):
         return
 
     def on_board_salinity_category_button_clicked(self):
+        print(1)
         self.viz_tracker.game_variable = "salinity_category"
+        print(2)
         self.change_highlights()
+        print(3)
         return
 
     def on_scenario1_button_clicked(self):
@@ -387,13 +387,16 @@ class ControlWidget(QWidget):
             elif self.screen_highlight == "salinity_category":
                 self.btn_screen_salinity_category.setStyleSheet("background-color:blue;")
         if self.board_highlight != self.viz_tracker.game_variable:
+            print(4)
             self.board_highlight = self.viz_tracker.game_variable
             self.btn_board_salinity.setStyleSheet("background-color:lightgray;")
             self.btn_board_salinity_category.setStyleSheet("background-color:lightgray;")
             if self.board_highlight == "water_salinity":
                 self.btn_board_salinity.setStyleSheet("background-color:red;")
             elif self.board_highlight == "salinity_category":
+                print(5)
                 self.btn_board_salinity_category.setStyleSheet("background-color:blue;")
+                print(6)
         if self.scenario_highlight != self.viz_tracker.scenario:
             self.scenario_highlight = self.viz_tracker.scenario
             self.scenario1.setStyleSheet("background-color:lightgray;")
@@ -478,7 +481,9 @@ class VisualizationTracker():
 
     @game_variable.setter
     def game_variable(self, variable):
+        print(7)
         self._game_variable = variable
+        print(8)
         return
 
     @time_steps.setter

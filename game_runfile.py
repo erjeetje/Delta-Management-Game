@@ -311,11 +311,10 @@ class DMG():
             time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,
             salinity_category=salinity_category)
         # ,water_level_range = water_level_range, water_velocity_range = water_velocity_range
-        colorbar_salinity, colorbar_water_level, colorbar_water_velocity = load_files.load_images()
+        colorbar_salinity, labels_salinity_categories = load_files.load_images()
         gui = visualizer.ApplicationWindow(
             scenarios=self.model_output_gdf, viz_tracker=viz_tracker, bbox=world_bbox,
-            salinity_colorbar_image=colorbar_salinity, water_level_colorbar_image=colorbar_water_level,
-            water_velocity_image=colorbar_water_velocity)
+            salinity_colorbar_image=colorbar_salinity, salinity_category_image=labels_salinity_categories)
         side_window = visualizer.GameVisualization(
             scenarios=self.game_output_gdf, viz_tracker=viz_tracker, bbox=game_bbox)
         gui.show()

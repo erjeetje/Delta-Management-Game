@@ -97,7 +97,7 @@ class DMG():
             """
             # deepening part of Nieuwe Waterweg
             update_markers = {
-                59: [0, 1], 49: [0, 1], 39: [0, 1], 29: [0, 1]}
+                59: [0, 1], 49: [0, 1], 39: [0, 1], 29: [0, 1], 88: [3,1]} #
         elif self.turn == 3:
             # deepening rest of Nieuwe Waterweg and Nieuwe Maas
             update_markers = {
@@ -116,9 +116,13 @@ class DMG():
 
         new_model_network_df = update_func.update_channel_references(new_model_network_df)
         new_model_network_df = update_func.update_channel_geometry(new_model_network_df)
+        new_model_network_df, self.split_channels = update_func.apply_split(new_model_network_df, self.weir_tracker)
+        self.weir_tracker = self.weir_tracker + (len(self.split_channels) * 2)
         # TODO: add a check function if segments can be "knitted" back together (basically, ensure lowest # of segments)
-        self.model.update_channel_geometries(new_model_network_df)
+        self.model.update_channel_geometries(new_model_network_df, self.split_channels)
         self.model_network_gdf = new_model_network_df
+        #if self.turn == 2:
+        #    self.split_channel(channel="Nieuwe Maas 1 old")
         model_output_df = self.run_model()
         # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
         # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
@@ -290,6 +294,19 @@ class DMG():
         self.model_output_gdf.to_excel(os.path.join(self.save_path, "model_output_gdf.xlsx"), index=True)
         self.game_output_gdf.to_excel(os.path.join(self.save_path, "game_output_gdf.xlsx"), index=True)
 
+    def temp_output(self):
+        model_network_df = self.model.network
+        print(model_network_df.head())
+        model_network_gdf = game_sync.process_model_network(model_network_df)
+        self.world_polygons, model_network_gdf = game_sync.find_branch_intersections(deepcopy(self.world_polygons),
+                                                                                     model_network_gdf)
+        model_network_gdf = game_sync.determine_polygon_intersections(model_network_gdf, self.world_polygons)
+        #self.index_channels()
+        for column in ["Hn", "L", "b", "dx", "plot x", "plot y"]:
+            model_network_gdf[column] = model_network_gdf.apply(lambda row: row[column].tolist(), axis=1)
+        model_network_gdf.to_excel(os.path.join(self.save_path, "model_network_split_channel_gdf.xlsx"), index=True)
+        return
+
     def create_visualizations(self):
         """
         function that sets up and runs the demonstrator visualizations.
@@ -329,18 +346,20 @@ def main():
     game = DMG()
     print("initialized")
     #channels_to_update = [["Nieuwe Waterweg v2"], ["Nieuwe Maas 1 old", "Nieuwe Maas 2 old"], ["Oude Maas 1", "Oude Maas 2", "Oude Maas 3", "Oude Maas 4"]]
-    for turn in range(2, 5):
+    for turn in range(2, 3):
         game.turn = turn
         game.update_forcings()
         #game.update_channel_geometries(channels_to_update=channels_to_update[turn-2], change_type="undeepen")
-        if turn == 3:
-            game.add_sea_level_rise(slr=1)
+
+        #if turn == 2:
+            #game.add_sea_level_rise(slr=1)
             # TODO: update split_channel function to be called from update() & to take polygon change as input
-            #game.split_channel(channel="Hartelkanaal v2")
+            #game.split_channel(channel="Nieuwe Maas 1 old")
         game.update()
         game.end_round()
         print("updated to turn", turn)
     #game.export_output()
+    #game.temp_output()
     game.create_visualizations()
     return
 

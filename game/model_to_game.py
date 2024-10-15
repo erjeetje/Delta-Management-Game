@@ -554,6 +554,7 @@ def output_to_timeseries(output_gdf, scenario=None):
     # TODO test with categorical data
     #names = ['<0.5', '0.5-1.5', '1.5-2.5', '2.5-10', '10-30', '30+']
     values = [i + 1 for i in range(len(bins) - 1)]
+    #values = [0.25, 1, 2, 6.25, 20, 34]
     output_gdf['salinity_category'] = pd.cut(output_gdf['water_salinity'], bins, labels=values)
 
     if scenario is not None:

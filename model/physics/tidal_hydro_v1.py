@@ -147,7 +147,7 @@ def tide_calc(self):
                 ju_geg.append([key,'x=-L',self.ch_pars[key]['ind_wl'][0]])
             elif self.ch_gegs[key]['loc x=0'] == 'j'+str(j+1): 
                 ju_geg.append([key,'x=0',self.ch_pars[key]['ind_wl'][1]])
-        
+        #print(ju_geg)
         #three conditions: 
         #first:n1=n2
         if ju_geg[0][1] == 'x=-L':

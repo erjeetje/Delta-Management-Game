@@ -116,7 +116,7 @@ class mod42_netw:
         #self.ch_pars[key]['nxn'] = np.array(self.ch_gegs[key]['L']/self.ch_gegs[key]['dx']+1,dtype=int) #number of points in segments
         self.ch_pars[key]['nxn'] = np.array(self.ch_gegs[key]['L'] / self.ch_gegs[key]['dx'],
                                             dtype=int)  # number of points in segments
-        #print(self.ch_pars[key]['nxn'])
+        #print("check for", key, "for nxn:", self.ch_pars[key]['nxn'])
 
         self.ch_pars[key]['di'] = np.zeros(self.ch_pars[key]['n_seg']+1,dtype=int) #starting indices of segments
         for i in range(1,self.ch_pars[key]['n_seg']):   self.ch_pars[key]['di'][i] = np.sum(self.ch_pars[key]['nxn'][:i])

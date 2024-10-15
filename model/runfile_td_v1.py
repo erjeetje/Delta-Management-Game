@@ -22,7 +22,7 @@ class IMSIDE():
         self.current_forcing = settings_td_v1.set_forcing(scenario=scenario)
         self.delta = core_td_v1.mod42_netw(settings_td_v1.constants, settings_td_v1.geo_pars, self.current_forcing,
                                            settings_td_v1.phys_pars)#, pars_seadom = (25000,100,10), pars_rivdom = (200000,2000,0))
-        network_df = pd.DataFrame.from_dict(settings_td_v1.geo_pars)
+        network_df = pd.DataFrame.from_dict(self.delta.ch_gegs)
         network_df = network_df.T
         self._network = network_df
         self._output = None
@@ -35,6 +35,13 @@ class IMSIDE():
     @property
     def network(self):
         return self._network
+
+    """
+    @network.setter
+    def network(self, network):
+        self._network = network
+        return
+    """
 
     def run_model(self):
         # calculate river discharge distribution
@@ -69,26 +76,60 @@ class IMSIDE():
         return
     """
 
-    def update_channel_geometries(self, model_network_gdf):
+    def update_channel_geometries(self, model_network_gdf, channels_to_split):
         model_network_change_gdf = model_network_gdf.loc[model_network_gdf['changed'] == True]
+        model_network_change_gdf = model_network_change_gdf.reset_index()
         model_network_change_gdf = model_network_change_gdf.set_index("Name")
+        for old_channel, new_channels in channels_to_split.items():
+            self.delta.ch_gegs.pop(old_channel)
+            self.delta.ch_pars.pop(old_channel)
+            self.delta.ch_outp.pop(old_channel)
+            self.delta.ch_tide.pop(old_channel)
+            self.delta.ch_keys.remove(old_channel)
         for index, row in model_network_change_gdf.iterrows():
-            print("old", index, "geometry:",
-                  self.delta.ch_gegs[index]["Hn"], "(Hn)",
-                  self.delta.ch_gegs[index]["L"], "(L)",
-                  self.delta.ch_gegs[index]["b"], "(b)",
-                  self.delta.ch_gegs[index]["dx"], "(dx)")
+            new_channel = False
+            if index in self.delta.ch_gegs:
+                print("old", index, "geometry:",
+                      self.delta.ch_gegs[index]["Hn"], "(Hn)",
+                      self.delta.ch_gegs[index]["L"], "(L)",
+                      self.delta.ch_gegs[index]["b"], "(b)",
+                      self.delta.ch_gegs[index]["dx"], "(dx)")
+            else:
+                self.delta.ch_gegs[index] = {}
+                new_channel = True
+                print("channel not yet in the old, possibly split?")
             for key in ["Hn", "L", "b", "dx"]:
-                old = self.delta.ch_gegs[index][key]
-                #print("changed:", key, "of", index, "from", old, "to", row[key])
                 self.delta.ch_gegs[index][key] = row[key]
-            self.delta.add_properties(index, new_channel=False)
+            if new_channel:
+                self.delta.ch_keys.append(index)
+                self.delta.ch_gegs[index]["Name"] = index
+                for key in ["loc x=0", "loc x=-L", "plot x", "plot y", 'plot color']:
+                    self.delta.ch_gegs[index][key] = row[key]
+                self.delta.Qweir = np.vstack([self.delta.Qweir, np.zeros(len(self.delta.Qweir[0]))])
+                self.delta.swe = np.vstack([self.delta.swe, np.array([0.15 + np.zeros(len(self.delta.swe[0]))])])
+            self.delta.add_properties(index, new_channel=new_channel)
             print("new", index, "geometry:",
                   self.delta.ch_gegs[index]["Hn"], "(Hn)",
                   self.delta.ch_gegs[index]["L"], "(L)",
                   self.delta.ch_gegs[index]["b"], "(b)",
                   self.delta.ch_gegs[index]["dx"], "(dx)")
+            if new_channel:
+                print("added",
+                      self.delta.ch_gegs[index]["loc x=0"], "(loc x=0)",
+                      self.delta.ch_gegs[index]["loc x=-L"], "(loc x=-L)",
+                      self.delta.ch_gegs[index]["Name"], "(Name)")
         self.delta.run_checks()
+        network_df = pd.DataFrame.from_dict(self.delta.ch_gegs)
+        network_df = network_df.T
+        self._network = network_df
+        return
+
+    def update_channel_splits(self, model_network_gdf, channels_to_split):
+
+        self.delta.run_checks()
+        network_df = pd.DataFrame.from_dict(self.delta.ch_gegs)
+        network_df = network_df.T
+        self._network = network_df
         return
 
     def update_channels_geometry(self, model_network_gdf):
@@ -99,6 +140,9 @@ class IMSIDE():
                 self.delta.ch_gegs[index][key] = row[key]
             self.delta.add_properties(index, new_channel=True)
         self.delta.run_checks()
+        network_df = pd.DataFrame.from_dict(self.delta.ch_gegs)
+        network_df = network_df.T
+        self._network = network_df
         return
 
     def add_sea_level_rise(self, slr):
@@ -150,6 +194,7 @@ class IMSIDE():
         new_channel2['Name'] = new_channel2['Name'] + "_2"
         # currently, this function only works for channels with one segment
         # TODO update for multiple segments
+        print(old_channel)
         if len(new_channel1['L']) == 1:
             # channel 1 is sea side, channel 2 land side - check
             width_at_break_location = ((old_channel['b'][1] - old_channel['b'][0]) * location) + old_channel['b'][0]
@@ -222,6 +267,9 @@ class IMSIDE():
             self.delta.Qweir = np.vstack([self.delta.Qweir, np.zeros(len(self.delta.Qweir[0]))])
             self.delta.swe = np.vstack([self.delta.swe, np.array([0.15 + np.zeros(len(self.delta.swe[0]))])])
         self.delta.run_checks()
+        network_df = pd.DataFrame.from_dict(self.delta.ch_gegs)
+        network_df = network_df.T
+        self._network = network_df
         return
 
     def create_plots(self):

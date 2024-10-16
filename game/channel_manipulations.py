@@ -97,6 +97,7 @@ def update_channel_length(model_network_df):
         for idx in merged_segment_order:
             new_L.append(segment_L[idx] - substract_L)
             substract_L = sum(new_L)
+
             """
             try:
                 new_L.append(segment_L[idx] - new_L[-1])
@@ -214,13 +215,13 @@ def apply_split(turn_model_network_df, next_weir_number=3):
                 return_value = index
         return return_value
 
-    channels_to_split = []
+    channels_to_split = {}
     for index, row in model_network_df.iterrows():
         channel_name = check_split(index, row)
         if channel_name is not None:
-            channels_to_split.append(channel_name)
+            channels_to_split[channel_name] = [channel_name + "_1", channel_name + "_2"]
     if not channels_to_split:
-        return model_network_df, {}
+        return model_network_df, {}, {}
 
     def split_channel(channel, next_weir_number=3):
         old_channel = channel.copy()
@@ -236,48 +237,103 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         # TODO check
         reference_L = old_channel['L']
 
-        new_channel1['L'] = deepcopy(reference_L[:split_index + 1])
-        new_channel1['L'][-1] = new_channel1['L'][-1] / 2
-        location = sum(new_channel1["L"]) / sum(old_channel["L"])
-        print("split point (fraction of total L) =", location)
-        width_at_break_location = (old_channel['b'][split_index + 1] - old_channel['b'][split_index]) * location + \
-                                  old_channel['b'][split_index]
+        new_channel1.at['L'] = deepcopy(reference_L[:split_index + 1])
+        new_channel1.at['L'][-1] = new_channel1.loc['L'][-1] / 2
+        location = sum(new_channel1.loc["L"]) / sum(old_channel.loc["L"])
+        width_at_break_location = ((old_channel.loc['b'][split_index + 1] - old_channel.loc['b'][split_index]) *
+                                   location + old_channel.loc['b'][split_index])
+        """
+        # TODO this should also work, but having some trouble with the resulting numpy array shapes
+        # what happens is that when updating new_channel1['L'], the numpy array shape goes from 1D to 0-dimensional
+        if len(old_channel["ref_L"]) == 1:
+            reference_b = old_channel['ref_b']
+            reference_Hn = old_channel['ref_Hn']
+            reference_dx = old_channel['ref_dx']
+            new_channel1['L'] = np.array([sum(new_channel1['L'])])
+            new_channel1['b'] = deepcopy(reference_b)
+            new_channel1['b'][-1] = width_at_break_location
+            new_channel1['Hn'] = deepcopy(reference_Hn)
+            new_channel1['dx'] = deepcopy(reference_dx)
+
+            new_channel2['L'] = new_channel2['L'] = deepcopy(reference_L[split_index:])
+            new_channel2['L'][0] = new_channel2['L'][0] / 2
+            new_channel2['L'] = np.array([sum(new_channel2['L'])])
+            new_channel2['b'] = deepcopy(reference_b)
+            new_channel2['b'][0] = width_at_break_location
+            new_channel2['Hn'] = deepcopy(reference_Hn)
+            new_channel2['dx'] = deepcopy(reference_dx)
+
+            new_channel1['ver_changed_segments'] = [None]
+            new_channel1['hor_changed_segments'] = [None]
+            new_channel2['ver_changed_segments'] = [None]
+            new_channel2['hor_changed_segments'] = [None]
+        else:
+            reference_b = old_channel['b']
+            reference_Hn = old_channel['Hn']
+            new_channel1['b'] = deepcopy(reference_b[:split_index + 2])
+            new_channel1['b'][-1] = width_at_break_location
+            new_channel1['dx'] = np.array([new_channel1['dx'][0] for i in new_channel1['L']])
+            new_channel1['Hn'] = deepcopy(reference_Hn[:split_index + 1])
+
+            new_channel2['L'] = deepcopy(reference_L[split_index:])
+            new_channel2['L'][0] = new_channel2['L'][0] / 2
+            new_channel2['b'] = deepcopy(reference_b[split_index:])
+            new_channel2['b'][0] = width_at_break_location
+            new_channel2['dx'] = np.array([new_channel2['dx'][0] for i in new_channel1['L']])
+            new_channel2['Hn'] = deepcopy(reference_Hn[split_index:])
+
+            reference_ver = old_channel['ver_changed_segments']
+            reference_hor = old_channel['hor_changed_segments']
+
+            new_channel1['ver_changed_segments'] = deepcopy(reference_ver[:split_index + 1])
+            new_channel1['hor_changed_segments'] = deepcopy(reference_hor[:split_index + 1])
+            new_channel2['ver_changed_segments'] = deepcopy(reference_ver[split_index:])
+            new_channel2['hor_changed_segments'] = deepcopy(reference_hor[split_index:])
+        """
         reference_b = old_channel['b']
         reference_Hn = old_channel['Hn']
+        new_channel1.at['b'] = deepcopy(reference_b[:split_index + 2])
+        new_channel1.at['b'][-1] = width_at_break_location
+        new_channel1.at['dx'] = np.array([new_channel1.loc['dx'][0] for i in new_channel1.loc['L']])
+        new_channel1.at['Hn'] = deepcopy(reference_Hn[:split_index + 1])
+
+        new_channel2.at['L'] = deepcopy(reference_L[split_index:])
+        new_channel2.at['L'][0] = new_channel2.loc['L'][0] / 2
+        new_channel2.at['b'] = deepcopy(reference_b[split_index:])
+        new_channel2.at['b'][0] = width_at_break_location
+        new_channel2.at['dx'] = np.array([new_channel2.loc['dx'][0] for i in new_channel2.loc['L']])
+        new_channel2.at['Hn'] = deepcopy(reference_Hn[split_index:])
+
         reference_ver = old_channel['ver_changed_segments']
         reference_hor = old_channel['hor_changed_segments']
 
-        new_channel1['b'] = deepcopy(reference_b[:split_index + 2])
-        new_channel1['b'][-1] = width_at_break_location
-        new_channel1['dx'] = np.array([new_channel1['dx'][0] for i in new_channel1['L']])
+        new_channel1.at['ver_changed_segments'] = deepcopy(reference_ver[:split_index + 1])
+        new_channel1.at['hor_changed_segments'] = deepcopy(reference_hor[:split_index + 1])
+        new_channel2.at['ver_changed_segments'] = deepcopy(reference_ver[split_index:])
+        new_channel2.at['hor_changed_segments'] = deepcopy(reference_hor[split_index:])
+
         new_channel1['loc x=-L'] = 'w' + str(next_weir_number)
-        new_channel1['Hn'] = deepcopy(reference_Hn[:split_index + 1])
-        new_channel1['ver_changed_segments'] = deepcopy(reference_ver[:split_index + 1])
-        new_channel1['hor_changed_segments'] = deepcopy(reference_hor[:split_index + 1])
-
-        new_channel2['L'] = deepcopy(reference_L[split_index:])
-        new_channel2['L'][0] = new_channel2['L'][0] / 2
-        new_channel2['b'] = deepcopy(reference_b[split_index:])
-        new_channel2['b'][0] = width_at_break_location
-        new_channel2['dx'] = np.array([new_channel2['dx'][0] for i in new_channel1['L']])
         new_channel2['loc x=0'] = 'w' + str(next_weir_number + 1)
-        new_channel2['Hn'] = deepcopy(reference_Hn[split_index:])
-        new_channel2['ver_changed_segments'] = deepcopy(reference_ver[split_index:])
-        new_channel2['hor_changed_segments'] = deepcopy(reference_hor[split_index:])
 
-        polygon_ids = list(old_channel["polygon_ids"])
-        polygon_id_idx = polygon_ids.index(new_channel2["changed_polygons"][0])
-        new_channel1["polygon_ids"] = new_channel1["polygon_ids"][:polygon_id_idx + 1]
-        new_channel1["vertical_change"] = new_channel1["vertical_change"][:polygon_id_idx + 1]
-        new_channel1["horizontal_change"] = new_channel1["horizontal_change"][:polygon_id_idx + 1]
-        new_channel2["polygon_ids"] = new_channel2["polygon_ids"][polygon_id_idx:]
-        new_channel2["vertical_change"] = new_channel2["vertical_change"][polygon_id_idx:]
-        new_channel2["horizontal_change"] = new_channel2["horizontal_change"][polygon_id_idx:]
+        polygon_id_idx = old_channel["vertical_change"].index("split")
+        new_channel1.at["polygon_ids"] = new_channel1.loc["polygon_ids"][:polygon_id_idx + 1]
+        new_channel1.at["polygon_to_L"] = new_channel1.loc["polygon_to_L"][:polygon_id_idx + 1]
+        new_channel1.at["polygon_to_L"][-1] = (
+                ((new_channel1.loc["polygon_to_L"][-1] - new_channel1.loc["polygon_to_L"][-2]) / 2)
+                + new_channel1.loc["polygon_to_L"][-2])
+        new_channel1.at["vertical_change"] = new_channel1.loc["vertical_change"][:polygon_id_idx + 1]
+        new_channel1.at["horizontal_change"] = new_channel1.loc["horizontal_change"][:polygon_id_idx + 1]
+        new_channel2.at["polygon_ids"] = new_channel2.loc["polygon_ids"][polygon_id_idx:]
+        new_channel2.at["polygon_to_L"] = new_channel2.loc["polygon_to_L"][polygon_id_idx:]
+        new_channel2.at["polygon_to_L"] = new_channel2.loc["polygon_to_L"] - new_channel1.loc["polygon_to_L"][-1]
+        new_channel2.at["vertical_change"] = new_channel2.loc["vertical_change"][polygon_id_idx:]
+        new_channel2.at["horizontal_change"] = new_channel2.loc["horizontal_change"][polygon_id_idx:]
 
         polygon_segments = list(old_channel["polygon_to_segment"])
-        polygon_segment_idx = polygon_segments.index(new_channel1["changed_polygons"][0])
-        new_channel1["polygon_to_segment"] = new_channel1["polygon_to_segment"][:polygon_id_idx + 1]
-        new_channel2["polygon_to_segment"] = new_channel2["polygon_ids"][polygon_segment_idx:]
+        old_polygon_ids = list(old_channel.loc["polygon_ids"])
+        polygon_segment_idx = polygon_segments.index(old_polygon_ids[polygon_id_idx])
+        new_channel1.at["polygon_to_segment"] = new_channel1.loc["polygon_to_segment"][:polygon_id_idx + 1]
+        new_channel2.at["polygon_to_segment"] = new_channel2.loc["polygon_ids"][polygon_segment_idx:]
 
         def multiline_interpolate_point(line_geometry, distance):
             new_line1_coordinates = []
@@ -311,19 +367,17 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         distance_to_split = line.length * location
         new_line1, new_line2 = multiline_interpolate_point(line, distance_to_split)
 
-        new_channel1['plot x'] = new_line1[:, 0]
-        new_channel1['plot y'] = new_line1[:, 1]
-        new_channel2['plot x'] = new_line2[:, 0]
-        new_channel2['plot y'] = new_line2[:, 1]
+        new_channel1.at['plot x'] = new_line1[:, 0]
+        new_channel1.at['plot y'] = new_line1[:, 1]
+        new_channel2.at['plot x'] = new_line2[:, 0]
+        new_channel2.at['plot y'] = new_line2[:, 1]
         new_channels = pd.concat([new_channel1, new_channel2], axis=1)
         return new_channels.T
 
     channel_reference = {}
-    for channel in channels_to_split:
-        new_channels = split_channel(model_network_df.loc[channel], next_weir_number=next_weir_number)
-        channel_reference[model_network_df.loc[channel, 'Name']] = list(new_channels['Name'].values)
-        model_network_df = model_network_df.drop(channel)
-        # model_network_df = model_network_df.concat(new_channel1) # ignore_index=True
-        # model_network_df = model_network_df.concat(new_channel2)
-        merged_df = pd.concat([model_network_df, new_channels])
-    return merged_df, channel_reference
+    for channel_name, new_name in channels_to_split.items():
+        new_channels = split_channel(model_network_df.loc[channel_name])
+        channel_reference[model_network_df.loc[channel_name, 'Name']] = list(new_channels['Name'].values)
+        model_network_df = model_network_df.drop(channel_name)
+        model_network_df = pd.concat([model_network_df, new_channels])
+    return model_network_df, channel_reference, channels_to_split

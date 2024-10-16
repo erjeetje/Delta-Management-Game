@@ -74,8 +74,8 @@ def index_polygons_to_channel_geometry(network_gdf):
         columns={"Hn": "ref_Hn", "L": "ref_L", "b": "ref_b", "dx": "ref_dx"})
     return new_network_gdf
 
-def create_polygon_id_tracker(network_gdf):
-    polygon_index_df = pd.DataFrame(network_gdf) # convert to df as gdf does not support multi-column explode
+def create_polygon_id_tracker(network_gdf, hexagon_tracker_df=None):
+    polygon_index_df = pd.DataFrame(network_gdf.copy())  # convert to df as gdf does not support multi-column explode
     polygon_index_df = polygon_index_df.explode(["polygon_ids", "polygon_to_L"])
     polygon_index_df = polygon_index_df.reset_index()
     polygon_index_df = polygon_index_df[["index", "Name", "polygon_ids"]]
@@ -88,9 +88,19 @@ def create_polygon_id_tracker(network_gdf):
     polygon_index_df["index_in_polygon"] = polygon_index_df["index_in_polygon"].apply(lambda x: x.split(','))
     polygon_index_df["name_in_polygon"] = polygon_index_df["name_in_polygon"].apply(lambda x: x.split(','))
     polygon_index_df = polygon_index_df.set_index("polygon_ids")
-    polygon_index_df["ref_red_marker"] = 1
-    polygon_index_df["ref_blue_marker"] = 1
-    polygon_index_df["red_marker"] = 1
-    polygon_index_df["blue_marker"] = 1
-    polygon_index_df["changed"] = False
-    return polygon_index_df
+    if hexagon_tracker_df is None:
+        polygon_index_df["ref_red_marker"] = 1
+        polygon_index_df["ref_blue_marker"] = 1
+        polygon_index_df["red_marker"] = 1
+        polygon_index_df["blue_marker"] = 1
+        polygon_index_df["changed"] = False
+        return polygon_index_df
+    else:
+        for index, row in polygon_index_df.iterrows():
+            for column in ["index_in_polygon", "name_in_polygon"]:
+                hexagon_tracker_df.at[index, column] = row[column]
+        return hexagon_tracker_df
+
+def update_polygon_ids(hexagon_tracker, network_gdf):
+
+    return hexagon_tracker

@@ -30,7 +30,8 @@ class DMG():
         self.transform_functions()
         self.build_game_network()
         self.index_channels()
-        self.split_channels = {}
+        self.turn_split_channels = {}
+        self.all_split_channels = {}
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
         print("we are here")
@@ -97,7 +98,7 @@ class DMG():
             """
             # deepening part of Nieuwe Waterweg
             update_markers = {
-                59: [0, 1], 49: [0, 1], 39: [0, 1], 29: [0, 1], 88: [3,1]} #
+                59: [0, 1], 49: [0, 1], 39: [0, 1], 29: [0, 1], 88: [3,1]} # , 51: [3,1]
         elif self.turn == 3:
             # deepening rest of Nieuwe Waterweg and Nieuwe Maas
             update_markers = {
@@ -106,7 +107,7 @@ class DMG():
             # widening Nieuwe Waterweg
             update_markers = {
                 70: [0,2], 60: [0,2], 59: [0,2], 49: [0,2], 39: [0,2], 29: [0,2], 80: [0,2]}
-        self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagon_index, update_markers)
+        self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagons_tracker, update_markers)
         turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
         turn_change = update_func.to_change(turn_change)
         new_model_network_df = self.model_network_gdf.copy()
@@ -116,11 +117,17 @@ class DMG():
 
         new_model_network_df = update_func.update_channel_references(new_model_network_df)
         new_model_network_df = update_func.update_channel_geometry(new_model_network_df)
-        new_model_network_df, self.split_channels = update_func.apply_split(new_model_network_df, self.weir_tracker)
-        self.weir_tracker = self.weir_tracker + (len(self.split_channels) * 2)
+        new_model_network_df, self.turn_split_channels, split_names = update_func.apply_split(new_model_network_df, self.weir_tracker)
+        self.weir_tracker = self.weir_tracker + (len(self.turn_split_channels) * 2)
+
         # TODO: add a check function if segments can be "knitted" back together (basically, ensure lowest # of segments)
-        self.model.update_channel_geometries(new_model_network_df, self.split_channels)
+        self.model.update_channel_geometries(new_model_network_df, self.turn_split_channels)
         self.model_network_gdf = new_model_network_df
+        if self.turn_split_channels:
+            self.hexagon_index = indexing.create_polygon_id_tracker(self.model_network_gdf,
+                                                                    hexagon_tracker_df=self.hexagons_tracker) #self.split_channels, split_names
+            self.all_split_channels.update(self.turn_split_channels)
+        # TODO: also update hexagon_tracker (references are updated with split channel)
         #if self.turn == 2:
         #    self.split_channel(channel="Nieuwe Maas 1 old")
         model_output_df = self.run_model()
@@ -224,7 +231,8 @@ class DMG():
 
     def index_channels(self):
         self.model_network_gdf = indexing.index_polygons_to_channel_geometry(self.model_network_gdf)
-        self.hexagon_index = indexing.create_polygon_id_tracker(self.model_network_gdf)
+        self.hexagons_tracker = indexing.create_polygon_id_tracker(self.model_network_gdf)
+        print(self.hexagons_tracker)
         return
 
     def model_output_to_game(self, model_output_df, initialize=False):
@@ -267,8 +275,8 @@ class DMG():
 
             # The code below appends the output GeoDataFrames
             output_to_merge_df = double_exploded_output_df[["id", "branch_rank", "time", "sb_st"]]
-            if self.split_channels:
-                output_to_merge_df = game_sync.update_split_channel_ids(output_to_merge_df, self.split_channels)
+            if self.all_split_channels:
+                output_to_merge_df = game_sync.update_split_channel_ids(output_to_merge_df, self.all_split_channels)
             output_to_merge_df = output_to_merge_df.drop(columns=["branch_rank"])
             model_output_gdf = self.model_output_ref_gdf.merge(output_to_merge_df, on="id")
             game_output_gdf = self.game_output_ref_gdf.merge(output_to_merge_df, on="id")
@@ -311,7 +319,6 @@ class DMG():
         """
         function that sets up and runs the demonstrator visualizations.
         """
-        print(self.model_output_gdf.iloc[0])
         world_bbox = demo_processing.get_bbox(self.model_output_gdf, gdf_type="world")
         game_bbox = demo_processing.get_bbox(self.game_output_gdf, gdf_type="game")
         salinity_range = demo_processing.get_salinity_scale(self.model_output_gdf)
@@ -345,16 +352,11 @@ class DMG():
 def main():
     game = DMG()
     print("initialized")
-    #channels_to_update = [["Nieuwe Waterweg v2"], ["Nieuwe Maas 1 old", "Nieuwe Maas 2 old"], ["Oude Maas 1", "Oude Maas 2", "Oude Maas 3", "Oude Maas 4"]]
-    for turn in range(2, 3):
+    for turn in range(2, 5):
         game.turn = turn
         game.update_forcings()
-        #game.update_channel_geometries(channels_to_update=channels_to_update[turn-2], change_type="undeepen")
-
-        #if turn == 2:
-            #game.add_sea_level_rise(slr=1)
-            # TODO: update split_channel function to be called from update() & to take polygon change as input
-            #game.split_channel(channel="Nieuwe Maas 1 old")
+        if turn == 3:
+            game.add_sea_level_rise(slr=1)
         game.update()
         game.end_round()
         print("updated to turn", turn)

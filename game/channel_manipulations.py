@@ -2,11 +2,40 @@ import numpy as np
 import pandas as pd
 from copy import deepcopy
 from math import sqrt
-from shapely import get_coordinates, line_interpolate_point
+from shapely import get_coordinates #, line_interpolate_point
 from shapely.geometry import LineString
 
 
 def update_polygon_tracker(polygon_df, markers):
+    for key, value in markers.items():
+        if key not in polygon_df.index.values.tolist():
+            print("no channel connected to polygon", key)
+            continue
+        if value == "deepen":
+            polygon_df.at[key, "red_marker"] = polygon_df.loc[key, "red_marker"] - 1
+            polygon_df.at[key, "changed"] = True
+            print("deepened", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
+        elif value == "undeepen":
+            polygon_df.at[key, "red_marker"] = polygon_df.loc[key, "red_marker"] + 1
+            polygon_df.at[key, "changed"] = True
+            print("undeepened", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
+        elif value == "split":
+            # if the channel is widened later @ split location, the red_marker go to 2, could be unexpected behavior
+            polygon_df.at[key, "red_marker"] = 3
+            polygon_df.at[key, "changed"] = True
+            print("split", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
+        if value == "widen":
+            polygon_df.at[key, "blue_marker"] = polygon_df.loc[key, "blue_marker"] + 1
+            polygon_df.at[key, "changed"] = True
+            print("widened", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
+        elif value == "narrow":
+            polygon_df.at[key, "blue_marker"] = polygon_df.loc[key, "blue_marker"] - 1
+            polygon_df.at[key, "changed"] = True
+            print("narrowed", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
+    return polygon_df
+
+
+def update_polygon_tracker_old(polygon_df, markers):
     for key, value in markers.items():
         if polygon_df.loc[key, "red_marker"] != value[0]:
             polygon_df.at[key, "red_marker"] = value[0]

@@ -6,6 +6,7 @@ import numpy as np
 from datetime import timedelta
 from copy import deepcopy
 from PyQt5.QtWidgets import QApplication
+from ast import literal_eval
 from game import demo_visualizations as visualizer
 from game import load_functions as load_files
 from game import model_to_game as game_sync
@@ -32,6 +33,7 @@ class DMG():
         self.index_channels()
         self.turn_split_channels = {}
         self.all_split_channels = {}
+        self.turn_updates = {}
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
         print("we are here")
@@ -88,7 +90,58 @@ class DMG():
         self.model.run_model()
         return self.model.output
 
+    def get_changes(self, updates):
+        updates = "{" + updates + "}"
+        try:
+            updates = literal_eval(updates)
+            print(updates)
+        except ValueError:
+            print("Error in typed entry, no update applied")
+            return
+        self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagons_tracker, updates)
+        return
+
     def update(self):
+        """
+        function that handles running the model and retrieving the model output.
+        """
+        self.turn += 1
+        self.update_forcings()
+        if self.turn == 3:
+            self.add_sea_level_rise(slr=1)
+        turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
+        turn_change = update_func.to_change(turn_change)
+        new_model_network_df = self.model_network_gdf.copy()
+        new_model_network_df = update_func.geometry_to_update(turn_change, new_model_network_df)
+        # TODO: consider how to cut channels into segments, as otherwise width changes also affect unchanged polygons
+        new_model_network_df = update_func.update_channel_length(new_model_network_df)
+
+        new_model_network_df = update_func.update_channel_references(new_model_network_df)
+        new_model_network_df = update_func.update_channel_geometry(new_model_network_df)
+        new_model_network_df, self.turn_split_channels, split_names = update_func.apply_split(new_model_network_df, self.weir_tracker)
+        self.weir_tracker = self.weir_tracker + (len(self.turn_split_channels) * 2)
+
+        # TODO: add a check function if segments can be "knitted" back together (basically, ensure lowest # of segments)
+        self.model.update_channel_geometries(new_model_network_df, self.turn_split_channels)
+        self.model_network_gdf = new_model_network_df
+        if self.turn_split_channels:
+            self.hexagon_index = indexing.create_polygon_id_tracker(self.model_network_gdf,
+                                                                    hexagon_tracker_df=self.hexagons_tracker) #self.split_channels, split_names
+            self.all_split_channels.update(self.turn_split_channels)
+        # TODO: also update hexagon_tracker (references are updated with split channel)
+        #if self.turn == 2:
+        #    self.split_channel(channel="Nieuwe Maas 1 old")
+        model_output_df = self.run_model()
+        # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
+        # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
+        #self.model_output_to_game(model_output_df, scenario=self.scenario)
+        self.model_output_to_game(model_output_df)
+        self.end_round()
+        print("updated to turn", self.turn)
+        return
+
+
+    def update_old(self):
         """
         function that handles running the model and retrieving the model output.
         """
@@ -107,7 +160,7 @@ class DMG():
             # widening Nieuwe Waterweg
             update_markers = {
                 70: [0,2], 60: [0,2], 59: [0,2], 49: [0,2], 39: [0,2], 29: [0,2], 80: [0,2]}
-        self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagons_tracker, update_markers)
+        self.hexagons_tracker = update_func.update_polygon_tracker_old(self.hexagons_tracker, update_markers)
         turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
         turn_change = update_func.to_change(turn_change)
         new_model_network_df = self.model_network_gdf.copy()
@@ -337,10 +390,9 @@ class DMG():
         # ,water_level_range = water_level_range, water_velocity_range = water_velocity_range
         colorbar_salinity, labels_salinity_categories = load_files.load_images()
         gui = visualizer.ApplicationWindow(
-            scenarios=self.model_output_gdf, viz_tracker=viz_tracker, bbox=world_bbox,
+            game=self, viz_tracker=viz_tracker, bbox=world_bbox,
             salinity_colorbar_image=colorbar_salinity, salinity_category_image=labels_salinity_categories)
-        side_window = visualizer.GameVisualization(
-            scenarios=self.game_output_gdf, viz_tracker=viz_tracker, bbox=game_bbox)
+        side_window = visualizer.GameVisualization(game=self, viz_tracker=viz_tracker, bbox=game_bbox)
         gui.show()
         side_window.show()
         gui.activateWindow()
@@ -352,7 +404,13 @@ class DMG():
 def main():
     game = DMG()
     print("initialized")
-    for turn in range(2, 5):
+    game.create_visualizations()
+    return
+
+def main_old():
+    game = DMG()
+    print("initialized")
+    for turn in range(2, 3):
         game.turn = turn
         game.update_forcings()
         if turn == 3:

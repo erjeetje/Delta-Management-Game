@@ -5,22 +5,23 @@ import matplotlib.style
 
 matplotlib.style.use("fast")
 
-from PyQt5.QtWidgets import (QWidget, QPushButton, QLabel, QDesktopWidget, QMainWindow, QHBoxLayout, QVBoxLayout)
+from PyQt5.QtWidgets import (QWidget, QPushButton, QLabel, QDesktopWidget, QMainWindow, QHBoxLayout, QVBoxLayout,
+                             QLineEdit)
 from PyQt5.QtCore import Qt
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
 
 
-
 class ApplicationWindow(QMainWindow):
-    def __init__(self, scenarios, viz_tracker, bbox, salinity_colorbar_image, salinity_category_image):
+    def __init__(self, game, viz_tracker, bbox, salinity_colorbar_image, salinity_category_image):
         super().__init__()
         self._main = QWidget()
         self.setWindowTitle('Delta Management Game demonstrator')
         self.setCentralWidget(self._main)
         self.setStyleSheet("background-color:white; font-weight: bold; font-size: 24")
-        self.scenarios = scenarios
+        self.game = game
+        #self.scenarios = game.model_output_gdf
         self.viz_tracker = viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
         self.selected_model_variable = self.viz_tracker.model_variable
@@ -76,8 +77,8 @@ class ApplicationWindow(QMainWindow):
         #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
         self.ax.set_axis_off()
         self.ax.set_position([0.1, 0.1, 0.8, 0.8])
-        scenario_idx = self.scenarios["scenario"] == self.selected_scenario
-        self.running_scenario = self.scenarios[scenario_idx]
+        scenario_idx = self.game.model_output_gdf["scenario"] == self.selected_scenario
+        self.running_scenario = self.game.model_output_gdf[scenario_idx]
         t_idx = self.viz_tracker.time_index
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
@@ -100,8 +101,8 @@ class ApplicationWindow(QMainWindow):
     def update_plot_model(self):
         if self.selected_scenario != self.viz_tracker.scenario:
             self.selected_scenario = self.viz_tracker.scenario
-            scenario_idx = self.scenarios["scenario"] == self.selected_scenario
-            self.running_scenario = self.scenarios[scenario_idx]
+            scenario_idx = self.game.model_output_gdf["scenario"] == self.selected_scenario
+            self.running_scenario = self.game.model_output_gdf[scenario_idx]
         if self.selected_model_variable != self.viz_tracker.model_variable:
             self.selected_model_variable = self.viz_tracker.model_variable
             if self.selected_model_variable == "water_salinity":
@@ -150,12 +151,13 @@ class ApplicationWindow(QMainWindow):
 
 
 class GameVisualization(QWidget):
-    def __init__(self, scenarios, viz_tracker, bbox):
+    def __init__(self, game, viz_tracker, bbox):
         super().__init__()
         self.setStyleSheet("background-color:white;")
         #self.setFixedSize(1280, 720)
         #self.setWindowFlags(Qt.FramelessWindowHint)
-        self.scenarios = scenarios
+        #self.scenarios = scenarios
+        self.game = game
         self.viz_tracker=viz_tracker
         self.selected_scenario = self.viz_tracker.scenario
         self.selected_variable = self.viz_tracker.game_variable
@@ -190,8 +192,8 @@ class GameVisualization(QWidget):
         #self.ax.set_aspect(1)
         self.ax.axis(bbox)
         self.ax.set_axis_off()
-        scenario_idx = self.scenarios["scenario"] == self.selected_scenario
-        self.running_scenario = self.scenarios[scenario_idx]
+        scenario_idx = self.game.game_output_gdf["scenario"] == self.selected_scenario
+        self.running_scenario = self.game.game_output_gdf[scenario_idx]
         t_idx = self.viz_tracker.time_index
         t = self.running_scenario.iloc[t_idx]["time"]
         idx = self.running_scenario["time"] == t
@@ -211,8 +213,8 @@ class GameVisualization(QWidget):
     def update_plot_model(self):
         if self.selected_scenario != self.viz_tracker.scenario:
             self.selected_scenario = self.viz_tracker.scenario
-            scenario_idx = self.scenarios["scenario"] == self.selected_scenario
-            self.running_scenario = self.scenarios[scenario_idx]
+            scenario_idx = self.game.game_output_gdf["scenario"] == self.selected_scenario
+            self.running_scenario = self.game.game_output_gdf[scenario_idx]
         if self.selected_variable != self.viz_tracker.game_variable:
             print(9)
             self.selected_variable = self.viz_tracker.game_variable
@@ -263,18 +265,19 @@ class ControlWidget(QWidget):
     def initUI(self):
         self.lbl_screen_variable = QLabel('Screen variable selection', self)
         self.lbl_screen_variable.setStyleSheet("font-weight: bold; font-size: 24")
-        self.lbl_screen_variable.move(10, 80)
+        self.lbl_screen_variable.move(10, 20)
         self.lbl_screen_variable.setFixedWidth(180)
         self.lbl_screen_variable.setAlignment(Qt.AlignCenter)
 
         self.btn_screen_salinity = QPushButton('Salinity concentration', self)
         self.btn_screen_salinity.clicked.connect(self.on_screen_salinity_button_clicked)
-        self.btn_screen_salinity.resize(180, 80)
-        self.btn_screen_salinity.move(10, 140)
+        self.btn_screen_salinity.resize(180, 60)
+        self.btn_screen_salinity.move(10, 80)
         self.btn_screen_salinity_category = QPushButton('Salinity (categorized)', self)
         self.btn_screen_salinity_category.clicked.connect(self.on_screen_salinity_category_button_clicked)
-        self.btn_screen_salinity_category.resize(180, 80)
-        self.btn_screen_salinity_category.move(10, 260)
+        self.btn_screen_salinity_category.resize(180, 60)
+        self.btn_screen_salinity_category.move(10, 160)
+
         """
         self.btn_screen_water_velocity = QPushButton('Water velocity', self)
         self.btn_screen_water_velocity.clicked.connect(self.on_screen_water_velocity_button_clicked)
@@ -284,18 +287,32 @@ class ControlWidget(QWidget):
 
         self.lbl_board_variable = QLabel('Board variable selection', self)
         self.lbl_board_variable.setStyleSheet("font-weight: bold; font-size: 24")
-        self.lbl_board_variable.move(210, 80)
+        self.lbl_board_variable.move(210, 20)
         self.lbl_board_variable.setFixedWidth(180)
         self.lbl_board_variable.setAlignment(Qt.AlignCenter)
 
         self.btn_board_salinity = QPushButton('Salinity concentration', self)
         self.btn_board_salinity.clicked.connect(self.on_board_salinity_button_clicked)
-        self.btn_board_salinity.resize(180, 80)
-        self.btn_board_salinity.move(210, 140)
+        self.btn_board_salinity.resize(180, 60)
+        self.btn_board_salinity.move(210, 80)
         self.btn_board_salinity_category = QPushButton('Salinity (categorized)', self)
         self.btn_board_salinity_category.clicked.connect(self.on_board_salinity_category_button_clicked)
-        self.btn_board_salinity_category.resize(180, 80)
-        self.btn_board_salinity_category.move(210, 260)
+        self.btn_board_salinity_category.resize(180, 60)
+        self.btn_board_salinity_category.move(210, 160)
+
+        self.textbox = QLineEdit(self)
+        self.textbox.resize(380, 60)
+        self.textbox.move(10, 240)
+
+        self.btn_update = QPushButton('Change delta', self)
+        self.btn_update.clicked.connect(self.on_update_button_clicked)
+        self.btn_update.resize(380, 60)
+        self.btn_update.move(10, 320)
+
+        self.btn_run_model = QPushButton('Run model', self)
+        self.btn_run_model.clicked.connect(self.on_run_model_button_clicked)
+        self.btn_run_model.resize(380, 60)
+        self.btn_run_model.move(10, 400)
         """
         self.btn_board_water_velocity = QPushButton('Water velocity', self)
         self.btn_board_water_velocity.clicked.connect(self.on_board_water_velocity_button_clicked)
@@ -331,6 +348,15 @@ class ControlWidget(QWidget):
         self.scenario1.clicked.connect(self.on_scenario1_button_clicked)
         self.scenario1.resize(180, 80)
         self.scenario1.move(10, 580)
+        return
+
+    def on_update_button_clicked(self):
+        textboxValue = self.textbox.text()
+        self.gui.game.get_changes(textboxValue)
+        return
+
+    def on_run_model_button_clicked(self):
+        self.gui.game.update()
         return
 
     def on_screen_salinity_button_clicked(self):

@@ -464,12 +464,6 @@ def process_model_output(model_output_df):
             print("")
 
     double_exploded_output_df = exploded_output_df.explode(next_columns_to_explode)
-    #print("")
-    #print(exploded_output_df)
-    #print(exploded_output_df.shape)
-    #print("")
-    #print(double_exploded_output_df)
-    #print(double_exploded_output_df.shape)
     return double_exploded_output_df, exploded_output_df
 
 

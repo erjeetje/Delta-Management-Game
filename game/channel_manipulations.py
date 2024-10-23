@@ -88,6 +88,8 @@ def update_channel_length(model_network_df):
     """
     Function that creates new segments based on changes on the game board.
 
+    TODO: consider if the code could not be made more robust by immediately taking dx into account
+
     TODO: modify code (or add function) to "knit" segments back together if depths are the same and if width interpolates
 
     TODO: modify how segments are created so that depth/width changes in one part of the channel do not/only limitedly affect the rest of the channel
@@ -126,13 +128,6 @@ def update_channel_length(model_network_df):
         for idx in merged_segment_order:
             new_L.append(segment_L[idx] - substract_L)
             substract_L = sum(new_L)
-
-            """
-            try:
-                new_L.append(segment_L[idx] - new_L[-1])
-            except IndexError:
-                new_L.append(segment_L[idx])
-            """
 
         old_L_idx = [0] * len(new_L)
         if len(old_L) > 1:
@@ -233,6 +228,14 @@ def update_channel_geometry(turn_model_network_df):
 
 
 def apply_split(turn_model_network_df, next_weir_number=3):
+    """
+    function that does the bookkeeping for splitting a channel. It is not the most neat function, but it does seems
+    to work robustly for different scenarios tested so far.
+
+    TODO: reconsider approach to function
+
+    TODO: further test robustness of function
+    """
     model_network_df = turn_model_network_df.copy()
 
     def check_split(index, row):

@@ -464,13 +464,14 @@ def process_model_output(model_output_df):
             print("")
 
     double_exploded_output_df = exploded_output_df.explode(next_columns_to_explode)
+    double_exploded_output_df['sb_mgl'] = double_exploded_output_df['sb_st'] / 1.807 * 1000
     return double_exploded_output_df, exploded_output_df
 
 
 def output_df_to_gdf(double_exploded_output_df):
     output_points_geometry = gpd.points_from_xy(double_exploded_output_df['plot xs'],
                                                 double_exploded_output_df['plot ys'], crs="EPSG:4326")
-    network_model_output_gdf = gpd.GeoDataFrame(double_exploded_output_df[['id', 'branch_rank', 'time', 'sb_st']],
+    network_model_output_gdf = gpd.GeoDataFrame(double_exploded_output_df[['id', 'branch_rank', 'time', 'sb_st', 'sb_mgl']],
                                                 geometry=output_points_geometry)
     return network_model_output_gdf
 
@@ -541,16 +542,17 @@ def model_output_to_game_locations(game_network_gdf, network_model_output_gdf, e
     return game_output_gdf
 
 def output_to_timeseries(output_gdf, scenario=None):
-    output_gdf["sb_st"] = output_gdf["sb_st"].astype(float)
-    output_gdf = output_gdf.rename(columns={"sb_st": "water_salinity"})
+    output_gdf["sb_mgl"] = output_gdf["sb_mgl"].astype(float)
+    output_gdf = output_gdf.rename(columns={"sb_mgl": "water_salinity"})
     # change bins (and names) below for different salinity concentration categories
-    bins = [0, 0.5, 1.5, 2.5, 10, 30, np.inf]
+    #bins = [0, 0.5, 1.5, 2.5, 10, 30, np.inf]
+    # these are categorizations used in the "SWM redeneerlijnen"
+    bins = [0, 150, 250, 500, 1000, 1500, 3000, 5000, 10000, 15000, np.inf]
     # TODO test with categorical data
     #names = ['<0.5', '0.5-1.5', '1.5-2.5', '2.5-10', '10-30', '30+']
     values = [i + 1 for i in range(len(bins) - 1)]
     #values = [0.25, 1, 2, 6.25, 20, 34]
     output_gdf['salinity_category'] = pd.cut(output_gdf['water_salinity'], bins, labels=values)
-
     if scenario is not None:
         output_gdf["scenario"] = scenario
     return output_gdf

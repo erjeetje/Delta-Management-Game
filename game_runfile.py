@@ -36,6 +36,7 @@ class DMG():
         self.turn_updates = {}
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
+        self.end_round()
         print("we are here")
         return
 
@@ -99,14 +100,15 @@ class DMG():
             print("Error in typed entry, no update applied")
             return
         self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagons_tracker, updates)
+        for key, value in updates.items():
+            if isinstance(key, str):
+                self.model.change_local_boundaries(key, value)
         return
 
     def update(self):
         """
         function that handles running the model and retrieving the model output.
         """
-        self.turn += 1
-        self.update_forcings()
         if self.turn == 3:
             self.add_sea_level_rise(slr=1)
         turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
@@ -193,10 +195,26 @@ class DMG():
     def end_round(self):
         self.hexagons_tracker["ref_red_marker"] = self.hexagons_tracker["red_marker"]
         self.hexagons_tracker["ref_blue_marker"] = self.hexagons_tracker["blue_marker"]
-        self.model_network_gdf["ref_L"] = self.model_network_gdf["L"]
-        self.model_network_gdf["ref_b"] = self.model_network_gdf["b"]
-        self.model_network_gdf["ref_Hn"] = self.model_network_gdf["Hn"]
-        self.model_network_gdf["ref_dx"] = self.model_network_gdf["dx"]
+        print(self.model_network_gdf.head())
+        print(self.model_network_gdf.columns)
+        try:
+            self.model_network_gdf["ref_L"] = self.model_network_gdf["L"]
+        except KeyError:
+            pass
+        try:
+            self.model_network_gdf["ref_b"] = self.model_network_gdf["b"]
+        except KeyError:
+            pass
+        try:
+            self.model_network_gdf["ref_Hn"] = self.model_network_gdf["Hn"]
+        except KeyError:
+            pass
+        try:
+            self.model_network_gdf["ref_dx"] = self.model_network_gdf["dx"]
+        except KeyError:
+            pass
+        self.turn += 1
+        self.update_forcings()
         #self.turn += 1 # this should be handled here eventually when changes are not hardcoded
         return
 
@@ -308,9 +326,9 @@ class DMG():
             self.model_output_gdf = model_output_gdf.drop(columns="index")
             timestep_0 = self.model_output_gdf.iloc[0]["time"]
             self.model_output_ref_gdf = self.model_output_gdf.loc[self.model_output_gdf['time'] == timestep_0]
-            self.model_output_ref_gdf = self.model_output_ref_gdf.drop(columns=["time", "sb_st"])
+            self.model_output_ref_gdf = self.model_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
             self.game_output_ref_gdf = self.game_output_gdf.loc[self.game_output_gdf['time'] == timestep_0]
-            self.game_output_ref_gdf = self.game_output_ref_gdf.drop(columns=["time", "sb_st"])
+            self.game_output_ref_gdf = self.game_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
             self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, scenario=self.scenario)
             self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, scenario=self.scenario)
             duration = timedelta(seconds=time.perf_counter() - start_time)
@@ -327,7 +345,7 @@ class DMG():
             """
 
             # The code below appends the output GeoDataFrames
-            output_to_merge_df = double_exploded_output_df[["id", "branch_rank", "time", "sb_st"]]
+            output_to_merge_df = double_exploded_output_df[["id", "branch_rank", "time", "sb_st", 'sb_mgl']]
             if self.all_split_channels:
                 output_to_merge_df = game_sync.update_split_channel_ids(output_to_merge_df, self.all_split_channels)
             output_to_merge_df = output_to_merge_df.drop(columns=["branch_rank"])

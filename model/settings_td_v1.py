@@ -74,6 +74,7 @@ def set_forcing(scenario="2017"):
     else:
         print("unknown scenario, no update to forcing conditions")
         return
+    print("scenario is now", scenario)
     return forc_pars
 
 '''

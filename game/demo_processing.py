@@ -21,7 +21,9 @@ def get_bbox(output_gdf, gdf_type="world"):
     return bbox
 
 def get_salinity_scale(output_gdf, column="water_salinity"):
-    salinity_range = Normalize(output_gdf[column].min(),
+    #salinity_range = Normalize(output_gdf[column].min(),
+    #                           output_gdf[column].max())
+    salinity_range = LogNorm(output_gdf[column].min(),
                                output_gdf[column].max())
     print(column, output_gdf[column].min(), output_gdf[column].max())
     return salinity_range

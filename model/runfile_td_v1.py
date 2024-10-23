@@ -65,6 +65,34 @@ class IMSIDE():
                 self.delta.swe = np.vstack([self.delta.swe, np.array([0.15 + np.zeros(len(self.delta.swe[0]))])])
         return
 
+    def change_local_boundaries(self, type, value):
+        if type == "Qhar":
+            self.delta.Qhar[0] = np.array([value + np.zeros(len(self.delta.Qhar[0]))])
+            print("Set Qhar to", self.delta.Qhar)
+        elif type == "Qlek":
+            ref_Qlek = self.delta.Qweir[1]
+            print("ref_Qlek", ref_Qlek)
+            print("ref_Qwaal", self.delta.Qriv[0])
+            dif_Qlek = np.array([value - x for x in ref_Qlek])
+            print("dif_Qlek", dif_Qlek)
+            self.delta.Qweir[1] = np.array([value + np.zeros(len(self.delta.Qweir[1]))])
+            print("new_Qlek", self.delta.Qweir[1])
+            self.delta.Qriv[0] = np.subtract(self.delta.Qriv[0], dif_Qlek)
+            print("new_Qwaal", self.delta.Qriv[0])
+        elif type == "Qhij":
+            ref_Qhij = self.delta.Qweir[0]
+            print("ref_Qhij", ref_Qhij)
+            print("ref_Qwaal", self.delta.Qriv[0])
+            dif_Qhij = np.array([value - x for x in ref_Qhij])
+            print("dif_Qhij", dif_Qhij)
+            self.delta.Qweir[0] = np.array([value + np.zeros(len(self.delta.Qweir[0]))])
+            print("new_Qlek", self.delta.Qweir[0])
+            self.delta.Qriv[0] = np.subtract(self.delta.Qriv[0], dif_Qhij)
+            print("new_Qwaal", self.delta.Qriv[0])
+        else:
+            print("unknown type given, no local boundary is updated.")
+        return
+
     """
     def add_segments_to_channels(self, model_network_gdf):
         model_network_gdf = model_network_gdf.set_index("Name")

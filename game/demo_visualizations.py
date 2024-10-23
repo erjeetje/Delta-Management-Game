@@ -112,7 +112,7 @@ class ApplicationWindow(QMainWindow):
                 color_map = "viridis_r"
                 norm = self.viz_tracker.water_level_norm
             elif self.selected_model_variable == "salinity_category":
-                color_map = "RdBu_r"
+                color_map = "RdYlBu_r"
                 norm = self.viz_tracker.salinity_category_norm
             elif self.selected_model_variable == "water_velocity":
                 color_map = "Spectral_r"
@@ -226,7 +226,7 @@ class GameVisualization(QWidget):
                 norm = self.viz_tracker.water_level_norm
             elif self.selected_variable == "salinity_category":
                 print(10)
-                color_map = "RdBu_r"
+                color_map = "RdYlBu_r"
                 norm = self.viz_tracker.salinity_category_norm
                 print(11)
             elif self.selected_variable == "water_velocity":
@@ -308,11 +308,13 @@ class ControlWidget(QWidget):
         self.btn_update.clicked.connect(self.on_update_button_clicked)
         self.btn_update.resize(380, 60)
         self.btn_update.move(10, 320)
+        self.btn_update.setStyleSheet("background-color:lightgray;")
 
         self.btn_run_model = QPushButton('Run model', self)
         self.btn_run_model.clicked.connect(self.on_run_model_button_clicked)
         self.btn_run_model.resize(380, 60)
         self.btn_run_model.move(10, 400)
+        self.btn_run_model.setStyleSheet("background-color:lightgray;")
         """
         self.btn_board_water_velocity = QPushButton('Water velocity', self)
         self.btn_board_water_velocity.clicked.connect(self.on_board_water_velocity_button_clicked)

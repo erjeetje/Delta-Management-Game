@@ -410,7 +410,7 @@ def model_td(self, init):
         ns_inp = self.n_sea[:,tt]  if len(self.n_sea)  >0 else []
         Qnow   = self.Qdist_calc((Qr_inp , Qw_inp , Qh_inp, ns_inp))
         #print("td Qin:", Qr_inp, Qw_inp, Qh_inp)
-        print("td Qnow:", Qnow)
+        #print("td Qnow:", Qnow)
 
         sr_inp = self.sri[:,tt] if len(self.sri) >0 else []
         sw_inp = self.swe[:,tt] if len(self.swe) >0 else []

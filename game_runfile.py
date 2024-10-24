@@ -37,12 +37,13 @@ class DMG():
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
         self.end_round()
-        print("we are here")
+        self.create_visualizations()
         return
 
     @property
     def turn(self):
         return self._turn
+
     @turn.setter
     def turn(self, turn):
         self._turn = turn
@@ -138,8 +139,8 @@ class DMG():
         # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
         #self.model_output_to_game(model_output_df, scenario=self.scenario)
         self.model_output_to_game(model_output_df)
-        self.end_round()
         print("updated to turn", self.turn)
+        self.end_round()
         return
 
 
@@ -195,8 +196,6 @@ class DMG():
     def end_round(self):
         self.hexagons_tracker["ref_red_marker"] = self.hexagons_tracker["red_marker"]
         self.hexagons_tracker["ref_blue_marker"] = self.hexagons_tracker["blue_marker"]
-        print(self.model_network_gdf.head())
-        print(self.model_network_gdf.columns)
         try:
             self.model_network_gdf["ref_L"] = self.model_network_gdf["L"]
         except KeyError:
@@ -215,7 +214,6 @@ class DMG():
             pass
         self.turn += 1
         self.update_forcings()
-        #self.turn += 1 # this should be handled here eventually when changes are not hardcoded
         return
 
     def update_forcings(self):
@@ -329,8 +327,8 @@ class DMG():
             self.model_output_ref_gdf = self.model_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
             self.game_output_ref_gdf = self.game_output_gdf.loc[self.game_output_gdf['time'] == timestep_0]
             self.game_output_ref_gdf = self.game_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
-            self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, scenario=self.scenario)
-            self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, scenario=self.scenario)
+            self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, turn=self.turn)
+            self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, turn=self.turn)
             duration = timedelta(seconds=time.perf_counter() - start_time)
             print('Initial output processing took: ', duration)
         else:
@@ -351,8 +349,8 @@ class DMG():
             output_to_merge_df = output_to_merge_df.drop(columns=["branch_rank"])
             model_output_gdf = self.model_output_ref_gdf.merge(output_to_merge_df, on="id")
             game_output_gdf = self.game_output_ref_gdf.merge(output_to_merge_df, on="id")
-            model_output_gdf = game_sync.output_to_timeseries(model_output_gdf, scenario=self.scenario)
-            game_output_gdf = game_sync.output_to_timeseries(game_output_gdf, scenario=self.scenario)
+            model_output_gdf = game_sync.output_to_timeseries(model_output_gdf, turn=self.turn)
+            game_output_gdf = game_sync.output_to_timeseries(game_output_gdf, turn=self.turn)
             self.model_output_gdf = pd.concat([self.model_output_gdf, model_output_gdf])
             self.game_output_gdf = pd.concat([self.game_output_gdf, game_output_gdf])
             duration = timedelta(seconds=time.perf_counter() - start_time)
@@ -399,10 +397,10 @@ class DMG():
             qapp = QApplication(sys.argv)
         time_steps = list(sorted(set(self.model_output_gdf["time"])))
         time_index = 0
-        starting_scenario = "2017"
         starting_variable = "water_salinity"
+        scenarios = ["2017", "2018", "2100le", "2100he"]
         viz_tracker = visualizer.VisualizationTracker(
-            starting_scenario=starting_scenario, starting_variable=starting_variable,
+            starting_turn=self.turn-1, scenarios=scenarios, starting_variable=starting_variable,
             time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,
             salinity_category=salinity_category)
         # ,water_level_range = water_level_range, water_velocity_range = water_velocity_range
@@ -415,6 +413,7 @@ class DMG():
         side_window.show()
         gui.activateWindow()
         gui.raise_()
+        print("game initialized")
         qapp.exec()
         return
 
@@ -422,7 +421,6 @@ class DMG():
 def main():
     game = DMG()
     print("initialized")
-    game.create_visualizations()
     return
 
 def main_old():

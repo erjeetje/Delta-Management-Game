@@ -21,9 +21,9 @@ class ApplicationWindow(QMainWindow):
         self.setCentralWidget(self._main)
         self.setStyleSheet("background-color:white; font-weight: bold; font-size: 24")
         self.game = game
-        #self.scenarios = game.model_output_gdf
         self.viz_tracker = viz_tracker
-        self.selected_scenario = self.viz_tracker.scenario
+        self.selected_turn = self.viz_tracker.turn
+        self.scenario = self.viz_tracker.scenario
         self.selected_model_variable = self.viz_tracker.model_variable
         self.selected_game_variable = self.viz_tracker.game_variable
         self.salinity_colorbar_image = salinity_colorbar_image
@@ -31,8 +31,6 @@ class ApplicationWindow(QMainWindow):
         #self.basemap_image = basemap_image
 
         self.layout = QHBoxLayout(self._main)
-        #self.fig, self.ax2 = plt.subplots()
-        #self.ax2.imshow(basemap_image)
         self.model_canvas = FigureCanvas(Figure()) #figsize=(5, 5)
         # Ideally one would use self.addToolBar here, but it is slightly
         # incompatible between PyQt6 and other bindings, so we just add the
@@ -77,12 +75,12 @@ class ApplicationWindow(QMainWindow):
         #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
         self.ax.set_axis_off()
         self.ax.set_position([0.1, 0.1, 0.8, 0.8])
-        scenario_idx = self.game.model_output_gdf["scenario"] == self.selected_scenario
-        self.running_scenario = self.game.model_output_gdf[scenario_idx]
+        turn_idx = self.game.model_output_gdf["turn"] == self.selected_turn
+        self.running_turn = self.game.model_output_gdf[turn_idx]
         t_idx = self.viz_tracker.time_index
-        t = self.running_scenario.iloc[t_idx]["time"]
-        idx = self.running_scenario["time"] == t
-        self.plot_data = self.running_scenario[idx]
+        t = self.running_turn.iloc[t_idx]["time"]
+        idx = self.running_turn["time"] == t
+        self.plot_data = self.running_turn[idx]
         self.plot_data.plot(column=self.selected_model_variable, ax=self.ax, cmap="RdBu_r", markersize=150.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
@@ -99,10 +97,12 @@ class ApplicationWindow(QMainWindow):
         return
 
     def update_plot_model(self):
-        if self.selected_scenario != self.viz_tracker.scenario:
-            self.selected_scenario = self.viz_tracker.scenario
-            scenario_idx = self.game.model_output_gdf["scenario"] == self.selected_scenario
-            self.running_scenario = self.game.model_output_gdf[scenario_idx]
+        if self.selected_turn != self.viz_tracker.turn:
+            self.selected_turn = self.viz_tracker.turn
+            turn_idx = self.game.model_output_gdf["turn"] == self.selected_turn
+            self.running_turn = self.game.model_output_gdf[turn_idx]
+            self.viz_tracker.update_scenario()
+            self.scenario = self.viz_tracker.scenario
         if self.selected_model_variable != self.viz_tracker.model_variable:
             self.selected_model_variable = self.viz_tracker.model_variable
             if self.selected_model_variable == "water_salinity":
@@ -127,10 +127,10 @@ class ApplicationWindow(QMainWindow):
             self.selected_game_variable = self.viz_tracker.game_variable
             self.update_colorbars(to_update="game")
         t = self.viz_tracker.get_time_index()
-        idx = self.running_scenario["time"] == t
-        self.plot_data = self.running_scenario[idx]
+        idx = self.running_turn["time"] == t
+        self.plot_data = self.running_turn[idx]
         self.pc.set_array(self.plot_data[self.selected_model_variable])
-        title_string = "scenario: " + self.selected_scenario + " - " + f"timestep: {t}"
+        title_string = "turn: " + str(self.selected_turn) + " - " + self.scenario + " - " + f"timestep: {t}"
         self.ax.set_title(title_string[:-8])
         self.model_canvas.draw()
         self.viz_tracker.time_index = 1
@@ -154,12 +154,9 @@ class GameVisualization(QWidget):
     def __init__(self, game, viz_tracker, bbox):
         super().__init__()
         self.setStyleSheet("background-color:white;")
-        #self.setFixedSize(1280, 720)
-        #self.setWindowFlags(Qt.FramelessWindowHint)
-        #self.scenarios = scenarios
         self.game = game
         self.viz_tracker=viz_tracker
-        self.selected_scenario = self.viz_tracker.scenario
+        self.selected_turn = self.viz_tracker.turn
         self.selected_variable = self.viz_tracker.game_variable
         self.setWindowTitle('Game world visualization')
         x_min = -50
@@ -192,12 +189,12 @@ class GameVisualization(QWidget):
         #self.ax.set_aspect(1)
         self.ax.axis(bbox)
         self.ax.set_axis_off()
-        scenario_idx = self.game.game_output_gdf["scenario"] == self.selected_scenario
-        self.running_scenario = self.game.game_output_gdf[scenario_idx]
+        turn_idx = self.game.game_output_gdf["turn"] == self.selected_turn
+        self.running_turn = self.game.game_output_gdf[turn_idx]
         t_idx = self.viz_tracker.time_index
-        t = self.running_scenario.iloc[t_idx]["time"]
-        idx = self.running_scenario["time"] == t
-        self.plot_data = self.running_scenario[idx]
+        t = self.running_turn.iloc[t_idx]["time"]
+        idx = self.running_turn["time"] == t
+        self.plot_data = self.running_turn[idx]
         self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="RdBu_r", aspect=1, markersize=200.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
@@ -211,10 +208,10 @@ class GameVisualization(QWidget):
         return
 
     def update_plot_model(self):
-        if self.selected_scenario != self.viz_tracker.scenario:
-            self.selected_scenario = self.viz_tracker.scenario
-            scenario_idx = self.game.game_output_gdf["scenario"] == self.selected_scenario
-            self.running_scenario = self.game.game_output_gdf[scenario_idx]
+        if self.selected_turn != self.viz_tracker.turn:
+            self.selected_turn = self.viz_tracker.turn
+            turn_idx = self.game.game_output_gdf["turn"] == self.selected_turn
+            self.running_turn = self.game.game_output_gdf[turn_idx]
         if self.selected_variable != self.viz_tracker.game_variable:
             print(9)
             self.selected_variable = self.viz_tracker.game_variable
@@ -239,8 +236,8 @@ class GameVisualization(QWidget):
             self.pc.set_norm(norm)
             return
         t = self.viz_tracker.get_time_index()
-        idx = self.running_scenario["time"] == t
-        self.plot_data = self.running_scenario[idx]
+        idx = self.running_turn["time"] == t
+        self.plot_data = self.running_turn[idx]
         self.pc.set_array(self.plot_data[self.selected_variable])
         #self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
         self.game_canvas.draw()
@@ -257,7 +254,7 @@ class ControlWidget(QWidget):
         #self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         self.screen_highlight = None
         self.board_highlight = None
-        self.scenario_highlight = None
+        self.turn_highlight = None
         self.initUI()
         self.change_highlights()
         self.show()  # app.exec_()
@@ -322,34 +319,28 @@ class ControlWidget(QWidget):
         self.btn_board_water_velocity.move(210, 380)
         """
 
-        self.lbl_boundary = QLabel('scenario selection', self)
+        self.lbl_boundary = QLabel('turn selection', self)
         self.lbl_boundary.setStyleSheet("font-weight: bold; font-size: 24")
         self.lbl_boundary.move(10, 520)
         self.lbl_boundary.setFixedWidth(380)
         self.lbl_boundary.setAlignment(Qt.AlignCenter)
 
-        """
-        self.scenario4 = QPushButton('+3m SLR, 500 m/3s', self)
-        self.scenario4.clicked.connect(self.on_scenario4_button_clicked)
-        self.scenario4.resize(180, 80)
-        self.scenario4.move(10, 580)
-        """
-        self.scenario4 = QPushButton('2100he (+1m SLR) +\n widened NWW', self)
-        self.scenario4.clicked.connect(self.on_scenario4_button_clicked)
-        self.scenario4.resize(180, 80)
-        self.scenario4.move(210, 700)
-        self.scenario3 = QPushButton('2100le (+1m SLR) +\n deepened NWW & Nieuwe Maas', self)
-        self.scenario3.clicked.connect(self.on_scenario3_button_clicked)
-        self.scenario3.resize(180, 80)
-        self.scenario3.move(10, 700)
-        self.scenario2 = QPushButton('2018 +\n partly deepened NWW', self)
-        self.scenario2.clicked.connect(self.on_scenario2_button_clicked)
-        self.scenario2.resize(180, 80)
-        self.scenario2.move(210, 580)
-        self.scenario1 = QPushButton('2017', self)
-        self.scenario1.clicked.connect(self.on_scenario1_button_clicked)
-        self.scenario1.resize(180, 80)
-        self.scenario1.move(10, 580)
+        self.btn_turn4 = QPushButton('2100he (+1m SLR) +\n widened NWW', self)
+        self.btn_turn4.clicked.connect(self.on_turn4_button_clicked)
+        self.btn_turn4.resize(180, 80)
+        self.btn_turn4.move(210, 700)
+        self.btn_turn3 = QPushButton('2100le (+1m SLR) +\n deepened NWW & Nieuwe Maas', self)
+        self.btn_turn3.clicked.connect(self.on_turn3_button_clicked)
+        self.btn_turn3.resize(180, 80)
+        self.btn_turn3.move(10, 700)
+        self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
+        self.btn_turn2.clicked.connect(self.on_turn2_button_clicked)
+        self.btn_turn2.resize(180, 80)
+        self.btn_turn2.move(210, 580)
+        self.btn_turn1 = QPushButton('2017', self)
+        self.btn_turn1.clicked.connect(self.on_turn1_button_clicked)
+        self.btn_turn1.resize(180, 80)
+        self.btn_turn1.move(10, 580)
         return
 
     def on_update_button_clicked(self):
@@ -384,23 +375,23 @@ class ControlWidget(QWidget):
         print(3)
         return
 
-    def on_scenario1_button_clicked(self):
-        self.viz_tracker.scenario = "2017"
+    def on_turn1_button_clicked(self):
+        self.viz_tracker.turn = 1
         self.change_highlights()
         return
 
-    def on_scenario2_button_clicked(self):
-        self.viz_tracker.scenario = "2018"
+    def on_turn2_button_clicked(self):
+        self.viz_tracker.turn = 2
         self.change_highlights()
         return
 
-    def on_scenario3_button_clicked(self):
-        self.viz_tracker.scenario = "2100le"
+    def on_turn3_button_clicked(self):
+        self.viz_tracker.turn = 3
         self.change_highlights()
         return
 
-    def on_scenario4_button_clicked(self):
-        self.viz_tracker.scenario = "2100he"
+    def on_turn4_button_clicked(self):
+        self.viz_tracker.turn = 4
         self.change_highlights()
         return
 
@@ -425,26 +416,28 @@ class ControlWidget(QWidget):
                 print(5)
                 self.btn_board_salinity_category.setStyleSheet("background-color:blue;")
                 print(6)
-        if self.scenario_highlight != self.viz_tracker.scenario:
-            self.scenario_highlight = self.viz_tracker.scenario
-            self.scenario1.setStyleSheet("background-color:lightgray;")
-            self.scenario2.setStyleSheet("background-color:lightgray;")
-            self.scenario3.setStyleSheet("background-color:lightgray;")
-            self.scenario4.setStyleSheet("background-color:lightgray;")
-            if self.scenario_highlight == "2017":
-                self.scenario1.setStyleSheet("background-color:cyan;")
-            elif self.scenario_highlight == "2018":
-                self.scenario2.setStyleSheet("background-color:magenta;")
-            elif self.scenario_highlight == "2100le":
-                self.scenario3.setStyleSheet("background-color:yellow;")
-            elif self.scenario_highlight == "2100he":
-                self.scenario4.setStyleSheet("background-color:green;")
+        if self.turn_highlight != self.viz_tracker.turn:
+            self.turn_highlight = self.viz_tracker.turn
+            self.btn_turn1.setStyleSheet("background-color:lightgray;")
+            self.btn_turn2.setStyleSheet("background-color:lightgray;")
+            self.btn_turn3.setStyleSheet("background-color:lightgray;")
+            self.btn_turn4.setStyleSheet("background-color:lightgray;")
+            if self.turn_highlight == 1:
+                self.btn_turn1.setStyleSheet("background-color:cyan;")
+            elif self.turn_highlight == 2:
+                self.btn_turn2.setStyleSheet("background-color:magenta;")
+            elif self.turn_highlight == 3:
+                self.btn_turn3.setStyleSheet("background-color:yellow;")
+            elif self.turn_highlight == 4:
+                self.btn_turn4.setStyleSheet("background-color:green;")
         return
 
 class VisualizationTracker():
-    def __init__(self, starting_scenario, starting_variable, time_steps, starting_time,
+    def __init__(self, starting_turn, scenarios, starting_variable, time_steps, starting_time,
                  salinity_range, salinity_category): #, water_level_range, water_velocity_range
-        self._scenario = starting_scenario
+        self._turn = starting_turn
+        self.scenarios = scenarios
+        self._scenario = scenarios[0]
         self._model_variable = starting_variable
         self._game_variable = starting_variable
         self._time_steps = time_steps
@@ -458,6 +451,14 @@ class VisualizationTracker():
     def get_time_index(self):
         t_idx = self.time_index % len(self.time_steps)
         return self.time_steps[t_idx]
+
+    def update_scenario(self):
+        self.scenario = self.scenarios[self.turn-1]
+        return
+
+    @property
+    def turn(self):
+        return self._turn
 
     @property
     def scenario(self):
@@ -497,10 +498,16 @@ class VisualizationTracker():
         return self._water_velocity_norm
     """
 
+    @turn.setter
+    def turn(self, turn):
+        self._turn = turn
+        return
+
     @scenario.setter
     def scenario(self, scenario):
         self._scenario = scenario
         return
+
 
     @model_variable.setter
     def model_variable(self, variable):

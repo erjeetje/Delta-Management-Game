@@ -541,7 +541,7 @@ def model_output_to_game_locations(game_network_gdf, network_model_output_gdf, e
     game_output_gdf = create_game_obs_points(network_model_output_gdf, game_network_gdf)
     return game_output_gdf
 
-def output_to_timeseries(output_gdf, scenario=None):
+def output_to_timeseries(output_gdf, turn=None):
     output_gdf["sb_mgl"] = output_gdf["sb_mgl"].astype(float)
     output_gdf = output_gdf.rename(columns={"sb_mgl": "water_salinity"})
     # change bins (and names) below for different salinity concentration categories
@@ -553,8 +553,8 @@ def output_to_timeseries(output_gdf, scenario=None):
     values = [i + 1 for i in range(len(bins) - 1)]
     #values = [0.25, 1, 2, 6.25, 20, 34]
     output_gdf['salinity_category'] = pd.cut(output_gdf['water_salinity'], bins, labels=values)
-    if scenario is not None:
-        output_gdf["scenario"] = scenario
+    if turn is not None:
+        output_gdf["turn"] = turn
     return output_gdf
 
 def update_split_channel_ids(output_df, update_dict):

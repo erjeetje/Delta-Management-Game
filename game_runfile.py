@@ -19,9 +19,10 @@ from game import channel_manipulations as update_func
 from model import runfile_td_v1 as imside_model
 
 class DMG():
-    def __init__(self):
+    def __init__(self, mode):
+        self.mode = mode
         self._turn = 1
-        self._scenario = "2017"
+        self._scenario = self.mode["scenarios"][0]
         self.weir_tracker = 3  # there are already 2 weirs in the default schematization, next number to add is 3
         self.hexagon_index = None
         self.hexagons_tracker = None
@@ -71,7 +72,7 @@ class DMG():
         """
         load the IMSIDE model and extract network.
         """
-        self.model = imside_model.IMSIDE(scenario="2017")
+        self.model = imside_model.IMSIDE(scenario=self.scenario)
         model_network_df = self.model.network
         self.model_network_gdf = game_sync.process_model_network(model_network_df)
         return
@@ -213,25 +214,24 @@ class DMG():
         except KeyError:
             pass
         self.turn += 1
-        self.update_forcings()
+        if self.turn < 4:
+            self.update_forcings()
         return
 
     def update_forcings(self):
         """
         function that handles updating the model forcings to subsequent turns (final scenario forcings to be determined)
         """
-        if self.turn == 1:
-            self.scenario = "2017"
-        elif self.turn == 2:
-            self.scenario = "2018"
-        elif self.turn == 3:
-            self.scenario = "2100le"
-        elif self.turn == 4:
-            self.scenario = "2100he"
-        else:
-            print("unsupported turn")
+        print(1)
+        self.scenario = self.mode["scenarios"][self.turn-1]
+        print(2)
+        if self.scenario == self.mode["scenarios"][self.turn-2]:
+            print(3)
+            print("scenario remains the same, boundary conditions not updated")
+            return
         # TODO consider if the add_row approach below is eventually the way to go.
         self.model.change_forcings(scenario=self.scenario, add_rows=self.weir_tracker-3)
+        print(4)
         return
 
     def add_sea_level_rise(self, slr=0):
@@ -398,9 +398,8 @@ class DMG():
         time_steps = list(sorted(set(self.model_output_gdf["time"])))
         time_index = 0
         starting_variable = "water_salinity"
-        scenarios = ["2017", "2018", "2100le", "2100he"]
         viz_tracker = visualizer.VisualizationTracker(
-            starting_turn=self.turn-1, scenarios=scenarios, starting_variable=starting_variable,
+            starting_turn=self.turn-1, scenarios=self.mode["scenarios"], starting_variable=starting_variable,
             time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,
             salinity_category=salinity_category)
         # ,water_level_range = water_level_range, water_velocity_range = water_velocity_range
@@ -418,8 +417,8 @@ class DMG():
         return
 
 
-def main():
-    game = DMG()
+def main(mode):
+    game = DMG(mode)
     print("initialized")
     return
 
@@ -440,6 +439,11 @@ def main_old():
     return
 
 
+
+scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 0, 0, 0]}
+
+scenario_settings2 = {"scenarios": ["2018", "2050he", "2100he", "2150he"], "slr": [0, 0.5, 1, 1.5]}
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    main()
+    main(scenario_settings1)

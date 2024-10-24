@@ -111,8 +111,9 @@ class DMG():
         """
         function that handles running the model and retrieving the model output.
         """
-        if self.turn == 3:
-            self.add_sea_level_rise(slr=1)
+        slr = self.mode["slr"][self.turn-1] - self.mode["slr"][self.turn-2]
+        print(slr)
+        self.add_sea_level_rise(slr=slr)
         turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
         turn_change = update_func.to_change(turn_change)
         new_model_network_df = self.model_network_gdf.copy()
@@ -145,55 +146,6 @@ class DMG():
         return
 
 
-    def update_old(self):
-        """
-        function that handles running the model and retrieving the model output.
-        """
-        if self.turn == 2:
-            """
-            The update_markers simulates changes on the board, key = polygon id, value = [# red markers, # blue markers]
-            """
-            # deepening part of Nieuwe Waterweg
-            update_markers = {
-                59: [0, 1], 49: [0, 1], 39: [0, 1], 29: [0, 1], 88: [3,1]} # , 51: [3,1]
-        elif self.turn == 3:
-            # deepening rest of Nieuwe Waterweg and Nieuwe Maas
-            update_markers = {
-                70: [0,1], 60: [0,1], 59: [0,1], 49: [0,1], 39: [0,1], 29: [0,1], 98: [0,1], 88: [0,1], 79: [0,1]}
-        elif self.turn == 4:
-            # widening Nieuwe Waterweg
-            update_markers = {
-                70: [0,2], 60: [0,2], 59: [0,2], 49: [0,2], 39: [0,2], 29: [0,2], 80: [0,2]}
-        self.hexagons_tracker = update_func.update_polygon_tracker_old(self.hexagons_tracker, update_markers)
-        turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
-        turn_change = update_func.to_change(turn_change)
-        new_model_network_df = self.model_network_gdf.copy()
-        new_model_network_df = update_func.geometry_to_update(turn_change, new_model_network_df)
-        # TODO: consider how to cut channels into segments, as otherwise width changes also affect unchanged polygons
-        new_model_network_df = update_func.update_channel_length(new_model_network_df)
-
-        new_model_network_df = update_func.update_channel_references(new_model_network_df)
-        new_model_network_df = update_func.update_channel_geometry(new_model_network_df)
-        new_model_network_df, self.turn_split_channels, split_names = update_func.apply_split(new_model_network_df, self.weir_tracker)
-        self.weir_tracker = self.weir_tracker + (len(self.turn_split_channels) * 2)
-
-        # TODO: add a check function if segments can be "knitted" back together (basically, ensure lowest # of segments)
-        self.model.update_channel_geometries(new_model_network_df, self.turn_split_channels)
-        self.model_network_gdf = new_model_network_df
-        if self.turn_split_channels:
-            self.hexagon_index = indexing.create_polygon_id_tracker(self.model_network_gdf,
-                                                                    hexagon_tracker_df=self.hexagons_tracker) #self.split_channels, split_names
-            self.all_split_channels.update(self.turn_split_channels)
-        # TODO: also update hexagon_tracker (references are updated with split channel)
-        #if self.turn == 2:
-        #    self.split_channel(channel="Nieuwe Maas 1 old")
-        model_output_df = self.run_model()
-        # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
-        # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
-        #self.model_output_to_game(model_output_df, scenario=self.scenario)
-        self.model_output_to_game(model_output_df)
-        return
-
     def end_round(self):
         self.hexagons_tracker["ref_red_marker"] = self.hexagons_tracker["red_marker"]
         self.hexagons_tracker["ref_blue_marker"] = self.hexagons_tracker["blue_marker"]
@@ -222,16 +174,12 @@ class DMG():
         """
         function that handles updating the model forcings to subsequent turns (final scenario forcings to be determined)
         """
-        print(1)
         self.scenario = self.mode["scenarios"][self.turn-1]
-        print(2)
         if self.scenario == self.mode["scenarios"][self.turn-2]:
-            print(3)
             print("scenario remains the same, boundary conditions not updated")
             return
         # TODO consider if the add_row approach below is eventually the way to go.
         self.model.change_forcings(scenario=self.scenario, add_rows=self.weir_tracker-3)
-        print(4)
         return
 
     def add_sea_level_rise(self, slr=0):
@@ -241,6 +189,7 @@ class DMG():
             self.model_network_gdf["Hn"] = self.model_network_gdf["Hn"].apply(
                 lambda x: np.array([y + slr for y in x]))
             self.model.add_sea_level_rise(slr)
+            print("added", slr, "meters sea level rise in model")
         else:
             print("no sea level rise (in meters) provided or set to 0, no sea level rise added in model")
         return
@@ -422,28 +371,13 @@ def main(mode):
     print("initialized")
     return
 
-def main_old():
-    game = DMG()
-    print("initialized")
-    for turn in range(2, 3):
-        game.turn = turn
-        game.update_forcings()
-        if turn == 3:
-            game.add_sea_level_rise(slr=1)
-        game.update()
-        game.end_round()
-        print("updated to turn", turn)
-    #game.export_output()
-    #game.temp_output()
-    game.create_visualizations()
-    return
-
-
 
 scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 0, 0, 0]}
 
-scenario_settings2 = {"scenarios": ["2018", "2050he", "2100he", "2150he"], "slr": [0, 0.5, 1, 1.5]}
+scenario_settings2 = {"scenarios": ["2017", "2018", "2100le", "2150he"], "slr": [0, 0, 1, 1]}
+
+scenario_settings3 = {"scenarios": ["2018", "2050he", "2100he", "2150he"], "slr": [0, 0.5, 1, 1.5]}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    main(scenario_settings1)
+    main(scenario_settings2)

@@ -10,7 +10,8 @@ from model.inpu.load_physics import phys_gen
 # =============================================================================
 # load physical constants
 # =============================================================================
-from model.inpu.load_physics import phys_RMD1 , phys_test1, phys_RMD2
+#from model.inpu.load_physics import phys_RMD1 , phys_test1
+from model.inpu.load_physics import phys_RMD2
 
 # =============================================================================
 # load forcing conditions
@@ -22,7 +23,8 @@ from model.inpu.load_forcing_td import forc_RMD20, forc_RMD_fromcsv_old
 # =============================================================================
 # load geometry
 # =============================================================================
-from model.inpu.load_geo_RMD import geo_RMD9, geo_RMD10, geo_RMD_game
+#from model.inpu.load_geo_RMD import geo_RMD9, geo_RMD10
+from model.inpu.load_geo_RMD import geo_RMD_game
 #from model.inpu.load_geo_test import geo_test1
 #from model.inpu.funn import geo_fun
 # =============================================================================
@@ -42,17 +44,19 @@ phys_pars = phys_test1()
 '''
 #choose physical constants
 constants = phys_gen()
+
 #choose geometry
-#geo_pars = geo_RMD9()
 geo_pars = geo_RMD_game()
-#choose forcing.
+
+
 #forc_pars = forc_RMD5()
 #forc_pars = forc_RMD_fromJesse(33,18700,18750)
 #forc_pars = forc_RMD20()
 #forc_pars = forc_RMD_fromSOBEK('01-07-2021' , '01-08-2021')
 # forc_pars = forc_RMD_fromcsv('/Users/biemo004/Documents/UU phd Saltisolutions/Databestanden/RM_data/MO_Q2122/','Q_daily_mean_Hag-Tie-Meg-Har-Gou_2021-2022_Bouke030524.csv',
 #                         '01-01-2022', '31-12-2022')
-# orc_pars = forc_RMD_fromMo('/Users/biemo004/Documents/UU phd Saltisolutions/Databestanden/RM_data/MO_Q2122/','Q_daily_mean_Hag-Tie-Meg-Har-Gou_2020.csv' )
+# forc_pars = forc_RMD_fromMo('/Users/biemo004/Documents/UU phd Saltisolutions/Databestanden/RM_data/MO_Q2122/','Q_daily_mean_Hag-Tie-Meg-Har-Gou_2020.csv' )
+
 #choose physical constants
 phys_pars = phys_RMD2()
 

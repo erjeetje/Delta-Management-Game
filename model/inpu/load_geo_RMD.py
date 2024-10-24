@@ -227,7 +227,7 @@ def geo_RMD9():
     # Input: plotting - maybe build seperate dictionary for this
     # =============================================================================
 
-    path_RM = 'C:\\Werkzaamheden\\Onderzoek\\2 SaltiSolutions\\07 DMG design\\mod 4.2.6 netw\\Geo_RijnMaas\\'
+    path_RM = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Geo_RijnMaas\\")
     list_channels = [f for f in os.listdir(path_RM) if f.endswith('.kml')]
     RM_coords = {}
     for i in range(len(list_channels)):
@@ -447,7 +447,7 @@ def geo_RMD9_hr(fac_hr = 1):
     # Input: plotting - maybe build seperate dictionary for this
     # =============================================================================
 
-    path_RM = '/Users/biemo004/Documents/UU phd Saltisolutions/Databestanden/Geo_RijnMaas/'
+    path_RM = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Geo_RijnMaas\\")
     list_channels = [f for f in os.listdir(path_RM) if f.endswith('.kml')]
     RM_coords = {}
     for i in range(len(list_channels)):
@@ -677,7 +677,7 @@ def geo_RMD10():
     # Input: plotting - maybe build seperate dictionary for this
     # =============================================================================
 
-    path_RM = '/Users/biemo004/Documents/UU phd Saltisolutions/Databestanden/Geo_RijnMaas/'
+    path_RM = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Geo_RijnMaas\\")
     list_channels = [f for f in os.listdir(path_RM) if f.endswith('.kml')]
     RM_coords = {}
     for i in range(len(list_channels)):
@@ -895,7 +895,7 @@ def geo_RMD_HVO_1():
     # Input: plotting - maybe build seperate dictionary for this
     # =============================================================================
 
-    path_RM = '/Users/biemo004/Documents/UU phd Saltisolutions/Databestanden/Geo_RijnMaas/'
+    path_RM = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Geo_RijnMaas\\")
     list_channels = [f for f in os.listdir(path_RM) if f.endswith('.kml')]
     RM_coords = {}
     for i in range(len(list_channels)):
@@ -1115,7 +1115,7 @@ def geo_RMD_game():
     # Input: plotting - maybe build seperate dictionary for this
     # =============================================================================
 
-    path_RM = 'C:\\Werkzaamheden\\Onderzoek\\2 SaltiSolutions\\07 DMG design\\mod 4.2.6 netw\\Geo_RijnMaas\\'
+    path_RM = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Geo_RijnMaas\\")
     list_channels = [f for f in os.listdir(path_RM) if f.endswith('.kml')]
     RM_coords = {}
     for i in range(len(list_channels)):

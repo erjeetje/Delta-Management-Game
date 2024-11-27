@@ -26,6 +26,8 @@ class IMSIDE():
         network_df = network_df.T
         self._network = network_df
         self._output = None
+        print(self.delta.Qhar)
+        print(self.delta.Qhar[0])
         return
 
     @property
@@ -63,34 +65,65 @@ class IMSIDE():
             for i in range(add_rows):
                 self.delta.Qweir = np.vstack([self.delta.Qweir, np.zeros(len(self.delta.Qweir[0]))])
                 self.delta.swe = np.vstack([self.delta.swe, np.array([0.15 + np.zeros(len(self.delta.swe[0]))])])
+        self.ref_Qwaal = deepcopy(self.delta.Qriv[0])
+        self.ref_Qhij = deepcopy(self.delta.Qweir[0])
+        self.ref_Qlek = deepcopy(self.delta.Qweir[1])
+        self.ref_Qhar = deepcopy(self.delta.Qhar[0])
         return
 
-    def change_local_boundaries(self, type, value):
-        if type == "Qhar":
-            self.delta.Qhar[0] = np.array([value + np.zeros(len(self.delta.Qhar[0]))])
-            print("Set Qhar to", self.delta.Qhar)
-        elif type == "Qlek":
-            ref_Qlek = self.delta.Qweir[1]
-            print("ref_Qlek", ref_Qlek)
-            print("ref_Qwaal", self.delta.Qriv[0])
-            dif_Qlek = np.array([value - x for x in ref_Qlek])
-            print("dif_Qlek", dif_Qlek)
-            self.delta.Qweir[1] = np.array([value + np.zeros(len(self.delta.Qweir[1]))])
-            print("new_Qlek", self.delta.Qweir[1])
-            self.delta.Qriv[0] = np.subtract(self.delta.Qriv[0], dif_Qlek)
-            print("new_Qwaal", self.delta.Qriv[0])
-        elif type == "Qhij":
-            ref_Qhij = self.delta.Qweir[0]
-            print("ref_Qhij", ref_Qhij)
-            print("ref_Qwaal", self.delta.Qriv[0])
-            dif_Qhij = np.array([value - x for x in ref_Qhij])
-            print("dif_Qhij", dif_Qhij)
-            self.delta.Qweir[0] = np.array([value + np.zeros(len(self.delta.Qweir[0]))])
-            print("new_Qlek", self.delta.Qweir[0])
-            self.delta.Qriv[0] = np.subtract(self.delta.Qriv[0], dif_Qhij)
-            print("new_Qwaal", self.delta.Qriv[0])
-        else:
-            print("unknown type given, no local boundary is updated.")
+    def change_local_boundaries(self, values):
+        """
+        Function sets local boundary conditions.
+
+        TODO: In the version connected to the table, this needs to be run at every update, hence the "resetting" below.
+        """
+        self.delta.Qriv[0] = self.ref_Qwaal
+        self.delta.Qweir[0] = self.ref_Qhij
+        self.delta.Qweir[1] = self.ref_Qlek
+        self.delta.Qhar[0] = self.ref_Qhar
+        for key, value in values.items():
+            if not isinstance(key, str):
+                print("no boundary input", key)
+                continue
+            else:
+                Qloc = key
+                if isinstance(value, int):
+                    print("int")
+                    Qout = value
+                elif isinstance(value, list):
+                    print("list")
+                    Qthreshold = value[0]
+                    Qout = value[1]
+                if Qloc == "Qhar":
+                    print("Qwaal:", self.delta.Qriv[0])
+                    print("Qhar:", self.delta.Qhar[0])
+                    for i, Q in enumerate(self.delta.Qriv[0]):
+                        if Q <= Qthreshold:
+                            self.delta.Qhar[0][i] = 0
+                        elif self.delta.Qhar[0][i] <= Qout:
+                            self.delta.Qhar[0][i] = Qout
+                    print("Set Qhar to", self.delta.Qhar)
+                elif Qloc == "Qlek":
+                    print("ref_Qlek", self.delta.Qweir[1])
+                    print("ref_Qwaal", self.delta.Qriv[0])
+                    for i, Q in enumerate(self.delta.Qweir[1]):
+                        if Q < Qout:
+                            self.delta.Qweir[1][i] = Qout
+                            self.delta.Qriv[0][i] -= (Qout - Q)
+                    print("new_Qlek", self.delta.Qweir[1])
+                    print("new_Qwaal", self.delta.Qriv[0])
+                elif Qloc == "Qhij":
+                    print("ref_Qhij", self.delta.Qweir[0])
+                    print("ref_Qwaal", self.delta.Qriv[0])
+                    for i, Q in enumerate(self.delta.Qriv[0]):
+                        if Q <= Qthreshold:
+                            Qold = self.delta.Qweir[0][i]
+                            self.delta.Qweir[0][i] = Qout
+                            self.delta.Qriv[0][i] -= (Qout - Qold)
+                    print("new_Qhij", self.delta.Qweir[0])
+                    print("new_Qwaal", self.delta.Qriv[0])
+                else:
+                    print("unknown type given, no local boundary is updated.")
         return
 
     """

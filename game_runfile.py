@@ -102,9 +102,7 @@ class DMG():
             print("Error in typed entry, no update applied")
             return
         self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagons_tracker, updates)
-        for key, value in updates.items():
-            if isinstance(key, str):
-                self.model.change_local_boundaries(key, value)
+        self.model.change_local_boundaries(updates)
         return
 
     def update(self):
@@ -374,7 +372,7 @@ def main(mode):
 
 scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 0, 0, 0]}
 
-scenario_settings2 = {"scenarios": ["2017", "2018", "2100le", "2150he"], "slr": [0, 0, 1, 1]}
+scenario_settings2 = {"scenarios": ["2017", "2018", "2100le", "2100he"], "slr": [0, 0, 1, 1]}
 
 scenario_settings3 = {"scenarios": ["2018", "2050he", "2100he", "2150he"], "slr": [0, 0.5, 1, 1.5]}
 

@@ -103,7 +103,6 @@ class DMG():
             return
         self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagons_tracker, updates)
         self.model.change_local_boundaries(updates)
-        print("2")
         return
 
     def update(self):
@@ -202,7 +201,6 @@ class DMG():
         if not channels_to_update:
             print("no channels provided to change, no change to any geometry")
         else:
-            print("1")
             for channel in channels_to_update:
                 self.model.change_channel_geometry(channel, change_type=change_type)
         return

@@ -26,8 +26,10 @@ class IMSIDE():
         network_df = network_df.T
         self._network = network_df
         self._output = None
-        print(self.delta.Qhar)
-        print(self.delta.Qhar[0])
+        self.ref_Qwaal = deepcopy(self.delta.Qriv[0])
+        self.ref_Qhij = deepcopy(self.delta.Qweir[0])
+        self.ref_Qlek = deepcopy(self.delta.Qweir[1])
+        self.ref_Qhar = deepcopy(self.delta.Qhar[0])
         return
 
     @property
@@ -77,17 +79,11 @@ class IMSIDE():
 
         TODO: In the version connected to the table, this needs to be run at every update, hence the "resetting" below.
         """
-        print("5")
         self.delta.Qriv[0] = self.ref_Qwaal
-        print("7")
         self.delta.Qweir[0] = self.ref_Qhij
-        print("8")
         self.delta.Qweir[1] = self.ref_Qlek
-        print("9")
         self.delta.Qhar[0] = self.ref_Qhar
-        print("10")
         for key, value in values.items():
-            print("11")
             if not isinstance(key, str):
                 print("no boundary input", key)
                 continue
@@ -132,6 +128,34 @@ class IMSIDE():
                     print("unknown type given, no local boundary is updated.")
         return
 
+    def change_local_boundaries_old(self, type, value):
+        if type == "Qhar":
+            self.delta.Qhar[0] = np.array([value + np.zeros(len(self.delta.Qhar[0]))])
+            print("Set Qhar to", self.delta.Qhar)
+        elif type == "Qlek":
+            ref_Qlek = self.delta.Qweir[1]
+            print("ref_Qlek", ref_Qlek)
+            print("ref_Qwaal", self.delta.Qriv[0])
+            dif_Qlek = np.array([value - x for x in ref_Qlek])
+            print("dif_Qlek", dif_Qlek)
+            self.delta.Qweir[1] = np.array([value + np.zeros(len(self.delta.Qweir[1]))])
+            print("new_Qlek", self.delta.Qweir[1])
+            self.delta.Qriv[0] = np.subtract(self.delta.Qriv[0], dif_Qlek)
+            print("new_Qwaal", self.delta.Qriv[0])
+        elif type == "Qhij":
+            ref_Qhij = self.delta.Qweir[0]
+            print("ref_Qhij", ref_Qhij)
+            print("ref_Qwaal", self.delta.Qriv[0])
+            dif_Qhij = np.array([value - x for x in ref_Qhij])
+            print("dif_Qhij", dif_Qhij)
+            self.delta.Qweir[0] = np.array([value + np.zeros(len(self.delta.Qweir[0]))])
+            print("new_Qlek", self.delta.Qweir[0])
+            self.delta.Qriv[0] = np.subtract(self.delta.Qriv[0], dif_Qhij)
+            print("new_Qwaal", self.delta.Qriv[0])
+        else:
+            print("unknown type given, no local boundary is updated.")
+        return
+
     """
     def add_segments_to_channels(self, model_network_gdf):
         model_network_gdf = model_network_gdf.set_index("Name")
@@ -144,7 +168,6 @@ class IMSIDE():
     """
 
     def update_channel_geometries(self, model_network_gdf, channels_to_split):
-        print("3")
         model_network_change_gdf = model_network_gdf.loc[model_network_gdf['changed'] == True]
         model_network_change_gdf = model_network_change_gdf.reset_index()
         model_network_change_gdf = model_network_change_gdf.set_index("Name")

@@ -103,6 +103,7 @@ class DMG():
             return
         self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagons_tracker, updates)
         self.model.change_local_boundaries(updates)
+        print("2")
         return
 
     def update(self):
@@ -201,6 +202,7 @@ class DMG():
         if not channels_to_update:
             print("no channels provided to change, no change to any geometry")
         else:
+            print("1")
             for channel in channels_to_update:
                 self.model.change_channel_geometry(channel, change_type=change_type)
         return
@@ -378,4 +380,4 @@ scenario_settings3 = {"scenarios": ["2018", "2050he", "2100he", "2150he"], "slr"
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    main(scenario_settings2)
+    main(scenario_settings1)

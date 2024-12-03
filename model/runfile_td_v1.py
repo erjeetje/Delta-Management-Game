@@ -77,11 +77,17 @@ class IMSIDE():
 
         TODO: In the version connected to the table, this needs to be run at every update, hence the "resetting" below.
         """
+        print("5")
         self.delta.Qriv[0] = self.ref_Qwaal
+        print("7")
         self.delta.Qweir[0] = self.ref_Qhij
+        print("8")
         self.delta.Qweir[1] = self.ref_Qlek
+        print("9")
         self.delta.Qhar[0] = self.ref_Qhar
+        print("10")
         for key, value in values.items():
+            print("11")
             if not isinstance(key, str):
                 print("no boundary input", key)
                 continue
@@ -138,6 +144,7 @@ class IMSIDE():
     """
 
     def update_channel_geometries(self, model_network_gdf, channels_to_split):
+        print("3")
         model_network_change_gdf = model_network_gdf.loc[model_network_gdf['changed'] == True]
         model_network_change_gdf = model_network_change_gdf.reset_index()
         model_network_change_gdf = model_network_change_gdf.set_index("Name")

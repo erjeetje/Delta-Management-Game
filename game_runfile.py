@@ -14,9 +14,11 @@ from game import transform_functions as transform_func
 from game import demo_processing
 from game import index_channels as indexing
 from game import channel_manipulations as update_func
+from game import table_functions as table_func
 
 #sys.path.insert(1, r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\version 4.3.4\IMSIDE netw\mod 4.3.4 netw')
 from model import runfile_td_v1 as imside_model
+from table import table_runfile as game_table
 
 class DMG():
     def __init__(self, mode):
@@ -28,10 +30,13 @@ class DMG():
         self.hexagons_tracker = None
         self.load_paths()
         self.load_model()
+        # options to send: mirror (-1, 0 or 1), test (bool), save (bool), debug (bool)
+        self.table = game_table.Table(mirror=1, test=True)
         self.load_shapes()
         self.transform_functions()
         self.build_game_network()
         self.index_channels()
+        self.run_table(update=False)
         self.turn_split_channels = {}
         self.all_split_channels = {}
         self.turn_updates = {}
@@ -91,7 +96,16 @@ class DMG():
         call the function run_model function of the model object and retrieve the output.
         """
         self.model.run_model()
+        self.hexagons_tracker.to_excel(os.path.join(self.save_path, "hexagons_tracker.xlsx"), index=True)
         return self.model.output
+
+    def run_table(self, update=True):
+        self.table.get_board_state()
+        hexagons_board = self.table.hexagons
+        self.hexagons_board_gdf = table_func.get_board_gdf(hexagons_board)
+        self.hexagons_tracker = table_func.update_hexagon_tracker(self.hexagons_board_gdf, self.hexagons_tracker,
+                                                                  update=update)
+        return
 
     def get_changes(self, updates):
         updates = "{" + updates + "}"
@@ -101,6 +115,7 @@ class DMG():
         except ValueError:
             print("Error in typed entry, no update applied")
             return
+        # TODO update hexagons_tracker instead from the game table object.
         self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagons_tracker, updates)
         self.model.change_local_boundaries(updates)
         return
@@ -109,8 +124,8 @@ class DMG():
         """
         function that handles running the model and retrieving the model output.
         """
+        self.run_table()
         slr = self.mode["slr"][self.turn-1] - self.mode["slr"][self.turn-2]
-        print(slr)
         self.add_sea_level_rise(slr=slr)
         turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
         turn_change = update_func.to_change(turn_change)
@@ -145,8 +160,8 @@ class DMG():
 
 
     def end_round(self):
-        self.hexagons_tracker["ref_red_marker"] = self.hexagons_tracker["red_marker"]
-        self.hexagons_tracker["ref_blue_marker"] = self.hexagons_tracker["blue_marker"]
+        self.hexagons_tracker["ref_red_markers"] = self.hexagons_tracker["red_markers"]
+        self.hexagons_tracker["ref_blue_markers"] = self.hexagons_tracker["blue_markers"]
         try:
             self.model_network_gdf["ref_L"] = self.model_network_gdf["L"]
         except KeyError:
@@ -166,6 +181,7 @@ class DMG():
         self.turn += 1
         if self.turn < 4:
             self.update_forcings()
+        self.table.end_round()
         return
 
     def update_forcings(self):
@@ -248,7 +264,6 @@ class DMG():
     def index_channels(self):
         self.model_network_gdf = indexing.index_polygons_to_channel_geometry(self.model_network_gdf)
         self.hexagons_tracker = indexing.create_polygon_id_tracker(self.model_network_gdf)
-        print(self.hexagons_tracker)
         return
 
     def model_output_to_game(self, model_output_df, initialize=False):

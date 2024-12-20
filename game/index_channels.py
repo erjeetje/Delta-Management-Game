@@ -89,10 +89,10 @@ def create_polygon_id_tracker(network_gdf, hexagon_tracker_df=None):
     polygon_index_df["name_in_polygon"] = polygon_index_df["name_in_polygon"].apply(lambda x: x.split(','))
     polygon_index_df = polygon_index_df.set_index("polygon_ids")
     if hexagon_tracker_df is None:
-        polygon_index_df["ref_red_marker"] = 1
-        polygon_index_df["ref_blue_marker"] = 1
-        polygon_index_df["red_marker"] = 1
-        polygon_index_df["blue_marker"] = 1
+        polygon_index_df["ref_red_markers"] = 1
+        polygon_index_df["ref_blue_markers"] = 1
+        polygon_index_df["red_markers"] = 1
+        polygon_index_df["blue_markers"] = 1
         polygon_index_df["changed"] = False
         return polygon_index_df
     else:

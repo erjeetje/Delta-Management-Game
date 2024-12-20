@@ -12,24 +12,24 @@ def update_polygon_tracker(polygon_df, markers):
             print("no channel connected to polygon", key)
             continue
         if value == "deepen":
-            polygon_df.at[key, "red_marker"] = polygon_df.loc[key, "red_marker"] - 1
+            polygon_df.at[key, "red_markers"] = polygon_df.loc[key, "red_markers"] - 1
             polygon_df.at[key, "changed"] = True
             print("deepened", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
         elif value == "undeepen":
-            polygon_df.at[key, "red_marker"] = polygon_df.loc[key, "red_marker"] + 1
+            polygon_df.at[key, "red_markers"] = polygon_df.loc[key, "red_markers"] + 1
             polygon_df.at[key, "changed"] = True
             print("undeepened", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
         elif value == "split":
-            # if the channel is widened later @ split location, the red_marker go to 2, could be unexpected behavior
-            polygon_df.at[key, "red_marker"] = 3
+            # if the channel is widened later @ split location, the red_markers go to 2, could be unexpected behavior
+            polygon_df.at[key, "red_markers"] = 3
             polygon_df.at[key, "changed"] = True
             print("split", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
         if value == "widen":
-            polygon_df.at[key, "blue_marker"] = polygon_df.loc[key, "blue_marker"] + 1
+            polygon_df.at[key, "blue_markers"] = polygon_df.loc[key, "blue_markers"] + 1
             polygon_df.at[key, "changed"] = True
             print("widened", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
         elif value == "narrow":
-            polygon_df.at[key, "blue_marker"] = polygon_df.loc[key, "blue_marker"] - 1
+            polygon_df.at[key, "blue_markers"] = polygon_df.loc[key, "blue_markers"] - 1
             polygon_df.at[key, "changed"] = True
             print("narrowed", polygon_df.loc[key, "index_in_polygon"], "at polygon", key)
     return polygon_df
@@ -37,11 +37,11 @@ def update_polygon_tracker(polygon_df, markers):
 
 def update_polygon_tracker_old(polygon_df, markers):
     for key, value in markers.items():
-        if polygon_df.loc[key, "red_marker"] != value[0]:
-            polygon_df.at[key, "red_marker"] = value[0]
+        if polygon_df.loc[key, "red_markers"] != value[0]:
+            polygon_df.at[key, "red_markers"] = value[0]
             polygon_df.at[key, "changed"] = True
-        if polygon_df.loc[key, "blue_marker"] != value[1]:
-            polygon_df.at[key, "blue_marker"] = value[1]
+        if polygon_df.loc[key, "blue_markers"] != value[1]:
+            polygon_df.at[key, "blue_markers"] = value[1]
             polygon_df.at[key, "changed"] = True
     return polygon_df
 
@@ -51,22 +51,25 @@ def to_change(changed_polygons_df):
     def compare_reds(ref_red, cur_red):
         if ref_red == cur_red:
             return None
-        if cur_red == 3:
-            return "split"
         if ref_red > cur_red:
             return "deepen"
         if ref_red < cur_red:
             return "undeepen"
-    polygons_df["vertical_change"] = polygons_df.apply(lambda row: compare_reds(row["ref_red_marker"], row["red_marker"]), axis=1)
+    polygons_df["vertical_change"] = polygons_df.apply(lambda row: compare_reds(row["ref_red_markers"], row["red_markers"]), axis=1)
+    print("red done")
 
     def compare_blues(ref_blue, cur_blue):
         if ref_blue == cur_blue:
             return None
+        if cur_blue == 3:
+            return "split"
         if ref_blue < cur_blue:
             return "widen"
         if ref_blue > cur_blue:
             return "narrow"
-    polygons_df["horizontal_change"] = polygons_df.apply(lambda row: compare_blues(row["ref_blue_marker"], row["blue_marker"]), axis=1)
+
+    polygons_df["horizontal_change"] = polygons_df.apply(lambda row: compare_blues(row["ref_blue_markers"], row["blue_markers"]), axis=1)
+    print("blue done")
 
     return polygons_df
 
@@ -242,11 +245,12 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         return_value = None
         if not row["changed"]:
             return return_value
-        for value in row["ver_changed_segments"]:
+        for value in row["hor_changed_segments"]:
             if value == "split":
                 return_value = index
         return return_value
 
+    print("checking splits")
     channels_to_split = {}
     for index, row in model_network_df.iterrows():
         channel_name = check_split(index, row)
@@ -254,8 +258,10 @@ def apply_split(turn_model_network_df, next_weir_number=3):
             channels_to_split[channel_name] = [channel_name + "_1", channel_name + "_2"]
     if not channels_to_split:
         return model_network_df, {}, {}
+    print(channels_to_split)
 
     def split_channel(channel, next_weir_number=3):
+        # TODO check split implementation, seems slighly off (NWW split @ wrong hexagon + Breeddiep indexing issue)
         old_channel = channel.copy()
         new_channel1 = old_channel.copy()
         new_channel2 = old_channel.copy()
@@ -264,9 +270,10 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         new_channel2.name = new_channel2.name + "_2"
         new_channel2['Name'] = new_channel2['Name'] + "_2"
 
-        split_index = old_channel["ver_changed_segments"].index("split")
+        split_index = old_channel["hor_changed_segments"].index("split")
+        print(old_channel["hor_changed_segments"])
+        print(split_index)
         # TODO check that any segment L >= dx * 4
-        # TODO check
         reference_L = old_channel['L']
 
         new_channel1.at['L'] = deepcopy(reference_L[:split_index + 1])
@@ -274,6 +281,7 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         location = sum(new_channel1.loc["L"]) / sum(old_channel.loc["L"])
         width_at_break_location = ((old_channel.loc['b'][split_index + 1] - old_channel.loc['b'][split_index]) *
                                    location + old_channel.loc['b'][split_index])
+        print("split 1")
         """
         # TODO this should also work, but having some trouble with the resulting numpy array shapes
         # what happens is that when updating new_channel1['L'], the numpy array shape goes from 1D to 0-dimensional
@@ -336,6 +344,8 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         new_channel2.at['dx'] = np.array([new_channel2.loc['dx'][0] for i in new_channel2.loc['L']])
         new_channel2.at['Hn'] = deepcopy(reference_Hn[split_index:])
 
+        print("split 2")
+
         reference_ver = old_channel['ver_changed_segments']
         reference_hor = old_channel['hor_changed_segments']
 
@@ -347,7 +357,9 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         new_channel1['loc x=-L'] = 'w' + str(next_weir_number)
         new_channel2['loc x=0'] = 'w' + str(next_weir_number + 1)
 
-        polygon_id_idx = old_channel["vertical_change"].index("split")
+        print("split 3")
+
+        polygon_id_idx = old_channel["horizontal_change"].index("split")
         new_channel1.at["polygon_ids"] = new_channel1.loc["polygon_ids"][:polygon_id_idx + 1]
         new_channel1.at["polygon_to_L"] = new_channel1.loc["polygon_to_L"][:polygon_id_idx + 1]
         new_channel1.at["polygon_to_L"][-1] = (
@@ -361,11 +373,15 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         new_channel2.at["vertical_change"] = new_channel2.loc["vertical_change"][polygon_id_idx:]
         new_channel2.at["horizontal_change"] = new_channel2.loc["horizontal_change"][polygon_id_idx:]
 
+        print("split 4")
+
         polygon_segments = list(old_channel["polygon_to_segment"])
         old_polygon_ids = list(old_channel.loc["polygon_ids"])
         polygon_segment_idx = polygon_segments.index(old_polygon_ids[polygon_id_idx])
         new_channel1.at["polygon_to_segment"] = new_channel1.loc["polygon_to_segment"][:polygon_id_idx + 1]
         new_channel2.at["polygon_to_segment"] = new_channel2.loc["polygon_ids"][polygon_segment_idx:]
+
+        print("split 5")
 
         def multiline_interpolate_point(line_geometry, distance):
             new_line1_coordinates = []
@@ -406,10 +422,13 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         new_channels = pd.concat([new_channel1, new_channel2], axis=1)
         return new_channels.T
 
+    print("split 6")
+
     channel_reference = {}
     for channel_name, new_name in channels_to_split.items():
         new_channels = split_channel(model_network_df.loc[channel_name])
         channel_reference[model_network_df.loc[channel_name, 'Name']] = list(new_channels['Name'].values)
         model_network_df = model_network_df.drop(channel_name)
         model_network_df = pd.concat([model_network_df, new_channels])
+    print("split 7")
     return model_network_df, channel_reference, channels_to_split

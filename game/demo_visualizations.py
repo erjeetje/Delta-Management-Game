@@ -213,7 +213,6 @@ class GameVisualization(QWidget):
             turn_idx = self.game.game_output_gdf["turn"] == self.selected_turn
             self.running_turn = self.game.game_output_gdf[turn_idx]
         if self.selected_variable != self.viz_tracker.game_variable:
-            print(9)
             self.selected_variable = self.viz_tracker.game_variable
             if self.selected_variable == "water_salinity":
                 color_map = "RdBu_r"
@@ -222,10 +221,8 @@ class GameVisualization(QWidget):
                 color_map = "viridis_r"
                 norm = self.viz_tracker.water_level_norm
             elif self.selected_variable == "salinity_category":
-                print(10)
                 color_map = "RdYlBu_r"
                 norm = self.viz_tracker.salinity_category_norm
-                print(11)
             elif self.selected_variable == "water_velocity":
                 color_map = "Spectral_r"
                 norm = self.viz_tracker.water_velocity_norm
@@ -297,15 +294,18 @@ class ControlWidget(QWidget):
         self.btn_board_salinity_category.resize(180, 60)
         self.btn_board_salinity_category.move(210, 160)
 
+        """
         self.textbox = QLineEdit(self)
         self.textbox.resize(380, 60)
         self.textbox.move(10, 240)
 
+        
         self.btn_update = QPushButton('Change delta', self)
         self.btn_update.clicked.connect(self.on_update_button_clicked)
         self.btn_update.resize(380, 60)
         self.btn_update.move(10, 320)
         self.btn_update.setStyleSheet("background-color:lightgray;")
+        """
 
         self.btn_run_model = QPushButton('Run model', self)
         self.btn_run_model.clicked.connect(self.on_run_model_button_clicked)
@@ -372,11 +372,8 @@ class ControlWidget(QWidget):
         return
 
     def on_board_salinity_category_button_clicked(self):
-        print(1)
         self.viz_tracker.game_variable = "salinity_category"
-        print(2)
         self.change_highlights()
-        print(3)
         return
 
     def on_turn1_button_clicked(self):
@@ -410,16 +407,13 @@ class ControlWidget(QWidget):
             elif self.screen_highlight == "salinity_category":
                 self.btn_screen_salinity_category.setStyleSheet("background-color:blue;")
         if self.board_highlight != self.viz_tracker.game_variable:
-            print(4)
             self.board_highlight = self.viz_tracker.game_variable
             self.btn_board_salinity.setStyleSheet("background-color:lightgray;")
             self.btn_board_salinity_category.setStyleSheet("background-color:lightgray;")
             if self.board_highlight == "water_salinity":
                 self.btn_board_salinity.setStyleSheet("background-color:red;")
             elif self.board_highlight == "salinity_category":
-                print(5)
                 self.btn_board_salinity_category.setStyleSheet("background-color:blue;")
-                print(6)
         if self.turn_highlight != self.viz_tracker.turn:
             self.turn_highlight = self.viz_tracker.turn
             self.btn_turn1.setStyleSheet("background-color:lightgray;")
@@ -520,9 +514,7 @@ class VisualizationTracker():
 
     @game_variable.setter
     def game_variable(self, variable):
-        print(7)
         self._game_variable = variable
-        print(8)
         return
 
     @time_steps.setter

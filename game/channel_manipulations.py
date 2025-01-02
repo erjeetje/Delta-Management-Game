@@ -275,10 +275,18 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         print(split_index)
         # TODO check that any segment L >= dx * 4
         reference_L = old_channel['L']
+        print(reference_L)
+        # TODO check if in should indeed be flipped! this seemed necessary for the test scenario, test live
+        reference_L = np.flip(reference_L)
+        print(reference_L)
 
         new_channel1.at['L'] = deepcopy(reference_L[:split_index + 1])
+        print(new_channel1.loc['L'])
         new_channel1.at['L'][-1] = new_channel1.loc['L'][-1] / 2
+        new_channel1.at['L'][-1] = new_channel1.loc['L'][-1] + (new_channel1.loc['L'][-1] % new_channel1.loc['dx'][-1])
+        print(new_channel1.loc['L'])
         location = sum(new_channel1.loc["L"]) / sum(old_channel.loc["L"])
+        print(location)
         width_at_break_location = ((old_channel.loc['b'][split_index + 1] - old_channel.loc['b'][split_index]) *
                                    location + old_channel.loc['b'][split_index])
         print("split 1")
@@ -339,6 +347,8 @@ def apply_split(turn_model_network_df, next_weir_number=3):
 
         new_channel2.at['L'] = deepcopy(reference_L[split_index:])
         new_channel2.at['L'][0] = new_channel2.loc['L'][0] / 2
+        new_channel2.at['L'][0] = new_channel2.at['L'][0] - (new_channel2.loc['L'][0] % new_channel2.loc['dx'][-1])
+        print(new_channel2.loc['L'])
         new_channel2.at['b'] = deepcopy(reference_b[split_index:])
         new_channel2.at['b'][0] = width_at_break_location
         new_channel2.at['dx'] = np.array([new_channel2.loc['dx'][0] for i in new_channel2.loc['L']])

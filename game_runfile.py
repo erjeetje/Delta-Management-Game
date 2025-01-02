@@ -70,7 +70,7 @@ class DMG():
         """
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.input_files = os.path.join(dir_path, "game", "input_files")
-        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 DMG design\coding (notebooks)\game to IMSIDE"
+        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 DMG design\coding (notebooks)\game debugging"
         return
 
     def load_model(self):
@@ -178,6 +178,7 @@ class DMG():
             self.model_network_gdf["ref_dx"] = self.model_network_gdf["dx"]
         except KeyError:
             pass
+        self.export_output()
         self.turn += 1
         if self.turn < 4:
             self.update_forcings()
@@ -326,14 +327,24 @@ class DMG():
         This way, all numpy arrays are saved as a list with the "," separator.
         """
         df_copy = self.model_network_gdf.copy()
-        for column in ["Hn", "L", "b", "dx", "plot x", "plot y"]:
-            df_copy[column] = df_copy.apply(lambda row: row[column].tolist(), axis=1)
-        df_copy.to_excel(os.path.join(self.save_path, "model_network_gdf.xlsx"), index=True)
-        self.game_network_gdf.to_excel(os.path.join(self.save_path, "game_network_gdf.xlsx"), index=True)
-        self.model_output_gdf.to_excel(os.path.join(self.save_path, "model_output_gdf.xlsx"), index=True)
-        self.game_output_gdf.to_excel(os.path.join(self.save_path, "game_output_gdf.xlsx"), index=True)
+        """
+        for column in ["Hn", "ref_Hn", "L", "ref_L", "b", "ref_b", "dx", "ref_dx", "plot x", "plot y",
+                       'changed_polygons', 'vertical_change', 'horizontal_change', 'ver_changed_segments',
+                       'hor_changed_segments']:
+            try:
+                df_copy[column] = df_copy.apply(lambda row: row[column].tolist(), axis=1)
+            except KeyError:
+                pass
+        print("passed conversion")
+        """
+        filename = "model_network_gdf%d.xlsx" % self.turn
+        df_copy.to_excel(os.path.join(self.save_path, filename), index=True)
+        #self.game_network_gdf.to_excel(os.path.join(self.save_path, "game_network_gdf.xlsx"), index=True)
+        filename = "model_output_gdf%d.xlsx" % self.turn
+        self.model_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
+        #self.game_output_gdf.to_excel(os.path.join(self.save_path, "game_output_gdf.xlsx"), index=True)
 
-    def temp_output(self):
+    def debug_output(self):
         model_network_df = self.model.network
         print(model_network_df.head())
         model_network_gdf = game_sync.process_model_network(model_network_df)

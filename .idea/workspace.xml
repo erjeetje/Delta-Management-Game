@@ -5,12 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="761f18cf-aed8-4002-b562-2aab5055ed9d" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/game/table_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game/channel_manipulations.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/channel_manipulations.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game/demo_visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/demo_visualizations.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game/index_channels.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/index_channels.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game_runfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/game_runfile.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/core_td_v1.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/core_td_v1.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,6 +49,7 @@
     "Python.model_to_game.executor": "Run",
     "Python.runfile_td_v1.executor": "Run",
     "Python.solve_td_v1.executor": "Run",
+    "Python.table_runfile.executor": "Run",
     "Python.tidal_hydro_v1.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",

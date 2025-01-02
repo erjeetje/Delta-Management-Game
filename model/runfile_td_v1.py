@@ -26,6 +26,11 @@ class IMSIDE():
         network_df = network_df.T
         self._network = network_df
         self._output = None
+        self.Qhar = 0
+        self.Qhar_threshold = 0
+        self.Qhag = 0
+        self.Qhij = 0
+        self.Qhij_threshold = 0
         self.ref_Qwaal = deepcopy(self.delta.Qriv[0])
         self.ref_Qhij = deepcopy(self.delta.Qweir[0])
         self.ref_Qlek = deepcopy(self.delta.Qweir[1])
@@ -73,7 +78,66 @@ class IMSIDE():
         self.ref_Qhar = deepcopy(self.delta.Qhar[0])
         return
 
-    def change_local_boundaries(self, values):
+    def change_local_boundaries(self, operational_updates_df):
+        updates = operational_updates_df.copy()
+        updates = updates.set_index("Qtype")
+        print(4)
+        """
+        Function sets local boundary conditions.
+
+        TODO: In the version connected to the table, this needs to be run at every update, hence the "resetting" below.
+        """
+        self.delta.Qriv[0] = self.ref_Qwaal
+        self.delta.Qweir[0] = self.ref_Qhij
+        self.delta.Qweir[1] = self.ref_Qlek
+        self.delta.Qhar[0] = self.ref_Qhar
+        for key, row in updates.iterrows():
+            if key == "Qhar":
+                self.Qhar = row["Qvalue"]
+            elif key == "Qhar_threshold":
+                self.Qhar_threshold = row["Qvalue"]
+            elif key == "Qhag":
+                self.Qhag = row["Qvalue"]
+            elif key == "Qhij":
+                self.Qhij = row["Qvalue"]
+            elif key == "Qhij_threshold":
+                self.Qhij_threshold = row["Qvalue"]
+            if row["red_changed"]:
+                print("updated", key, "to", row["Qvalue"])
+        print(5)
+
+        # update operations
+        print("Qwaal:", self.delta.Qriv[0])
+        print("Qhar:", self.delta.Qhar[0])
+        for i, Q in enumerate(self.delta.Qriv[0]):
+            if Q / 0.75 <= self.Qhar_threshold:  # Waal takes approximately 75% of Lobith discharge (low flow)
+                self.delta.Qhar[0][i] = 0
+            elif self.delta.Qhar[0][i] <= self.Qhar:
+                self.delta.Qhar[0][i] = self.Qhar
+        print("Set Qhar to", self.delta.Qhar)
+
+        print("ref_Qlek", self.delta.Qweir[1])
+        print("ref_Qwaal", self.delta.Qriv[0])
+        for i, Q in enumerate(self.delta.Qweir[1]):
+            if Q < self.Qhag:
+                self.delta.Qweir[1][i] = self.Qhag
+                self.delta.Qriv[0][i] -= (self.Qhag - Q)
+        print("new_Qlek", self.delta.Qweir[1])
+        print("new_Qwaal", self.delta.Qriv[0])
+
+        print("ref_Qhij", self.delta.Qweir[0])
+        print("ref_Qwaal", self.delta.Qriv[0])
+        for i, Q in enumerate(self.delta.Qriv[0]):
+            if Q / 0.75 <= self.Qhij_threshold:  # Waal takes approximately 75% of Lobith discharge (low flow)
+                Qold = self.delta.Qweir[0][i]
+                self.delta.Qweir[0][i] = self.Qhij
+                self.delta.Qriv[0][i] -= (self.Qhij - Qold)
+        print("new_Qhij", self.delta.Qweir[0])
+        print("new_Qwaal", self.delta.Qriv[0])
+        return
+
+
+    def change_local_boundaries_old(self, values):
         """
         Function sets local boundary conditions.
 
@@ -100,7 +164,7 @@ class IMSIDE():
                     print("Qwaal:", self.delta.Qriv[0])
                     print("Qhar:", self.delta.Qhar[0])
                     for i, Q in enumerate(self.delta.Qriv[0]):
-                        if Q <= Qthreshold:
+                        if Q / 0.75 <= Qthreshold: # Waal takes approximately 75% of Lobith discharge (low flow)
                             self.delta.Qhar[0][i] = 0
                         elif self.delta.Qhar[0][i] <= Qout:
                             self.delta.Qhar[0][i] = Qout
@@ -118,7 +182,7 @@ class IMSIDE():
                     print("ref_Qhij", self.delta.Qweir[0])
                     print("ref_Qwaal", self.delta.Qriv[0])
                     for i, Q in enumerate(self.delta.Qriv[0]):
-                        if Q <= Qthreshold:
+                        if Q / 0.75 <= Qthreshold: # Waal takes approximately 75% of Lobith discharge (low flow)
                             Qold = self.delta.Qweir[0][i]
                             self.delta.Qweir[0][i] = Qout
                             self.delta.Qriv[0][i] -= (Qout - Qold)

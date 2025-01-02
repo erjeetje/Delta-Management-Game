@@ -15,6 +15,7 @@ from game import demo_processing
 from game import index_channels as indexing
 from game import channel_manipulations as update_func
 from game import table_functions as table_func
+from game import operational_manipulations as operation_func
 
 #sys.path.insert(1, r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\version 4.3.4\IMSIDE netw\mod 4.3.4 netw')
 from model import runfile_td_v1 as imside_model
@@ -25,6 +26,10 @@ class DMG():
         self.mode = mode
         self._turn = 1
         self._scenario = self.mode["scenarios"][0]
+        operational = {0: ['Qhag', 25, 0, True], 1: ['Qhar', 50, 1, True], 2: ['Qhar_threshold', 1100, 1, True],
+                       3: ['Qhij', 2, 0, True], 4: ['Qhij_threshold', 800, 0, True]}
+        self.operational_df = pd.DataFrame.from_dict(
+            operational, orient='index', columns=['Qtype', 'Qvalue', 'red_markers', 'red_changed'])
         self.weir_tracker = 3  # there are already 2 weirs in the default schematization, next number to add is 3
         self.hexagon_index = None
         self.hexagons_tracker = None
@@ -40,6 +45,7 @@ class DMG():
         self.turn_split_channels = {}
         self.all_split_channels = {}
         self.turn_updates = {}
+        self.model.change_local_boundaries(self.operational_df)
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
         self.end_round()
@@ -146,6 +152,9 @@ class DMG():
             self.hexagon_index = indexing.create_polygon_id_tracker(self.model_network_gdf,
                                                                     hexagon_tracker_df=self.hexagons_tracker) #self.split_channels, split_names
             self.all_split_channels.update(self.turn_split_channels)
+        self.operational_df = operation_func.update_operational_rules(self.operational_df, self.hexagons_board_gdf)
+        #operational_updates_df = self.operational_df[self.operational_df["red_changed"] == True]
+        self.model.change_local_boundaries(self.operational_df)
         # TODO: also update hexagon_tracker (references are updated with split channel)
         #if self.turn == 2:
         #    self.split_channel(channel="Nieuwe Maas 1 old")

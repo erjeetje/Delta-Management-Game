@@ -10,13 +10,13 @@ def update_operational_rules(operational_df_old, hexagon_tracker):
     def update_operational_buttons(button, red_markers):
         if button == "Qhar":
             if red_markers == 0:
-                return 25
+                return 0
             elif red_markers == 1:
                 return 50
             elif red_markers == 2:
-                return 75
-            elif red_markers == 3:
                 return 100
+            elif red_markers == 3:
+                return 200
         elif button == "Qhar_threshold":
             if red_markers == 0:
                 return 900

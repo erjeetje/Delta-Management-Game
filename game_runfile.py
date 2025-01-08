@@ -208,10 +208,17 @@ class DMG():
 
     def add_sea_level_rise(self, slr=0):
         if slr != 0:
-            self.model_network_gdf["ref_Hn"] = self.model_network_gdf["ref_Hn"].apply(
-                lambda x: np.array([y + slr for y in x]))
-            self.model_network_gdf["Hn"] = self.model_network_gdf["Hn"].apply(
-                lambda x: np.array([y + slr for y in x]))
+            try:
+                self.model_network_gdf["ref_Hn"] = self.model_network_gdf["ref_Hn"].apply(
+                    lambda x: np.array([y + slr for y in x]))
+            except KeyError:
+                pass
+            print(self.model_network_gdf.columns)
+            try:
+                self.model_network_gdf["Hn"] = self.model_network_gdf["Hn"].apply(
+                    lambda x: np.array([y + slr for y in x]))
+            except KeyError:
+                pass
             self.model.add_sea_level_rise(slr)
             print("added", slr, "meters sea level rise in model")
         else:
@@ -407,10 +414,10 @@ def main(mode):
 
 scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 0, 0, 0]}
 
-scenario_settings2 = {"scenarios": ["2017", "2018", "2100le", "2100he"], "slr": [0, 0, 1, 1]}
+scenario_settings2 = {"scenarios": ["2018", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41]}
 
-scenario_settings3 = {"scenarios": ["2018", "2050he", "2100he", "2150he"], "slr": [0, 0.5, 1, 1.5]}
+scenario_settings3 = {"scenarios": ["2018", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2]}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    main(scenario_settings1)
+    main(scenario_settings2)

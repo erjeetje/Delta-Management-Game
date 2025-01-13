@@ -123,6 +123,7 @@ class DMG():
             self.inlet_salinity_tracker = inlet_salinity_tracker
         else:
             self.inlet_salinity_tracker = pd.concat([self.inlet_salinity_tracker, inlet_salinity_tracker])
+        print(self.inlet_salinity_tracker.shape)
         return
 
     def run_model(self, scenario="2017"):

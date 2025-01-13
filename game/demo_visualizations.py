@@ -72,7 +72,6 @@ class ApplicationWindow(QMainWindow):
         #forcing_conditions_df = forcing_conditions_df.drop(columns="turn")
         #forcing_conditions = pandasModel(forcing_conditions_df)
         self.forcing_table = QTableView()
-        self.show_forcing_conditions()
         #self.forcing_table.setModel(forcing_conditions)
         #self.forcing_table.resize(600, 300)
         self.figure_layout.addWidget(self.forcing_table) #, alignment=Qt.AlignCenter)
@@ -121,6 +120,7 @@ class ApplicationWindow(QMainWindow):
         self.control_widget = ControlWidget(gui=self, viz_tracker=viz_tracker)
         self.layout.addWidget(self.control_widget)
         self.add_plot_model(bbox)
+        self.show_forcing_conditions()
         self.plot_salinity_inlets()
         return
 
@@ -219,6 +219,7 @@ class ApplicationWindow(QMainWindow):
         inlet_data = inlet_data.reset_index()
         inlet_data = inlet_data[inlet_data['name'] == to_plot]
 
+        self.inlet_plots.figure.clf()
         ax = self.inlet_plots.figure.subplots()
         #plt.subplots(figsize=(8, 6), dpi=100)
         #fig.patch.set_facecolor('white')
@@ -274,6 +275,7 @@ class ApplicationWindow(QMainWindow):
         # plt.figtext(0.15, 0.83, f'y = {slope}x + {intercept}')
         # plt.figtext(0.15, 0.77, f'R^2 = {r_squared}')
         # plt.figtext(0.15, 0.7,  f'y = {b:.4f} + {a:.4f}x', size=14)
+        self.inlet_plots.draw()
         return
 
     def show_forcing_conditions(self):
@@ -530,24 +532,28 @@ class ControlWidget(QWidget):
     def on_turn1_button_clicked(self):
         self.viz_tracker.turn = 1
         self.gui.show_forcing_conditions()
+        self.gui.plot_salinity_inlets()
         self.change_highlights()
         return
 
     def on_turn2_button_clicked(self):
         self.viz_tracker.turn = 2
         self.gui.show_forcing_conditions()
+        self.gui.plot_salinity_inlets()
         self.change_highlights()
         return
 
     def on_turn3_button_clicked(self):
         self.viz_tracker.turn = 3
         self.gui.show_forcing_conditions()
+        self.gui.plot_salinity_inlets()
         self.change_highlights()
         return
 
     def on_turn4_button_clicked(self):
         self.viz_tracker.turn = 4
         self.gui.show_forcing_conditions()
+        self.gui.plot_salinity_inlets()
         self.change_highlights()
         return
 

@@ -36,6 +36,7 @@ class DMG():
         self.hexagons_tracker = None
         self.inlets = None
         self.inlet_salinity_tracker = None
+        self.gui = None
         self.load_paths()
         self.load_model()
         # options to send: mirror (-1, 0 or 1), test (bool), save (bool), debug (bool)
@@ -106,9 +107,9 @@ class DMG():
 
     def load_inlets(self):
         inlet_tracker = load_files.read_csv(filename='WSHD_modified_inlet_data.csv', path=self.input_files)
+        # this determines which inlets to include or not (only a few to test for now)
         selected_inlets = ["Inlaat Oostkade", "Inlaatsluis Bernisse", "Inlaat Trekdam",
-                           "Hevel IJsselmonde - Oostdijk", "Inlaat Den Hitsert", "Gemaal Delta",
-                           "Hevel De Noord - Crezeepolder", "Gemaal Prinsenheuvel"]
+                           "Hevel IJsselmonde - Oostdijk", "Gemaal Delta", "Hevel De Noord - Crezeepolder"]
         self.inlets = inlet_tracker[inlet_tracker['name'].isin(selected_inlets)]
         return
 
@@ -197,6 +198,7 @@ class DMG():
         #self.model_output_to_game(model_output_df, scenario=self.scenario)
         self.model_output_to_game(model_output_df)
         self.update_inlet_salinity()
+        self.gui.show_turn_button(self.turn)
         print("updated to turn", self.turn)
         self.end_round()
         return
@@ -434,14 +436,14 @@ class DMG():
             salinity_category=salinity_category)
         # ,water_level_range = water_level_range, water_velocity_range = water_velocity_range
         colorbar_salinity, labels_salinity_categories = load_files.load_images()
-        gui = visualizer.ApplicationWindow(
+        self.gui = visualizer.ApplicationWindow(
             game=self, viz_tracker=viz_tracker, bbox=world_bbox,
             salinity_colorbar_image=colorbar_salinity, salinity_category_image=labels_salinity_categories)
         side_window = visualizer.GameVisualization(game=self, viz_tracker=viz_tracker, bbox=game_bbox)
-        gui.show()
+        self.gui.show()
         side_window.show()
-        gui.activateWindow()
-        gui.raise_()
+        self.gui.activateWindow()
+        self.gui.raise_()
         print("game initialized")
         qapp.exec()
         return

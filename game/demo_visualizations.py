@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt, QAbstractTableModel
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
+from matplotlib.colors import LinearSegmentedColormap
 from pandas import to_datetime
 
 
@@ -121,6 +122,7 @@ class ApplicationWindow(QMainWindow):
         self.layout.addWidget(self.control_widget)
         self.add_plot_model(bbox)
         self.show_forcing_conditions()
+        self.plot_inlet_indicators()
         self.plot_salinity_inlets()
         return
 
@@ -211,70 +213,91 @@ class ApplicationWindow(QMainWindow):
         return
 
     def plot_inlet_indicators(self):
+        self.inlet_canvas.figure.clf()
+        ax = self.inlet_canvas.figure.subplots()
+        ax.set_axis_off()
+
+        model_output = self.game.model_output_gdf.copy()
+        model_output = model_output[model_output["turn"] == self.viz_tracker.turn]
+        model_output = model_output[model_output["time"] == model_output.iloc[0]["time"]]
+        if model_output.empty:
+            print("there seems to be no output data yet")
+        else:
+            model_output.plot(ax=ax, color="deepskyblue", markersize=50)
+
+        inlet_data = self.game.inlet_salinity_tracker.copy()
+        inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
+        if inlet_data.empty:
+            print("there seems to be no inlet data yet")
+        else:
+            inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
+            cmap = LinearSegmentedColormap.from_list("", ["green", "yellow", "orange", "red"])
+            inlet_data.plot("salinity_category", ax=ax, cmap=cmap, markersize=300)  # , legend=True)
+
+        self.inlet_canvas.draw()
         return
 
     def plot_salinity_inlets(self, to_plot="Inlaatsluis Bernisse"):
-        inlet_data = self.game.inlet_salinity_tracker.copy()
-        inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
-        inlet_data = inlet_data.reset_index()
-        inlet_data = inlet_data[inlet_data['name'] == to_plot]
-
         self.inlet_plots.figure.clf()
         ax = self.inlet_plots.figure.subplots()
-        #plt.subplots(figsize=(8, 6), dpi=100)
-        #fig.patch.set_facecolor('white')
-        ax.set_facecolor('lightgray')
 
-        time_steps = to_datetime(inlet_data['time']).dt.strftime('%Y-%m-%d')
-        salinity_values = inlet_data['water_salinity'].values
-        cl_threshold_normal = inlet_data.iloc[0]['CL_threshold_during_regular_operation_(mg/l)']
-        cl_threshold_drought = inlet_data.iloc[0]['CL_threshold_during_drought_(mg/l)']
+        inlet_data = self.game.inlet_salinity_tracker.copy()
+        inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
+        if inlet_data.empty:
+            print("there seems to be no inlet data yet")
+        else:
+            inlet_data = inlet_data.reset_index()
+            inlet_data = inlet_data[inlet_data['name'] == to_plot]
 
-        ax.plot(time_steps, salinity_values, marker='o', linestyle='-', color='blue', label='Salinity (mg/l)')
+            ax.set_facecolor('lightgray')
 
-        ax.axhline(y=cl_threshold_normal, color='green', linestyle=(0, (3, 1.5, 1, 1.5)),
-                    label='CL Threshold Normal')  # Custom dash-dot pattern: (dash length, gap length, dot length, gap length)
+            time_steps = to_datetime(inlet_data['time']).dt.strftime('%Y-%m-%d')
+            salinity_values = inlet_data['water_salinity'].values
+            cl_threshold_normal = inlet_data.iloc[0]['CL_threshold_during_regular_operation_(mg/l)']
+            cl_threshold_drought = inlet_data.iloc[0]['CL_threshold_during_drought_(mg/l)']
 
-        ax.axhline(y=cl_threshold_drought, color='red', linestyle=(0, (5, 1.5, 1, 1.5)),
-                    label='CL Threshold Drought')
+            ax.plot(time_steps, salinity_values, marker='o', linestyle='-', color='blue', label='Salinity (mg/l)')
 
-        ax.set_title(f"Salinity at {to_plot}", fontsize=20)
-        ax.set_xlabel("Time (day)", fontsize=14)
-        ax.set_ylabel("Salinity (mg/l)", fontsize=14)
+            ax.axhline(y=cl_threshold_normal, color='green', linestyle=(0, (3, 1.5, 1, 1.5)),
+                        label='CL Threshold Normal')  # Custom dash-dot pattern: (dash length, gap length, dot length, gap length)
 
-        ax.set_ylim(ymin=0)
+            ax.axhline(y=cl_threshold_drought, color='red', linestyle=(0, (5, 1.5, 1, 1.5)),
+                        label='CL Threshold Drought')
 
-        ax.set_xticks(ax.get_xticks())
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=90, fontsize=8)
-        ax.set_yticks(ax.get_yticks())
-        ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
+            ax.set_title(f"Salinity at {to_plot}", fontsize=20)
+            ax.set_xlabel("Time (day)", fontsize=14)
+            ax.set_ylabel("Salinity (mg/l)", fontsize=14)
 
-        ax.spines['bottom'].set_color('black')
-        ax.spines['left'].set_color('black')
-        ax.spines['bottom'].set_linewidth(1)
-        ax.spines['left'].set_linewidth(1)
+            ax.set_ylim(ymin=0)
 
-        ax.grid(which='both', linestyle='--', linewidth=0.5, alpha=0.7, zorder=0)
+            ax.set_xticks(ax.get_xticks())
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=90, fontsize=8)
+            ax.set_yticks(ax.get_yticks())
+            ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
 
-        text_to_plot = ("Number of days above threshold (normal): " + str(
-            inlet_data.iloc[0]['Num_days_exceedance_normal']) + "\n" +
-                        "Number of consecutive days above threshold (normal): " + str(
-                    inlet_data.iloc[0]['Num_days_consecutive_normal']) + "\n" +
-                        "Number of days above threshold (drought): " + str(
-                    inlet_data.iloc[0]['Num_days_exceedance_drought']) + "\n" +
-                        "Number of days above threshold (drought): " + str(
-                    inlet_data.iloc[0]['Num_days_consecutive_drought']))
+            ax.spines['bottom'].set_color('black')
+            ax.spines['left'].set_color('black')
+            ax.spines['bottom'].set_linewidth(1)
+            ax.spines['left'].set_linewidth(1)
 
-        #ax.text(1.0, -0.4, text_to_plot, horizontalalignment='right', verticalalignment='top', transform=ax.transAxes,
-        #        fontsize=16)
-        ax.text(0.96, 0.04, text_to_plot, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes,
-                fontsize=11)
+            ax.grid(which='both', linestyle='--', linewidth=0.5, alpha=0.7, zorder=0)
 
-        ax.legend(loc='best', fontsize=10)
+            text_to_plot = ("Number of days above threshold (normal): " + str(
+                inlet_data.iloc[0]['Num_days_exceedance_normal']) + "\n" +
+                            "Number of consecutive days above threshold (normal): " + str(
+                        inlet_data.iloc[0]['Num_days_consecutive_normal']) + "\n" +
+                            "Number of days above threshold (drought): " + str(
+                        inlet_data.iloc[0]['Num_days_exceedance_drought']) + "\n" +
+                            "Number of days above threshold (drought): " + str(
+                        inlet_data.iloc[0]['Num_days_consecutive_drought']))
 
-        # plt.figtext(0.15, 0.83, f'y = {slope}x + {intercept}')
-        # plt.figtext(0.15, 0.77, f'R^2 = {r_squared}')
-        # plt.figtext(0.15, 0.7,  f'y = {b:.4f} + {a:.4f}x', size=14)
+            #ax.text(1.0, -0.4, text_to_plot, horizontalalignment='right', verticalalignment='top', transform=ax.transAxes,
+            #        fontsize=16)
+            ax.text(0.96, 0.04, text_to_plot, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes,
+                    fontsize=11)
+
+            ax.legend(loc='best', fontsize=10)
+
         self.inlet_plots.draw()
         return
 
@@ -284,6 +307,18 @@ class ApplicationWindow(QMainWindow):
         forcing_conditions_df = forcing_conditions_df.drop(columns="turn")
         forcing_conditions = pandasModel(forcing_conditions_df)
         self.forcing_table.setModel(forcing_conditions)
+        return
+
+    def show_turn_button(self, turn):
+        if turn == 2:
+            self.control_widget.btn_turn2.setEnabled(True)
+            self.control_widget.on_turn2_button_clicked()
+        elif turn == 3:
+            self.control_widget.btn_turn3.setEnabled(True)
+            self.control_widget.on_turn3_button_clicked()
+        elif turn == 4:
+            self.control_widget.btn_turn4.setEnabled(True)
+            self.control_widget.on_turn4_button_clicked()
         return
 
 
@@ -474,16 +509,19 @@ class ControlWidget(QWidget):
         self.btn_turn4.clicked.connect(self.on_turn4_button_clicked)
         self.btn_turn4.resize(180, 60)
         self.btn_turn4.move(10, 820)
+        self.btn_turn4.setEnabled(False)
         self.btn_turn3 = QPushButton('2018 - turn 3', self)
         #self.btn_turn3 = QPushButton('2100le (+1m SLR) +\n deepened NWW & Nieuwe Maas', self)
         self.btn_turn3.clicked.connect(self.on_turn3_button_clicked)
         self.btn_turn3.resize(180, 60)
         self.btn_turn3.move(10, 740)
+        self.btn_turn3.setEnabled(False)
         self.btn_turn2 = QPushButton('2018 - turn 2', self)
         #self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
         self.btn_turn2.clicked.connect(self.on_turn2_button_clicked)
         self.btn_turn2.resize(180, 60)
         self.btn_turn2.move(10, 660)
+        self.btn_turn2.setEnabled(False)
         self.btn_turn1 = QPushButton('2018 - turn 1', self)
         #self.btn_turn1 = QPushButton('2017', self)
         self.btn_turn1.clicked.connect(self.on_turn1_button_clicked)
@@ -532,6 +570,7 @@ class ControlWidget(QWidget):
     def on_turn1_button_clicked(self):
         self.viz_tracker.turn = 1
         self.gui.show_forcing_conditions()
+        self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
         self.change_highlights()
         return
@@ -539,6 +578,7 @@ class ControlWidget(QWidget):
     def on_turn2_button_clicked(self):
         self.viz_tracker.turn = 2
         self.gui.show_forcing_conditions()
+        self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
         self.change_highlights()
         return
@@ -546,6 +586,7 @@ class ControlWidget(QWidget):
     def on_turn3_button_clicked(self):
         self.viz_tracker.turn = 3
         self.gui.show_forcing_conditions()
+        self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
         self.change_highlights()
         return
@@ -553,6 +594,7 @@ class ControlWidget(QWidget):
     def on_turn4_button_clicked(self):
         self.viz_tracker.turn = 4
         self.gui.show_forcing_conditions()
+        self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
         self.change_highlights()
         return

@@ -16,8 +16,8 @@ from model.inpu.load_physics import phys_RMD2
 # =============================================================================
 # load forcing conditions
 # =============================================================================
-#from model.inpu.load_forcing_td import forc_RMD4, forc_RMD5,  forc_RMD_fromSOBEK, forc_RMD_fromcsv, forc_RMD_fromMo, forc_RMD_fromJesse
-from model.inpu.load_forcing_td import forc_RMD20, forc_RMD_fromcsv_old
+from model.inpu.load_forcing_td import forc_RMD_game
+#from model.inpu.load_forcing_td import forc_RMD4, forc_RMD5,  forc_RMD_fromSOBEK, forc_RMD_fromcsv, forc_RMD_fromMo, forc_RMD_fromJesse, forc_RMD20
 #from model.inpu.load_forcing_td import forc_test1, forc_test2
 
 # =============================================================================
@@ -60,31 +60,14 @@ geo_pars = geo_RMD_game()
 #choose physical constants
 phys_pars = phys_RMD2()
 
-def set_forcing(scenario="2017", dummy=True):
+def set_forcing(scenario="2017", timeseries_length=None):
     file_dir = os.path.dirname(os.path.realpath('__file__'))
     input_dir = os.path.join(file_dir, "model", "inpu", "forcing_files")
-    if dummy == True:
-        filename = '\\forcing_' + scenario + "_dummy.csv"
+    if timeseries_length is not None:
+        filename = '\\forcing_' + scenario + "_" + timeseries_length + ".csv"
     else:
         filename = '\\forcing_' + scenario + ".csv"
-    forc_pars = forc_RMD_fromcsv_old(input_dir, filename)
-    """
-    if scenario == "2017":
-        forc_pars = forc_RMD_fromcsv_old(input_dir,
-                                         r'\forcing_2017_dummy.csv')
-    elif scenario == "2018":
-        forc_pars = forc_RMD_fromcsv_old(input_dir,
-                                         r'\forcing_2018_dummy.csv')
-    elif scenario == "2100le":
-        forc_pars = forc_RMD_fromcsv_old(input_dir,
-                                         r'\forcing_2100le_dummy.csv')
-    elif scenario == "2100he":
-        forc_pars = forc_RMD_fromcsv_old(input_dir,
-                                         r'\forcing_2100he_dummy.csv')
-    else:
-        print("unknown scenario, no update to forcing conditions")
-        return
-    """
+    forc_pars = forc_RMD_game(input_dir, filename)
     print("next scenario is:", scenario)
     return forc_pars
 

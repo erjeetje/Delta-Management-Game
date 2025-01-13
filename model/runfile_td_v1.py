@@ -18,9 +18,10 @@ from shapely.geometry import LineString
 
 
 class IMSIDE():
-    def __init__(self, scenario):
-        self.current_forcing = settings_td_v1.set_forcing(scenario=scenario)
-        self.delta = core_td_v1.mod42_netw(settings_td_v1.constants, settings_td_v1.geo_pars, self.current_forcing,
+    def __init__(self, scenario, timeseries_length=None):
+        self.timeseries_length = timeseries_length
+        self._current_forcing = settings_td_v1.set_forcing(scenario=scenario, timeseries_length=self.timeseries_length)
+        self.delta = core_td_v1.mod42_netw(settings_td_v1.constants, settings_td_v1.geo_pars, self._current_forcing,
                                            settings_td_v1.phys_pars)#, pars_seadom = (25000,100,10), pars_rivdom = (200000,2000,0))
         network_df = pd.DataFrame.from_dict(self.delta.ch_gegs)
         network_df = network_df.T
@@ -45,6 +46,10 @@ class IMSIDE():
     def network(self):
         return self._network
 
+    @property
+    def current_forcing(self):
+        return self._current_forcing
+
     """
     @network.setter
     def network(self, network):
@@ -60,12 +65,20 @@ class IMSIDE():
         self._output = output_df.T
         return
 
+    def get_forcings(self):
+        Waal = deepcopy(self.delta.Qriv[0])
+        Meuse = deepcopy(self.delta.Qriv[1])
+        Hol_IJssel = deepcopy(self.delta.Qweir[0])
+        Lek = deepcopy(self.delta.Qweir[1])
+        Haringvliet = deepcopy(self.delta.Qhar[0])
+        return {"Waal": Waal, "Meuse": Meuse, "Hol_IJssel": Hol_IJssel, "Lek": Lek, "Haringvliet": Haringvliet}
+
     def change_forcings(self, scenario, add_rows=0):
         try:
-             self.current_forcing = settings_td_v1.set_forcing(scenario=scenario)
+             self._current_forcing = settings_td_v1.set_forcing(scenario=scenario, timeseries_length=self.timeseries_length)
              [self.delta.Qriv, self.delta.Qweir, self.delta.Qhar, self.delta.n_sea, self.delta.soc,
               self.delta.sri, self.delta.swe, self.delta.tid_per, self.delta.a_tide, self.delta.p_tide,
-              self.delta.T, self.delta.DT] = self.current_forcing
+              self.delta.T, self.delta.DT] = self._current_forcing
         except TypeError:
             return
         if add_rows != 0:

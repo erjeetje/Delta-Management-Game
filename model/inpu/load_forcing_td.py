@@ -328,26 +328,9 @@ def forc_RMD20():
     return Qriv,Qweir,Qhar, n_sea, soc, sri, swe, tid_per, a_tide, p_tide, T, DT
 
 
-def forc_RMD_fromcsv_old(loc, fil, ssea=33):
+def forc_RMD_game(loc, fil, ssea=33):
     # fil = 'forcing_'+str(sce)+'.csv'
     dat_raw = pd.read_csv(loc + fil)
-    """
-    # dropped right now, just load all timesteps
-
-    tvec = dat_raw['Time']
-    #select the first and last timestep
-    try:
-        dstart = dat_start.replace('-','/')
-        dstop  = dat_stop.replace('-','/')
-
-        istart = np.where(tvec == dstart)[0][0]
-        istop  = np.where(tvec == dstop )[0][0]
-    except: 
-        raise Exception('Selected period not available in forcing file')
-
-    #time parameters
-    T = istop - istart
-    """
     T = len(dat_raw['# Day in year'])
     DT = np.zeros(T) + 24 * 3600  # I usually work with subtidal time steps of one day
 

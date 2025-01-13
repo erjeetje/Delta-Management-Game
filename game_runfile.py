@@ -26,7 +26,7 @@ class DMG():
         self.mode = mode
         self._turn = 1
         self._scenario = self.mode["scenarios"][0]
-        operational = {0: ['Qhag', 25, 0, True], 1: ['Qhar', 50, 1, True], 2: ['Qhar_threshold', 1100, 1, True],
+        operational = {0: ['Qhag', 20, 0, True], 1: ['Qhar', 50, 1, True], 2: ['Qhar_threshold', 1100, 1, True],
                        3: ['Qhij', 2, 0, True], 4: ['Qhij_threshold', 800, 0, True]}
         self.operational_df = pd.DataFrame.from_dict(
             operational, orient='index', columns=['Qtype', 'Qvalue', 'red_markers', 'red_changed'])
@@ -46,6 +46,7 @@ class DMG():
         self.all_split_channels = {}
         self.turn_updates = {}
         self.model.change_local_boundaries(self.operational_df)
+        self.forcing_conditions = self.store_forcings()
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
         self.end_round()
@@ -83,7 +84,7 @@ class DMG():
         """
         load the IMSIDE model and extract network.
         """
-        self.model = imside_model.IMSIDE(scenario=self.scenario)
+        self.model = imside_model.IMSIDE(scenario=self.scenario, timeseries_length=self.mode["timeseries"])
         model_network_df = self.model.network
         self.model_network_gdf = game_sync.process_model_network(model_network_df)
         return
@@ -158,6 +159,10 @@ class DMG():
         # TODO: also update hexagon_tracker (references are updated with split channel)
         #if self.turn == 2:
         #    self.split_channel(channel="Nieuwe Maas 1 old")
+        turn_forcing_conditions = self.store_forcings()
+        self.forcing_conditions = self.forcing_conditions[self.forcing_conditions["turn"] != self.turn]
+        self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
+        print(self.forcing_conditions)
         model_output_df = self.run_model()
         # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
         # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
@@ -205,6 +210,13 @@ class DMG():
         # TODO consider if the add_row approach below is eventually the way to go.
         self.model.change_forcings(scenario=self.scenario, add_rows=self.weir_tracker-3)
         return
+
+    def store_forcings(self):
+        forcing_conditions = self.model.get_forcings()
+        forcing_conditions_df = pd.DataFrame.from_dict(forcing_conditions)
+        forcing_conditions_df["Sea Level Rise"] = self.mode["slr"][self.turn-1]
+        forcing_conditions_df["turn"] = self.turn
+        return forcing_conditions_df
 
     def add_sea_level_rise(self, slr=0):
         if slr != 0:
@@ -412,11 +424,11 @@ def main(mode):
     return
 
 
-scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 0, 0, 0]}
+scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 0, 0, 0], "timeseries": "month"}
 
-scenario_settings2 = {"scenarios": ["2018", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41]}
+scenario_settings2 = {"scenarios": ["2018", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41], "timeseries": "dummy"}
 
-scenario_settings3 = {"scenarios": ["2018", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2]}
+scenario_settings3 = {"scenarios": ["2018", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2], "timeseries": "month"}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

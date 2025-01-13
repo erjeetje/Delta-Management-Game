@@ -1,0 +1,78 @@
+name,structure_type,code,water_threshold,inlet/outlet,geometry,CL_threshold_during_regular_operation_(mg/l),CL_threshold_during_drought_(mg/l),subarea,main_water_branch
+Gemaal Delta,Gemaal,16215GM,-1.42,primair in- en uitlaatpunt,POINT (4.396740940955711 51.8446494337784),250,600,IJsselmonde,Oude Maas
+Inlaatduiker Aymon-Louise - duiker 260,Duiker,10243DU,0.0,primair inlaatpunt,POINT (4.213407801460696 51.67984488219478),250.0,600,Goeree-Overflakkee,Volkerak / Krammer
+Hevel Donkersloot,Hevel,04684HE,-0.7,primair inlaatpunt,POINT (4.625155920210724 51.87333277677378),250,600,IJsselmonde,Noord
+Hevel IJsselmonde - Oostdijk,Hevel,09676HE,-1.0,primair inlaatpunt,POINT (4.554718976916066 51.90151155307096),500,2500,IJsselmonde,Nieuwe Maas
+Hevel Strooppot,Hevel,11309HE,-1.0,primair in- en uitlaatpunt,POINT (4.662273256429671 51.82794836050879),250,600,IJsselmonde,Noord
+Hevel Gusto,Hevel,04801HE,-1.3,primair inlaatpunt,POINT (4.600395691317698 51.88942293499738),300,500,IJsselmonde,Nieuwe Maas
+Gemaal Stadspolders,Gemaal,12811GM,-1.29,primair in- en uitlaatpunt,POINT (4.696984324211325 51.80964808940002),250,600,Eiland van Dordrecht,Wantij
+Gemaal Molenpolder,Gemaal,03296GM,-0.4,primair in- en uitlaatpunt,POINT (4.435984601567871 51.72615468649894),250,600,Hoeksche Waard,Hollandsch Diep
+Hevel Delta - Poortugaalse Haven,Hevel,13754HE,0.4,primair in- en uitlaatpunt,POINT (4.385084442853734 51.84539818459349),500,800,IJsselmonde,Oude Maas
+Gemaal Galathee,Gemaal,10165GM,-1.25,primair in- en uitlaatpunt,POINT (4.314362908502851 51.6619627636821),250.0,600,Goeree-Overflakkee,Volkerak
+Inlaat haven 's-Gravendeel,Duiker,09208DU,-0.06,primair inlaatpunt,POINT (4.624446327887255 51.78134651866242),250,600,Hoeksche Waard,Dordtsche Kil
+Hevel Goidschalxoord,Hevel,29594HE,0.0,primair inlaatpunt,POINT (4.466291978586888 51.82869347481678),250,600,Hoeksche Waard,Oude Maas
+Gemaal Noordbovenpolder,Gemaal,07611GM,0.28,primair in- en uitlaatpunt,POINT (4.757923647448708 51.792284779837495),250,600,Eiland van Dordrecht,Wantij
+Gemaal De Eendracht,Gemaal,00450GM,-1.75,primair in- en uitlaatpunt,POINT (4.214642921429557 51.682203475419165),250.0,600,Goeree-Overflakkee,Volkerak / Krammer
+Gemaal Staring,Gemaal,12806GM,-0.72,primair in- en uitlaatpunt,POINT (4.757250550776568 51.7898009793042),250,600,Eiland van Dordrecht,Nieuwe Merwede
+Gemaal Spuipolder,Gemaal,12083GM,0.0,primair in- en uitlaatpunt,POINT (4.168640427352139 51.76063380830889),250,600,Goeree-Overflakkee,Haringvliet
+Inlaatsluis Bernisse,Sluis,08177SL,0.0,primair inlaatpunt,POINT (4.289943675966091 51.807306009071205),150,150,Voorne-Putten,Spui
+Gemaal De Bommelse Polders,Gemaal,00533GM,-0.5,primair in- en uitlaatpunt,POINT (4.28029349129409 51.71678428406937),250,600,Goeree-Overflakkee,Haringvliet
+Inlaat Trekdam,Duiker,03143DU,-1.3,primair inlaatpunt,POINT (4.624156907396739 51.75759563208214),250,600,Hoeksche Waard,Dordtsche Kil
+Gemaal Leenheerenpolder,Gemaal,03194GM,-0.33,primair in- en uitlaatpunt,POINT (4.274557192296392 51.798996194316075),250,600,Hoeksche Waard,Spui
+Inlaatduiker Prikgat,Duiker,01140DU,-0.9,primair inlaatpunt,POINT (4.166461053130981 51.759676338224686),250,600,Goeree-Overflakkee,Haringvliet
+Hevel Zuidersluisdam,Hevel,13746HE,-0.2,primair inlaatpunt,POINT (4.658332000370499 51.81237825177127),250,600,Eiland van Dordrecht,Oude Maas
+Gemaal Westersepolder,Gemaal,03295GM,-0.63,primair in- en uitlaatpunt,POINT (4.393895804456064 51.72835229157174),250,600,Hoeksche Waard,Haringvliet
+Inlaatduiker Zuiderland,Duiker,00790DU,-0.55,primair inlaatpunt,POINT (4.210603920485024 51.67783006669308),250.0,600,Goeree-Overflakkee,Volkerak / Krammer
+Hevel Willemsdorp,Hevel,12799HE,-0.4,primair inlaatpunt,POINT (4.633328388903106 51.7315602379004),250,600,Eiland van Dordrecht,Nieuwe Merwede
+Hevel Wantijdijk,Hevel,14194HE,-1.75,primair inlaatpunt,POINT (4.73604124015728 51.80427076530305),250,600,Eiland van Dordrecht,Wantij
+Hevel Oostmolendijk,Hevel,04720HE,0.0,primair inlaatpunt,POINT (4.638661258434592 51.860758000336425),250,600,IJsselmonde,Noord
+Gemaal Johannes Vis,Gemaal,03464GM,-1.85,primair in- en uitlaatpunt,POINT (4.68661660803274 51.75609573399214),250,600,Eiland van Dordrecht,Nieuwe Merwede
+Inlaat Goudswaard,Duiker,03122DU,-1.1,primair inlaatpunt,POINT (4.272866128601912 51.7962124292071),400,600,Hoeksche Waard,Spui
+Gemaal Volharding,Gemaal,11019GM,-1.5,primair in- en uitlaatpunt,POINT (4.58945695221369 51.71711752422364),250,600,Hoeksche Waard,Hollandsch Diep
+Hevel Hoogezandsepolder,Hevel,29596HE,0.0,primair inlaatpunt,POINT (4.494362212919417 51.710406539526225),250,600,Hoeksche Waard,Hollandsch Diep
+Gemaal Albrandswaard,Gemaal,08022GM,-0.5,primair in- en uitlaatpunt,POINT (4.405623487337877 51.84727901441771),250,600,IJsselmonde,Oude Maas
+Inlaat Oostkade,Duiker,18501DU,-0.75,primair inlaatpunt,POINT (4.128664597263788 51.820869592772944),250,600,Voorne-Putten,Haringvliet
+Gemaal Prinsenheuvel,Gemaal,09296GM,-0.8,primair in- en uitlaatpunt,POINT (4.666596440679655 51.75370842132629),250,600,Eiland van Dordrecht,Nieuwe Merwede
+Gemaal De Bosschen,Gemaal,09224GM,-1.2,primair in- en uitlaatpunt,POINT (4.449871510870238 51.829507132855824),250,600,Hoeksche Waard,Oude Maas
+Hevel Rhoonse Haven - Havenkade,Hevel,05092HE,-0.5,primair inlaatpunt,POINT (4.423086468895336 51.84597188972841),250,600,IJsselmonde,Oude Maas
+Inlaatsluis Zuiderdiep,Sluis,00025SL,0.0,primair inlaatpunt,POINT (4.118862519623657 51.793656896532156),250,600,Goeree-Overflakkee,Haringvliet
+Inlaat Westplaat I,Duiker,01429DU,-0.7,primair inlaatpunt,POINT (4.1674135873465445 51.76202231145164),250,600,Goeree-Overflakkee,Haringvliet
+Hevel De Noord - Crezeepolder,Hevel,04683HE,-0.4,primair in- en uitlaatpunt,POINT (4.651498454549518 51.856271714345645),250,600,IJsselmonde,Noord
+Inlaat Haven Heinenoord,Duiker,14196DU,-1.2,primair in- en uitlaatpunt,POINT (4.472030035160666 51.82913076372403),250,600,Hoeksche Waard,Oude Maas
+Gemaal Oudenhoorn,Gemaal,05768GM,-1.3,primair in- en uitlaatpunt,POINT (4.168524426058192 51.8166826279097),150,500,Voorne-Putten,Haringvliet
+Gemaal Breeman,Gemaal,05001GM,-1.24,primair in- en uitlaatpunt,POINT (4.493907259700628 51.84134418429008),250,300,IJsselmonde,Oude Maas
+Inlaat zoutwater Grevelingen - De Koudenhoek,Hevel,13881HE,-0.7,primair inlaatpunt,POINT (3.9516550428098633 51.80380732192849),n.v.t.,n.v.t.,Goeree-Overflakkee,Grevelingen
+Hevel De Mijl,Hevel,16324HE,-0.5,primair inlaatpunt,POINT (4.646104839090515 51.80436710282363),250,600,Eiland van Dordrecht,Oude Maas
+Hevel Pernis,Hevel,14197HE,-1.5,primair inlaatpunt,POINT (4.379197408687017 51.8928972828295),600,n.v.t.,IJsselmonde,Nieuwe Maas
+Hevel Brielselaan,Hevel,09538HE,-0.8,primair inlaatpunt,POINT (4.486787832395826 51.89578215041987),500,800,IJsselmonde,Nieuwe Maas
+Gemaal Zuidoord,Gemaal,05505GM,-0.56,primair in- en uitlaatpunt,POINT (4.258838771965143 51.80183633976318),250,600,Voorne-Putten,Spui
+Gemaal Kuipersveer,Gemaal,03330GM,-1.0,primair in- en uitlaatpunt,POINT (4.553298911175986 51.82284966892861),250,600,Hoeksche Waard,Oude Maas
+Gemaal Loudon,Gemaal,09304GM,-1.25,primair in- en uitlaatpunt,POINT (4.630111790486978 51.76997192760743),250,600,Eiland van Dordrecht,Dordtsche Kil
+Gemaal Raepshille,Gemaal,03306GM,-1.0,primair in- en uitlaatpunt,POINT (4.539842678575137 51.70913648315786),250,600,Hoeksche Waard,Hollandsch Diep
+Inlaat vest Fort Prins Frederik,Duiker,08506DU,-0.9,primair inlaatpunt,POINT (4.36183293055728 51.68207979611329),250.0,600,Goeree-Overflakkee,Volkerak
+Inlaat Den Hitsert,Duiker,03128DU,-1.5,primair inlaatpunt,POINT (4.365793905572832 51.73820224450117),400,600,Hoeksche Waard,Haringvliet
+Hevel Heerjansdam,Hevel,11310HE,0.3,primair inlaatpunt,POINT (4.555699315711895 51.83215749494733),200,300,IJsselmonde,Oude Maas
+Gemaal Cromstrijen,Gemaal,07551GM,-1.8,primair in- en uitlaatpunt,POINT (4.474529256342509 51.71568029115274),250,600,Hoeksche Waard,Hollandsch Diep
+Hevel Oostendam,Hevel,13106HE,0.1,primair inlaatpunt,POINT (4.645923142163745 51.855232144088156),250,600,IJsselmonde,Noord
+Opbemaling Marktplein,Gemaal,26480GM,-0.8,primair inlaatpunt,POINT (4.411518363210751 51.82723408839188),250,600,Hoeksche Waard,Spui
+Schutsluis Strijensas,Sluis,14219SL,-0.8,primair inlaatpunt,POINT (4.585978844012322 51.71399860781535),250,600,Hoeksche Waard,Hollandsch Diep
+Gemaal De Eendragt,Gemaal,07533GM,-0.85,primair in- en uitlaatpunt,POINT (4.317966323626607 51.75506435488061),300,600,Hoeksche Waard,Haringvliet
+Opbemaling Suikerput,Gemaal,26483GM,-0.3,primair inlaatpunt,POINT (4.403776858320253 51.829121638456556),250,600,Hoeksche Waard,Spui
+Gemaal Torensteepolder,Gemaal,10979GM,-1.46,primair in- en uitlaatpunt,POINT (4.437346821881222 51.720624462674415),250,600,Hoeksche Waard,Hollandsch Diep
+Inlaat Nieuw-Beijerland,Duiker,03126DU,-0.75,primair inlaatpunt,POINT (4.33505889263527 51.81194922074302),250,600,Hoeksche Waard,Spui
+Inlaat Noordbovenpolder Oost,Duiker,12808DU,-0.86,primair inlaatpunt,POINT (4.746964230699526 51.800719874651996),250,600,Eiland van Dordrecht,Wantij
+Gemaal Koert,Gemaal,12282GM,-1.0,primair in- en uitlaatpunt,POINT (4.21619520127416 51.756485203338684),250,600,Goeree-Overflakkee,Haringvliet
+Inlaat Piershilsche Haven,Duiker,03125DU,0.2,primair inlaatpunt,POINT (4.300601076505287 51.802080137244296),300,600,Hoeksche Waard,Spui
+Inlaatduiker Rozenburg,Duiker,14214DU,0.0,primair inlaatpunt,POINT (4.260141933355409 51.89724465993189),300.0,600,Voorne-Putten,Voedingskanaal
+Inlaat Brakelsveer,Duiker,10948DU,-1.63,primair inlaatpunt,POINT (4.382845377192391 51.822567250343845),250,600,Hoeksche Waard,Spui
+Hevel Wolvenpolder,Hevel,11638HE,-0.1,primair inlaatpunt,POINT (4.385641909171023 51.826853961902536),200,500,Voorne-Putten,Spui
+Hevel Develsluis,Hevel,09591HE,0.35,primair inlaatpunt,POINT (4.563318771208562 51.823758950602645),250,600,IJsselmonde,Oude Maas
+Inlaat Westplaatbuiten - duiker YAI,Duiker,01509DU,-0.3,primair inlaatpunt,POINT (4.182888118763422 51.77007921310771),250,600,Goeree-Overflakkee,Haringvliet
+Inlaat Schippershuis,Duiker,07547DU,-0.5,primair inlaatpunt,POINT (4.436793984065554 51.72638471094012),250,600,Hoeksche Waard,Hollandsch Diep
+Hevel Puttershoek,Hevel,14147HE,-1.07,primair inlaatpunt,POINT (4.576447859181711 51.80665994798856),250,300,Hoeksche Waard,Oude Maas
+Gemaal Oostvoornse Meer pompput 1,Gemaal,20207GM,-15.0,primair inlaatpunt,POINT (4.078562869746835 51.938897943310145),8000,n.v.t.,Voorne-Putten,Hartelkanaal
+Gemaal Het Oudeland,Gemaal,08442GM,-1.27,primair in- en uitlaatpunt,POINT (4.351922252631349 51.683219226882024),250.0,600,Goeree-Overflakkee,Volkerak
+Hevel Stad aan 't Haringvliet,Hevel,29584HE,-0.61,primair inlaatpunt,POINT (4.243064695902174 51.74033113679012),250,600,Goeree-Overflakkee,Haringvliet
+Hevel Mariapolder,Hevel,29585HE,0.0,primair inlaatpunt,POINT (4.624342499298074 51.729665305498266),250,600,Hoeksche Waard,Dordtsche Kil
+Gemaal Putten,Gemaal,09502GM,0.0,primair in- en uitlaatpunt,POINT (4.321667733928187 51.81378385780179),150,150,Voorne-Putten,Spui
+Inlaat Van Pallandt,Hevel,29597HE,0.0,primair in- en uitlaatpunt,POINT (4.215597320815896 51.75735036861922),250,600,Goeree-Overflakkee,Haringvliet

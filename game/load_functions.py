@@ -2,7 +2,9 @@ import os
 import re
 import json
 import geojson
-#import geopandas as gpd
+import pandas as pd
+import geopandas as gpd
+from shapely import wkt
 from PyQt5.QtGui import QPixmap
 #from matplotlib.colors import LogNorm, Normalize, CenteredNorm
 
@@ -46,6 +48,26 @@ def read_geojson(filename='hexagons_warped.geojson', path=""):
     with open(os.path.join(path, filename)) as f:
         features = geojson.load(f)
     return features
+
+def read_csv(filename='WSHD_modified_inlet_data.csv', path=""):
+    """
+    function that loads and returns the hexagons. Currently not called in
+    the main script as the hexagons are stored internally.
+    """
+    if path == "":
+        raise FileNotFoundError
+    water_inlets_data_df = pd.read_csv(os.path.join(path, filename))
+
+    # Convert geometry column to WKT format.
+    water_inlets_data_gdf = gpd.GeoDataFrame(water_inlets_data_df,
+                                             geometry=water_inlets_data_df['geometry'].apply(wkt.loads))
+    water_inlets_data_gdf = water_inlets_data_gdf.drop(columns=["structure_type", "code", "inlet/outlet", "subarea"],
+                                                       axis=1)
+    water_inlets_data_gdf['CL_threshold_during_regular_operation_(mg/l)'] = pd.to_numeric(
+        water_inlets_data_gdf['CL_threshold_during_regular_operation_(mg/l)'], errors='coerce')
+    water_inlets_data_gdf['CL_threshold_during_drought_(mg/l)'] = pd.to_numeric(
+        water_inlets_data_gdf['CL_threshold_during_drought_(mg/l)'], errors='coerce')
+    return water_inlets_data_gdf
 
 def load_images():
     dir_path = os.path.dirname(os.path.realpath(__file__))

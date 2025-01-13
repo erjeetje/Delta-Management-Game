@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt, QAbstractTableModel
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
+from pandas import to_datetime
 
 
 class pandasModel(QAbstractTableModel):
@@ -73,10 +74,14 @@ class ApplicationWindow(QMainWindow):
         self.forcing_table = QTableView()
         self.show_forcing_conditions()
         #self.forcing_table.setModel(forcing_conditions)
-        #self.forcing_table.resize(800, 300)
+        #self.forcing_table.resize(600, 300)
         self.figure_layout.addWidget(self.forcing_table) #, alignment=Qt.AlignCenter)
+        self.figure_widget = QWidget()
+        self.figure_widget.setLayout(self.figure_layout)
+        self.figure_widget.setFixedWidth(800)
 
-        self.layout.addLayout(self.figure_layout)
+        #self.layout.addLayout(self.figure_layout)
+        self.layout.addWidget(self.figure_widget)
 
         #self.colorbar_title_layout = QHBoxLayout(self._main)
         #self.colorbar_model_title_label = QLabel(self._main)
@@ -116,6 +121,7 @@ class ApplicationWindow(QMainWindow):
         self.control_widget = ControlWidget(gui=self, viz_tracker=viz_tracker)
         self.layout.addWidget(self.control_widget)
         self.add_plot_model(bbox)
+        self.plot_salinity_inlets()
         return
 
     def add_plot_model(self, bbox):
@@ -202,6 +208,72 @@ class ApplicationWindow(QMainWindow):
                 self.colorbar_game_label.setPixmap(self.salinity_colorbar_image)
             if self.selected_game_variable == "salinity_category":
                 self.colorbar_game_label.setPixmap(self.salinity_category_image)
+        return
+
+    def plot_inlet_indicators(self):
+        return
+
+    def plot_salinity_inlets(self, to_plot="Inlaatsluis Bernisse"):
+        inlet_data = self.game.inlet_salinity_tracker.copy()
+        inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
+        inlet_data = inlet_data.reset_index()
+        inlet_data = inlet_data[inlet_data['name'] == to_plot]
+
+        ax = self.inlet_plots.figure.subplots()
+        #plt.subplots(figsize=(8, 6), dpi=100)
+        #fig.patch.set_facecolor('white')
+        ax.set_facecolor('lightgray')
+
+        time_steps = to_datetime(inlet_data['time']).dt.strftime('%Y-%m-%d')
+        salinity_values = inlet_data['water_salinity'].values
+        cl_threshold_normal = inlet_data.iloc[0]['CL_threshold_during_regular_operation_(mg/l)']
+        cl_threshold_drought = inlet_data.iloc[0]['CL_threshold_during_drought_(mg/l)']
+
+        ax.plot(time_steps, salinity_values, marker='o', linestyle='-', color='blue', label='Salinity (mg/l)')
+
+        ax.axhline(y=cl_threshold_normal, color='green', linestyle=(0, (3, 1.5, 1, 1.5)),
+                    label='CL Threshold Normal')  # Custom dash-dot pattern: (dash length, gap length, dot length, gap length)
+
+        ax.axhline(y=cl_threshold_drought, color='red', linestyle=(0, (5, 1.5, 1, 1.5)),
+                    label='CL Threshold Drought')
+
+        ax.set_title(f"Salinity at {to_plot}", fontsize=20)
+        ax.set_xlabel("Time (day)", fontsize=14)
+        ax.set_ylabel("Salinity (mg/l)", fontsize=14)
+
+        ax.set_ylim(ymin=0)
+
+        ax.set_xticks(ax.get_xticks())
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=90, fontsize=8)
+        ax.set_yticks(ax.get_yticks())
+        ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
+
+        ax.spines['bottom'].set_color('black')
+        ax.spines['left'].set_color('black')
+        ax.spines['bottom'].set_linewidth(1)
+        ax.spines['left'].set_linewidth(1)
+
+        ax.grid(which='both', linestyle='--', linewidth=0.5, alpha=0.7, zorder=0)
+
+        text_to_plot = ("Number of days above threshold (normal): " + str(
+            inlet_data.iloc[0]['Num_days_exceedance_normal']) + "\n" +
+                        "Number of consecutive days above threshold (normal): " + str(
+                    inlet_data.iloc[0]['Num_days_consecutive_normal']) + "\n" +
+                        "Number of days above threshold (drought): " + str(
+                    inlet_data.iloc[0]['Num_days_exceedance_drought']) + "\n" +
+                        "Number of days above threshold (drought): " + str(
+                    inlet_data.iloc[0]['Num_days_consecutive_drought']))
+
+        #ax.text(1.0, -0.4, text_to_plot, horizontalalignment='right', verticalalignment='top', transform=ax.transAxes,
+        #        fontsize=16)
+        ax.text(0.96, 0.04, text_to_plot, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes,
+                fontsize=11)
+
+        ax.legend(loc='best', fontsize=10)
+
+        # plt.figtext(0.15, 0.83, f'y = {slope}x + {intercept}')
+        # plt.figtext(0.15, 0.77, f'R^2 = {r_squared}')
+        # plt.figtext(0.15, 0.7,  f'y = {b:.4f} + {a:.4f}x', size=14)
         return
 
     def show_forcing_conditions(self):

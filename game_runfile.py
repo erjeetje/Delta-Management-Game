@@ -16,6 +16,7 @@ from game import index_channels as indexing
 from game import channel_manipulations as update_func
 from game import table_functions as table_func
 from game import operational_manipulations as operation_func
+from game import inlet_functions as inlet_func
 
 #sys.path.insert(1, r'C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 Network model Bouke\version 4.3.4\IMSIDE netw\mod 4.3.4 netw')
 from model import runfile_td_v1 as imside_model
@@ -33,11 +34,14 @@ class DMG():
         self.weir_tracker = 3  # there are already 2 weirs in the default schematization, next number to add is 3
         self.hexagon_index = None
         self.hexagons_tracker = None
+        self.inlets = None
+        self.inlet_salinity_tracker = None
         self.load_paths()
         self.load_model()
         # options to send: mirror (-1, 0 or 1), test (bool), save (bool), debug (bool)
         self.table = game_table.Table(mirror=1, test=True)
         self.load_shapes()
+        self.load_inlets()
         self.transform_functions()
         self.build_game_network()
         self.index_channels()
@@ -49,6 +53,8 @@ class DMG():
         self.forcing_conditions = self.store_forcings()
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
+        self.index_inlets()
+        self.update_inlet_salinity()
         self.end_round()
         self.create_visualizations()
         return
@@ -96,6 +102,27 @@ class DMG():
         self.world_polygons = load_files.read_json_features(filename='hexagon_shapes_in_layers_Bouke_network.json',
                                                        path=self.input_files)
         self.game_hexagons = load_files.read_geojson(filename='hexagons_clean0.geojson', path=self.input_files)
+        return
+
+    def load_inlets(self):
+        inlet_tracker = load_files.read_csv(filename='WSHD_modified_inlet_data.csv', path=self.input_files)
+        selected_inlets = ["Inlaat Oostkade", "Inlaatsluis Bernisse", "Inlaat Trekdam",
+                           "Hevel IJsselmonde - Oostdijk", "Inlaat Den Hitsert", "Gemaal Delta",
+                           "Hevel De Noord - Crezeepolder", "Gemaal Prinsenheuvel"]
+        self.inlets = inlet_tracker[inlet_tracker['name'].isin(selected_inlets)]
+        return
+
+    def index_inlets(self):
+        self.inlets = inlet_func.index_inlets_to_model_locations(self.inlets, self.model_output_gdf)
+        return
+
+    def update_inlet_salinity(self):
+        inlet_salinity_tracker = inlet_func.get_inlet_salinity(self.inlets, self.model_output_gdf, turn=self.turn)
+        inlet_salinity_tracker = inlet_func.get_exceedance_at_inlets(inlet_salinity_tracker)
+        if self.inlet_salinity_tracker is None:
+            self.inlet_salinity_tracker = inlet_salinity_tracker
+        else:
+            self.inlet_salinity_tracker = pd.concat([self.inlet_salinity_tracker, inlet_salinity_tracker])
         return
 
     def run_model(self, scenario="2017"):
@@ -162,12 +189,13 @@ class DMG():
         turn_forcing_conditions = self.store_forcings()
         self.forcing_conditions = self.forcing_conditions[self.forcing_conditions["turn"] != self.turn]
         self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
-        print(self.forcing_conditions)
+        #print(self.forcing_conditions)
         model_output_df = self.run_model()
         # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
         # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
         #self.model_output_to_game(model_output_df, scenario=self.scenario)
         self.model_output_to_game(model_output_df)
+        self.update_inlet_salinity()
         print("updated to turn", self.turn)
         self.end_round()
         return

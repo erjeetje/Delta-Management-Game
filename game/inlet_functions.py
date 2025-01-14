@@ -50,6 +50,7 @@ def get_exceedance_at_inlets(inlets_with_salinity):
     inlets_df['Num_days_consecutive_normal'] = 0
     inlets_df['Num_days_exceedance_drought'] = 0
     inlets_df['Num_days_consecutive_drought'] = 0
+    inlets_df['score_indicator'] = 1
 
     def calculate_max_consecutive_days_exceeding_threshold(values, threshold):
         current_streak = 0
@@ -76,16 +77,16 @@ def get_exceedance_at_inlets(inlets_with_salinity):
             max_streak_normal = int(
                 calculate_max_consecutive_days_exceeding_threshold(salinity_values, cl_threshold_normal))
         else:
-            num_days_exceeding_normal = "not applicable"
-            max_streak_normal = "not applicable"
+            num_days_exceeding_normal = np.nan
+            max_streak_normal = np.nan
 
         if not pd.isna(cl_threshold_drought):
             num_days_exceeding_drought = int((salinity_values > cl_threshold_drought).sum())
             max_streak_drought = int(
                 calculate_max_consecutive_days_exceeding_threshold(salinity_values, cl_threshold_drought))
         else:
-            num_days_exceeding_drought = "not applicable"
-            max_streak_drought = "not applicable"
+            num_days_exceeding_drought = np.nan
+            max_streak_drought = np.nan
 
         inlets_df['Num_days_exceedance_normal'] = np.where((inlets_df['name'] == inlet_name), num_days_exceeding_normal,
                                                            inlets_df['Num_days_exceedance_normal'])
@@ -98,5 +99,21 @@ def get_exceedance_at_inlets(inlets_with_salinity):
         inlets_df['Num_days_consecutive_drought'] = np.where((inlets_df['name'] == inlet_name),
                                                              max_streak_drought,
                                                              inlets_df['Num_days_consecutive_drought'])
+        num_days = len(salinity_values)
+        if isinstance(num_days_exceeding_drought, int):
+            if (num_days_exceeding_drought / num_days) < 0.25:
+                score_indicator = 1
+            elif (num_days_exceeding_drought / num_days) < 0.5:
+                score_indicator = 2
+            elif (num_days_exceeding_drought / num_days) < 0.75:
+                score_indicator = 3
+            else:
+                score_indicator = 4
+        else:
+            score_indicator = np.nan
+
+        inlets_df['score_indicator'] = np.where((inlets_df['name'] == inlet_name),
+                                                             score_indicator,
+                                                             inlets_df['score_indicator'])
 
     return inlets_df.set_index("name")

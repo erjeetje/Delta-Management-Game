@@ -120,6 +120,8 @@ class DMG():
     def update_inlet_salinity(self):
         inlet_salinity_tracker = inlet_func.get_inlet_salinity(self.inlets, self.model_output_gdf, turn=self.turn)
         inlet_salinity_tracker = inlet_func.get_exceedance_at_inlets(inlet_salinity_tracker)
+        print(inlet_salinity_tracker.loc["Inlaatsluis Bernisse"].iloc[0])
+        print(self.model_output_gdf.loc["Spui_13"])
         if self.inlet_salinity_tracker is None:
             self.inlet_salinity_tracker = inlet_salinity_tracker
         else:
@@ -225,7 +227,7 @@ class DMG():
             pass
         self.export_output()
         self.turn += 1
-        if self.turn < 4:
+        if self.turn <= len(self.mode["scenarios"]):
             self.update_forcings()
         self.table.end_round()
         return

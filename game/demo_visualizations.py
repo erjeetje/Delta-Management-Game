@@ -232,7 +232,7 @@ class ApplicationWindow(QMainWindow):
         else:
             inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
             cmap = LinearSegmentedColormap.from_list("", ["green", "yellow", "orange", "red"])
-            inlet_data.plot("salinity_category", ax=ax, cmap=cmap, markersize=300)  # , legend=True)
+            inlet_data.plot("score_indicator", ax=ax, cmap=cmap, markersize=300)  # , legend=True)
 
         self.inlet_canvas.draw()
         return

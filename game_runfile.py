@@ -452,7 +452,7 @@ class DMG():
         viz_tracker = visualizer.VisualizationTracker(
             starting_turn=self.turn-1, scenarios=self.mode["scenarios"], starting_variable=starting_variable,
             time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,
-            salinity_category=salinity_category)
+            salinity_category=salinity_category, inlet_to_plot="Inlaatsluis Bernisse")
         # ,water_level_range = water_level_range, water_velocity_range = water_velocity_range
         colorbar_salinity, labels_salinity_categories = load_files.load_images()
         self.gui = visualizer.ApplicationWindow(
@@ -484,4 +484,4 @@ scenario_settings4 = {"scenarios": ["2018", "2050Hd", "2100Hd"], "slr": [0, 0.27
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    main(scenario_settings2)
+    main(scenario_settings4)

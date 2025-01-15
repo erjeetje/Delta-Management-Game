@@ -54,6 +54,10 @@ class ApplicationWindow(QMainWindow):
         self.salinity_colorbar_image = salinity_colorbar_image
         self.salinity_category_image = salinity_category_image
         #self.basemap_image = basemap_image
+        self.window = QVBoxLayout(self._main)
+
+        self.score_widget = ScoreWidget(gui=self, viz_tracker=viz_tracker)
+        self.window.addWidget(self.score_widget)
 
         self.layout = QHBoxLayout(self._main)
         self.model_canvas = FigureCanvas(Figure()) #figsize=(5, 5)
@@ -115,12 +119,15 @@ class ApplicationWindow(QMainWindow):
         # self.figure_layout.addWidget(NavigationToolbar(self.model_canvas, self))
         self.inlet_canvas = FigureCanvas(Figure())
         self.inlet_layout.addWidget(self.inlet_canvas, stretch=1)
+        self.inlet_widget = InletWidget(gui=self, viz_tracker=viz_tracker)
+        self.inlet_layout.addWidget(self.inlet_widget)
         self.inlet_plots = FigureCanvas(Figure())  # figsize=(5, 5)
         self.inlet_layout.addWidget(self.inlet_plots, stretch=1)
         self.layout.addLayout(self.inlet_layout)
 
         self.control_widget = ControlWidget(gui=self, viz_tracker=viz_tracker)
         self.layout.addWidget(self.control_widget)
+        self.window.addLayout(self.layout)
         self.add_plot_model(bbox)
         self.show_forcing_conditions()
         self.plot_inlet_indicators()
@@ -232,13 +239,17 @@ class ApplicationWindow(QMainWindow):
             print("there seems to be no inlet data yet")
         else:
             inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
+            inlet_data = inlet_data.reset_index()
             cmap = LinearSegmentedColormap.from_list("", ["green", "yellow", "orange", "red"])
             inlet_data.plot("score_indicator", ax=ax, cmap=cmap, markersize=300)  # , legend=True)
+            for x, y, label in zip(inlet_data["geometry"].x, inlet_data["geometry"].y, inlet_data["name"]):
+                ax.annotate(label, xy=(x, y), xytext=(0, 12), ha='center', textcoords="offset points", size=10)
 
         self.inlet_canvas.draw()
         return
 
-    def plot_salinity_inlets(self, to_plot="Inlaatsluis Bernisse"):
+    def plot_salinity_inlets(self):
+        to_plot = self.viz_tracker.inlet_to_plot
         self.inlet_plots.figure.clf()
         ax = self.inlet_plots.figure.subplots()
 
@@ -265,7 +276,7 @@ class ApplicationWindow(QMainWindow):
             ax.axhline(y=cl_threshold_drought, color='red', linestyle=(0, (5, 1.5, 1, 1.5)),
                         label='CL Threshold Drought')
 
-            ax.set_title(f"Salinity at {to_plot}", fontsize=20)
+            ax.set_title(f"Salinity at {to_plot}", fontsize=16)
             ax.set_xlabel("Time (day)", fontsize=14)
             ax.set_ylabel("Salinity (mg/l)", fontsize=14)
 
@@ -322,6 +333,9 @@ class ApplicationWindow(QMainWindow):
             self.control_widget.btn_turn4.setEnabled(True)
             self.control_widget.on_turn4_button_clicked()
         """
+        return
+
+    def change_inlet_plot(self):
         return
 
 
@@ -414,6 +428,155 @@ class GameVisualization(QWidget):
         self.game_canvas.draw()
         return
 
+class InletWidget(QWidget):
+    def __init__(self, gui, viz_tracker):
+        super().__init__()
+        #self.setStyleSheet("background-color:grey;")
+        self.gui = gui
+        self.viz_tracker = viz_tracker
+        self.setFixedSize(800, 80)
+        #self.setWindowFlag(Qt.WindowCloseButtonHint, False)
+        self.inlet_highlight = None
+        self.initUI()
+        self.change_highlights()
+        self.show()  # app.exec_()
+
+    def initUI(self):
+        start_x = 15
+        width = 120
+        height = 60
+        spacing = 10
+        spot_x = start_x
+        spot_y = 10
+        font_size = 9
+        self.btn_inlet1 = QPushButton('Inlaat\nOostkade', self)
+        self.btn_inlet1.setFont(QFont('Arial', font_size))
+        self.btn_inlet1.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet1.text()))
+        self.btn_inlet1.resize(width-10, height)
+        self.btn_inlet1.move(spot_x, spot_y)
+        spot_x += width + spacing - 10
+        self.btn_inlet2 = QPushButton('Inlaatsluis\nBernisse', self)
+        self.btn_inlet2.setFont(QFont('Arial', font_size))
+        self.btn_inlet2.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet2.text()))
+        self.btn_inlet2.resize(width, height)
+        self.btn_inlet2.move(spot_x, spot_y)
+        spot_x += width + spacing
+        self.btn_inlet3 = QPushButton('Inlaat\nTrekdam', self)
+        self.btn_inlet3.setFont(QFont('Arial', font_size))
+        self.btn_inlet3.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet3.text()))
+        self.btn_inlet3.resize(width - 10, height)
+        self.btn_inlet3.move(spot_x, spot_y)
+        spot_x += width + spacing - 10
+        self.btn_inlet4 = QPushButton('Hevel IJsselmonde\n- Oostdijk', self)
+        self.btn_inlet4.setFont(QFont('Arial', font_size))
+        self.btn_inlet4.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet4.text()))
+        self.btn_inlet4.resize(width + 20, height)
+        self.btn_inlet4.move(spot_x, spot_y)
+        spot_x += width + spacing + 20
+        self.btn_inlet5 = QPushButton('Gemaal\nDelta', self)
+        self.btn_inlet5.setFont(QFont('Arial', font_size))
+        self.btn_inlet5.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet5.text()))
+        self.btn_inlet5.resize(width - 10, height)
+        self.btn_inlet5.move(spot_x, spot_y)
+        spot_x += width + spacing - 10
+        self.btn_inlet6 = QPushButton('Hevel De Noord\n- Crezeepolder', self)
+        self.btn_inlet6.setFont(QFont('Arial', font_size))
+        self.btn_inlet6.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet6.text()))
+        self.btn_inlet6.resize(width + 10, height)
+        self.btn_inlet6.move(spot_x, spot_y)
+        return
+
+    def on_inlet_button_clicked(self, btn_string):
+        btn_string = btn_string.replace('\n', ' ')
+        self.viz_tracker.inlet_to_plot = btn_string
+        self.gui.plot_salinity_inlets()
+        return
+
+    def change_highlights(self):
+        return
+
+class ScoreWidget(QWidget):
+    def __init__(self, gui, viz_tracker):
+        super().__init__()
+        #self.setStyleSheet("background-color:grey;")
+        self.gui = gui
+        self.viz_tracker = viz_tracker
+        self.setFixedSize(1920, 50)
+        #self.setWindowFlag(Qt.WindowCloseButtonHint, False)
+        self.initUI()
+        self.update_text()
+        self.change_highlights()
+        self.show()  # app.exec_()
+
+    def initUI(self):
+        start_x = 30
+        width = 300
+        height = 60
+        spacing = 10
+        spot_x = start_x
+        spot_y = 5
+        font_size = 12
+        self.lbl_green_inlets = QLabel('Number of green inlets', self)
+        self.lbl_green_inlets.setFont(QFont('Arial', font_size))
+        self.lbl_green_inlets.move(spot_x, spot_y)
+        self.lbl_green_inlets.setFixedWidth(width)
+        self.lbl_green_inlets.setAlignment(Qt.AlignLeft)
+        spot_x += width + spacing
+
+        self.lbl_yellow_inlets = QLabel('Number of yellow inlets', self)
+        self.lbl_yellow_inlets.setFont(QFont('Arial', font_size))
+        self.lbl_yellow_inlets.setStyleSheet("font-weight: bold; font-size: 24")
+        self.lbl_yellow_inlets.move(spot_x, spot_y)
+        self.lbl_yellow_inlets.setFixedWidth(width)
+        self.lbl_yellow_inlets.setAlignment(Qt.AlignLeft)
+        spot_x += width + spacing
+
+        self.lbl_orange_inlets = QLabel('Number of orange inlets', self)
+        self.lbl_orange_inlets.setFont(QFont('Arial', font_size))
+        self.lbl_orange_inlets.setStyleSheet("font-weight: bold; font-size: 24")
+        self.lbl_orange_inlets.move(spot_x, spot_y)
+        self.lbl_orange_inlets.setFixedWidth(width)
+        self.lbl_orange_inlets.setAlignment(Qt.AlignLeft)
+        spot_x += width + spacing
+
+        self.lbl_red_inlets = QLabel('Number of red inlets', self)
+        self.lbl_red_inlets.setFont(QFont('Arial', font_size))
+        self.lbl_red_inlets.setStyleSheet("font-weight: bold; font-size: 24")
+        self.lbl_red_inlets.move(spot_x, spot_y)
+        self.lbl_red_inlets.setFixedWidth(width)
+        self.lbl_red_inlets.setAlignment(Qt.AlignLeft)
+        spot_x += width + spacing
+
+        self.lbl_score = QLabel('Score', self)
+        self.lbl_score.setFont(QFont('Arial', font_size))
+        self.lbl_score.setStyleSheet("font-weight: bold; font-size: 24")
+        self.lbl_score.move(spot_x, spot_y)
+        self.lbl_score.setFixedWidth(width)
+        self.lbl_score.setAlignment(Qt.AlignLeft)
+        return
+
+    def update_text(self):
+        inlet_data = self.gui.game.inlet_salinity_tracker.copy()
+        inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
+        if inlet_data.empty:
+            print("there seems to be no inlet data yet")
+        else:
+            inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
+            inlet_data = inlet_data.reset_index()
+            number_green = len(inlet_data[inlet_data['score_indicator'] == 1])
+            number_yellow = len(inlet_data[inlet_data['score_indicator'] == 2])
+            number_orange = len(inlet_data[inlet_data['score_indicator'] == 3])
+            number_red = len(inlet_data[inlet_data['score_indicator'] == 4])
+            score = (number_green * 1 + number_yellow * 0.75 + number_orange * 0.5 + number_red * 0.25) / 6
+            self.lbl_green_inlets.setText('Number of green inlets: %d' % number_green)
+            self.lbl_yellow_inlets.setText('Number of yellow inlets: %d' % number_yellow)
+            self.lbl_orange_inlets.setText('Number of orange inlets: %d' % number_orange)
+            self.lbl_red_inlets.setText('Number of red inlets: %d' % number_red)
+            self.lbl_score.setText('Score: %d' % score)
+        return
+
+    def change_highlights(self):
+        return
 
 class ControlWidget(QWidget):
     def __init__(self, gui, viz_tracker):
@@ -602,6 +765,7 @@ class ControlWidget(QWidget):
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
+        self.gui.score_widget.update_text()
         self.change_highlights()
         return
 
@@ -610,6 +774,7 @@ class ControlWidget(QWidget):
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
+        self.gui.score_widget.update_text()
         self.change_highlights()
         return
 
@@ -618,6 +783,7 @@ class ControlWidget(QWidget):
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
+        self.gui.score_widget.update_text()
         self.change_highlights()
         return
 
@@ -626,6 +792,7 @@ class ControlWidget(QWidget):
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
+        self.gui.score_widget.update_text()
         self.change_highlights()
         return
 
@@ -669,7 +836,7 @@ class ControlWidget(QWidget):
 
 class VisualizationTracker():
     def __init__(self, starting_turn, scenarios, starting_variable, time_steps, starting_time,
-                 salinity_range, salinity_category): #, water_level_range, water_velocity_range
+                 salinity_range, salinity_category, inlet_to_plot): #, water_level_range, water_velocity_range
         self._turn = starting_turn
         self.scenarios = scenarios
         self._scenario = scenarios[0]
@@ -678,6 +845,7 @@ class VisualizationTracker():
         self._time_index = starting_time
         self._salinity_norm = salinity_range
         self._salinity_category_norm = salinity_category
+        self._inlet_to_plot = inlet_to_plot
         #self._water_level_norm = water_level_range
         #self._water_velocity_norm = water_velocity_range
         return
@@ -724,6 +892,10 @@ class VisualizationTracker():
     def salinity_category_norm(self):
         return self._salinity_category_norm
 
+    @property
+    def inlet_to_plot(self):
+        return self._inlet_to_plot
+
     """
     @property
     def water_level_norm(self):
@@ -765,4 +937,9 @@ class VisualizationTracker():
     @time_index.setter
     def time_index(self, time_index):
         self._time_index += time_index
+        return
+
+    @inlet_to_plot.setter
+    def inlet_to_plot(self, inlet_to_plot):
+        self._inlet_to_plot = inlet_to_plot
         return

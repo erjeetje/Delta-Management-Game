@@ -24,15 +24,16 @@ class Table():
     Game table object. Run the get_board_state function to update the board state and subsequently retrieve the board
     state via the hexagons getter function.
     """
-    def __init__(self, mirror=None, test=False, save=False, debug=False):
+    def __init__(self, game, mirror=None, test=False, save=False, debug=False):
         super(Table, self).__init__()
+        self.game = game
         self.initialized = False
         self.start_new_turn = False
         self.mirror = mirror
         self.test = test
         self.debug = debug
-        self.turn = 1
-        self.turn_count = 0
+        self.turn = self.game.turn
+        self.turn_count = self.game.turn_count
         self.update_count = 0
         self.save = save
         self.reloading = False
@@ -96,6 +97,8 @@ class Table():
         hexagon location.
         """
         ping = time()
+        self.turn = self.game.turn
+        self.turn_count = self.game.turn_count
         if self.initialized:
             self.hexagons_prev = deepcopy(self._hexagons)
             self.start_new_turn = False
@@ -118,8 +121,10 @@ class Table():
         #self.transform_hexagons(transform_to="img_flip")
         if self.initialized:
             self._hexagons = compare.compare_hex(self._hexagons, self.hexagons_prev)
-
+        #self.turn_count += 1
         pong = time()
+        if self.save:
+            self.save_files(end_round=False)
         if self.initialized:
             print("Calibration and board processing time:", str(round(pong - ping, 2)), "seconds.")
         else:
@@ -147,8 +152,8 @@ class Table():
         if self.save:
             self.save_files(end_round=True)
         self.start_new_turn = True
-        self.turn += 1
-        self.turn_count = 0
+        #self.turn += 1
+        #self.turn_count = 1
         return
 
     def reload(self):
@@ -166,8 +171,8 @@ class Table():
             self._hexagons = geojson.load(f)
         self.initialized = True
         self.start_new_turn = True
-        self.turn += 1
-        self.turn_count = 0
+        #self.turn += 1
+        #self.turn_count = 0
         return
 
     def get_image(self):
@@ -175,7 +180,7 @@ class Table():
         Get a camera image.
         """
         if self.test:
-            filename = 'DMG_table%d.jpg' % self.turn
+            filename = 'DMG_table%s_%d.jpg' % (self.turn, self.turn_count)
             self.turn_img = imread(join(self.input_path, filename))
         else:
             self.turn_img = webcam.get_image(self.turn, path=self.processing_path, debug=self.debug)
@@ -245,8 +250,7 @@ class Table():
         if end_round:
             filename = 'hexagons%d.geojson' % self.turn
         else:
-            filename = ('hexagons%d' % self.turn + '_' +
-                        str(self.turn_count) + '.geojson')
+            filename = ('hexagons%s_%d' % (self.turn, self.turn_count)) + '.geojson'
         with open(join(self.store_path, filename), 'w') as f:
             geojson.dump(
                     self._hexagons, f, sort_keys=True, indent=2)

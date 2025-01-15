@@ -60,6 +60,31 @@ geo_pars = geo_RMD_game()
 #choose physical constants
 phys_pars = phys_RMD2()
 
+def set_forcing_beta(scenario="2017", timeseries_length=None):
+    file_dir = os.path.dirname(os.path.realpath('__file__'))
+    input_dir = os.path.join(file_dir, "model", "inpu", "forcing_files")
+    filename = '\\forcing_' + scenario + ".csv"
+
+    #print(forc_pars)
+    start_date = 0
+    end_date = None
+    if timeseries_length == "dummy":
+        start_date = 224
+        end_date = 233
+    elif timeseries_length == "month":
+        start_date = 212
+        end_date = 257
+    elif timeseries_length == "game_scenario":
+        start_date = 212
+        end_date = 257
+    elif timeseries_length == "two_months":
+        start_date = 213
+        end_date = 271
+
+    forc_pars = forc_RMD_game(input_dir, filename, start=start_date, end=end_date)
+    print("next scenario is:", scenario)
+    return forc_pars
+
 def set_forcing(scenario="2017", timeseries_length=None):
     file_dir = os.path.dirname(os.path.realpath('__file__'))
     input_dir = os.path.join(file_dir, "model", "inpu", "forcing_files")

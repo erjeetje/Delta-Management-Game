@@ -414,10 +414,13 @@ def draw_branch_network(hexagons, branches_gdf):
     branches_game_gdf = branches_game_gdf.set_index("index")
     return branches_game_gdf
 
-def process_model_output(model_output_df):
+def process_model_output(model_output_df, scenario="2018"):
     #starttime = time.perf_counter()
     timesteps = list(range(len(model_output_df.iloc[0]["sb_st"])))
-    timeseries = pd.to_datetime(pd.Timestamp('2020-06-01')) + pd.to_timedelta(timesteps, unit='D')
+    # TODO add proper timesteps
+    #timestamp = scenario[:4] + "-08-01"
+    #timeseries = pd.to_datetime(pd.Timestamp(timestamp)) + pd.to_timedelta(timesteps, unit='D')
+    timeseries = pd.to_datetime(pd.Timestamp('2020-08-01')) + pd.to_timedelta(timesteps, unit='D')
     model_output_df["time"] = [timeseries for i in model_output_df.index]
     #duration = timedelta(seconds=time.perf_counter() - starttime)
     #print('Job took: ', duration)

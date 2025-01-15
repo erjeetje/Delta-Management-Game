@@ -26,6 +26,7 @@ class DMG():
     def __init__(self, mode):
         self.mode = mode
         self._turn = 1
+        self._turn_count = 1
         self._scenario = self.mode["scenarios"][0]
         operational = {0: ['Qhag', 20, 0, True], 1: ['Qhar', 50, 1, True], 2: ['Qhar_threshold', 1100, 1, True],
                        3: ['Qhij', 2, 0, True], 4: ['Qhij_threshold', 800, 0, True]}
@@ -40,7 +41,7 @@ class DMG():
         self.load_paths()
         self.load_model()
         # options to send: mirror (-1, 0 or 1), test (bool), save (bool), debug (bool)
-        self.table = game_table.Table(mirror=1, test=True)
+        self.table = game_table.Table(self, mirror=1, test=True, save=True)
         self.load_shapes()
         self.load_inlets()
         self.transform_functions()
@@ -56,6 +57,7 @@ class DMG():
         self.model_output_to_game(model_output_df, initialize=True)
         self.index_inlets()
         self.update_inlet_salinity()
+        self.export_output()
         self.end_round()
         self.create_visualizations()
         return
@@ -67,6 +69,15 @@ class DMG():
     @turn.setter
     def turn(self, turn):
         self._turn = turn
+        return
+
+    @property
+    def turn_count(self):
+        return self._turn_count
+
+    @turn_count.setter
+    def turn_count(self, count):
+        self._turn_count = count
         return
 
     @property
@@ -120,8 +131,6 @@ class DMG():
     def update_inlet_salinity(self):
         inlet_salinity_tracker = inlet_func.get_inlet_salinity(self.inlets, self.model_output_gdf, turn=self.turn)
         inlet_salinity_tracker = inlet_func.get_exceedance_at_inlets(inlet_salinity_tracker)
-        print(inlet_salinity_tracker.loc["Inlaatsluis Bernisse"].iloc[0])
-        print(self.model_output_gdf.loc["Spui_13"])
         if self.inlet_salinity_tracker is None:
             self.inlet_salinity_tracker = inlet_salinity_tracker
         else:
@@ -162,6 +171,9 @@ class DMG():
         """
         function that handles running the model and retrieving the model output.
         """
+        if self.turn_count > 3:
+            print("max tries reached for this turn, please press 'End round'")
+            return
         self.run_table()
         slr = self.mode["slr"][self.turn-1] - self.mode["slr"][self.turn-2]
         self.add_sea_level_rise(slr=slr)
@@ -201,8 +213,9 @@ class DMG():
         self.model_output_to_game(model_output_df)
         self.update_inlet_salinity()
         self.gui.show_turn_button(self.turn)
-        print("updated to turn", self.turn)
-        self.end_round()
+        self.export_output()
+        print("updated to turn", self.turn, "- run", self.turn_count)
+        self.turn_count += 1
         return
 
 
@@ -225,9 +238,10 @@ class DMG():
             self.model_network_gdf["ref_dx"] = self.model_network_gdf["dx"]
         except KeyError:
             pass
-        self.export_output()
         self.turn += 1
+        self.turn_count = 1
         if self.turn <= len(self.mode["scenarios"]):
+            self.scenario = self.mode["scenarios"][self.turn - 1]
             self.update_forcings()
         self.table.end_round()
         return
@@ -236,7 +250,6 @@ class DMG():
         """
         function that handles updating the model forcings to subsequent turns (final scenario forcings to be determined)
         """
-        self.scenario = self.mode["scenarios"][self.turn-1]
         if self.scenario == self.mode["scenarios"][self.turn-2]:
             print("scenario remains the same, boundary conditions not updated")
             return
@@ -335,7 +348,8 @@ class DMG():
         #filename = "model_output_gdf_" + str(self.turn) + ".xlsx"
         #model_output_df.to_excel(os.path.join(self.save_path, filename), index=True)
         start_time = time.perf_counter()
-        double_exploded_output_df, exploded_output_df = game_sync.process_model_output(model_output_df)
+        double_exploded_output_df, exploded_output_df = game_sync.process_model_output(
+            model_output_df, scenario=self.mode["scenarios"][self.turn-1])
         if initialize == True:
             model_output_gdf = game_sync.output_df_to_gdf(double_exploded_output_df)
             model_output_gdf = game_sync.add_polygon_ids(model_output_gdf, self.world_polygons)
@@ -354,7 +368,7 @@ class DMG():
             self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, turn=self.turn)
             self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, turn=self.turn)
             duration = timedelta(seconds=time.perf_counter() - start_time)
-            print('Initial output processing took: ', duration)
+            print('Initial output processing took:', duration)
         else:
             """
             # The code below overrides the output GeoDataFrames
@@ -367,6 +381,9 @@ class DMG():
             """
 
             # The code below appends the output GeoDataFrames
+            self.model_output_gdf = self.model_output_gdf[self.model_output_gdf["turn"] != self.turn]
+            self.game_output_gdf = self.game_output_gdf[self.game_output_gdf["turn"] != self.turn]
+            self.inlet_salinity_tracker = self.inlet_salinity_tracker[self.inlet_salinity_tracker["turn"] != self.turn]
             output_to_merge_df = double_exploded_output_df[["id", "branch_rank", "time", "sb_st", 'sb_mgl']]
             if self.all_split_channels:
                 output_to_merge_df = game_sync.update_split_channel_ids(output_to_merge_df, self.all_split_channels)
@@ -378,7 +395,7 @@ class DMG():
             self.model_output_gdf = pd.concat([self.model_output_gdf, model_output_gdf])
             self.game_output_gdf = pd.concat([self.game_output_gdf, game_output_gdf])
             duration = timedelta(seconds=time.perf_counter() - start_time)
-            print('Update output processing took: ', duration)
+            print('Update output processing took:', duration)
         return
 
     def export_output(self):
@@ -387,7 +404,7 @@ class DMG():
         notebook, as the output file has to be read in raw binary mode (making all values in the DataFrame strings).
         This way, all numpy arrays are saved as a list with the "," separator.
         """
-        df_copy = self.model_network_gdf.copy()
+        #df_copy = self.model_network_gdf.copy()
         """
         for column in ["Hn", "ref_Hn", "L", "ref_L", "b", "ref_b", "dx", "ref_dx", "plot x", "plot y",
                        'changed_polygons', 'vertical_change', 'horizontal_change', 'ver_changed_segments',
@@ -398,16 +415,16 @@ class DMG():
                 pass
         print("passed conversion")
         """
-        filename = "model_network_gdf%d.xlsx" % self.turn
-        df_copy.to_excel(os.path.join(self.save_path, filename), index=True)
+        #filename = "model_network_gdf%d.xlsx" % self.turn
+        #df_copy.to_excel(os.path.join(self.save_path, filename), index=True)
         #self.game_network_gdf.to_excel(os.path.join(self.save_path, "game_network_gdf.xlsx"), index=True)
-        filename = "model_output_gdf%d.xlsx" % self.turn
+        filename = "model_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
         self.model_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
         #self.game_output_gdf.to_excel(os.path.join(self.save_path, "game_output_gdf.xlsx"), index=True)
 
     def debug_output(self):
         model_network_df = self.model.network
-        print(model_network_df.head())
+        #print(model_network_df.head())
         model_network_gdf = game_sync.process_model_network(model_network_df)
         self.world_polygons, model_network_gdf = game_sync.find_branch_intersections(deepcopy(self.world_polygons),
                                                                                      model_network_gdf)
@@ -462,6 +479,8 @@ scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 
 scenario_settings2 = {"scenarios": ["2018", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41], "timeseries": "dummy"}
 
 scenario_settings3 = {"scenarios": ["2018", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2], "timeseries": "month"}
+
+scenario_settings4 = {"scenarios": ["2018", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82], "timeseries": "month"}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

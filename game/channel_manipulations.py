@@ -271,25 +271,17 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         new_channel2['Name'] = new_channel2['Name'] + "_2"
 
         split_index = old_channel["hor_changed_segments"].index("split")
-        print(old_channel["hor_changed_segments"])
-        print(split_index)
         # TODO check that any segment L >= dx * 4
         reference_L = old_channel['L']
-        print(reference_L)
         # TODO check if in should indeed be flipped! this seemed necessary for the test scenario, test live
         reference_L = np.flip(reference_L)
-        print(reference_L)
 
         new_channel1.at['L'] = deepcopy(reference_L[:split_index + 1])
-        print(new_channel1.loc['L'])
         new_channel1.at['L'][-1] = new_channel1.loc['L'][-1] / 2
         new_channel1.at['L'][-1] = new_channel1.loc['L'][-1] + (new_channel1.loc['L'][-1] % new_channel1.loc['dx'][-1])
-        print(new_channel1.loc['L'])
         location = sum(new_channel1.loc["L"]) / sum(old_channel.loc["L"])
-        print(location)
         width_at_break_location = ((old_channel.loc['b'][split_index + 1] - old_channel.loc['b'][split_index]) *
                                    location + old_channel.loc['b'][split_index])
-        print("split 1")
         """
         # TODO this should also work, but having some trouble with the resulting numpy array shapes
         # what happens is that when updating new_channel1['L'], the numpy array shape goes from 1D to 0-dimensional
@@ -348,13 +340,10 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         new_channel2.at['L'] = deepcopy(reference_L[split_index:])
         new_channel2.at['L'][0] = new_channel2.loc['L'][0] / 2
         new_channel2.at['L'][0] = new_channel2.at['L'][0] - (new_channel2.loc['L'][0] % new_channel2.loc['dx'][-1])
-        print(new_channel2.loc['L'])
         new_channel2.at['b'] = deepcopy(reference_b[split_index:])
         new_channel2.at['b'][0] = width_at_break_location
         new_channel2.at['dx'] = np.array([new_channel2.loc['dx'][0] for i in new_channel2.loc['L']])
         new_channel2.at['Hn'] = deepcopy(reference_Hn[split_index:])
-
-        print("split 2")
 
         reference_ver = old_channel['ver_changed_segments']
         reference_hor = old_channel['hor_changed_segments']
@@ -366,8 +355,6 @@ def apply_split(turn_model_network_df, next_weir_number=3):
 
         new_channel1['loc x=-L'] = 'w' + str(next_weir_number)
         new_channel2['loc x=0'] = 'w' + str(next_weir_number + 1)
-
-        print("split 3")
 
         polygon_id_idx = old_channel["horizontal_change"].index("split")
         new_channel1.at["polygon_ids"] = new_channel1.loc["polygon_ids"][:polygon_id_idx + 1]
@@ -383,15 +370,11 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         new_channel2.at["vertical_change"] = new_channel2.loc["vertical_change"][polygon_id_idx:]
         new_channel2.at["horizontal_change"] = new_channel2.loc["horizontal_change"][polygon_id_idx:]
 
-        print("split 4")
-
         polygon_segments = list(old_channel["polygon_to_segment"])
         old_polygon_ids = list(old_channel.loc["polygon_ids"])
         polygon_segment_idx = polygon_segments.index(old_polygon_ids[polygon_id_idx])
         new_channel1.at["polygon_to_segment"] = new_channel1.loc["polygon_to_segment"][:polygon_id_idx + 1]
         new_channel2.at["polygon_to_segment"] = new_channel2.loc["polygon_ids"][polygon_segment_idx:]
-
-        print("split 5")
 
         def multiline_interpolate_point(line_geometry, distance):
             new_line1_coordinates = []
@@ -432,13 +415,10 @@ def apply_split(turn_model_network_df, next_weir_number=3):
         new_channels = pd.concat([new_channel1, new_channel2], axis=1)
         return new_channels.T
 
-    print("split 6")
-
     channel_reference = {}
     for channel_name, new_name in channels_to_split.items():
         new_channels = split_channel(model_network_df.loc[channel_name])
         channel_reference[model_network_df.loc[channel_name, 'Name']] = list(new_channels['Name'].values)
         model_network_df = model_network_df.drop(channel_name)
         model_network_df = pd.concat([model_network_df, new_channels])
-    print("split 7")
     return model_network_df, channel_reference, channels_to_split

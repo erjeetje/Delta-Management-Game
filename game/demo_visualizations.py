@@ -8,6 +8,7 @@ matplotlib.style.use("fast")
 from PyQt5.QtWidgets import (QWidget, QPushButton, QLabel, QDesktopWidget, QMainWindow, QHBoxLayout, QVBoxLayout,
                              QLineEdit, QTableView)
 from PyQt5.QtCore import Qt, QAbstractTableModel
+from PyQt5.QtGui import QFont
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
@@ -316,9 +317,11 @@ class ApplicationWindow(QMainWindow):
         elif turn == 3:
             self.control_widget.btn_turn3.setEnabled(True)
             self.control_widget.on_turn3_button_clicked()
+        """
         elif turn == 4:
             self.control_widget.btn_turn4.setEnabled(True)
             self.control_widget.on_turn4_button_clicked()
+        """
         return
 
 
@@ -428,20 +431,23 @@ class ControlWidget(QWidget):
         self.show()  # app.exec_()
 
     def initUI(self):
-        self.lbl_screen_variable = QLabel('Visualization selection', self)
+        self.lbl_screen_variable = QLabel('Visualization\nselection', self)
+        self.lbl_screen_variable.setFont(QFont('Arial', 12))
         self.lbl_screen_variable.setStyleSheet("font-weight: bold; font-size: 24")
         self.lbl_screen_variable.move(10, 20)
         self.lbl_screen_variable.setFixedWidth(180)
         self.lbl_screen_variable.setAlignment(Qt.AlignCenter)
 
-        self.btn_screen_salinity = QPushButton('Salinity concentration', self)
+        self.btn_screen_salinity = QPushButton('Salinity\nconcentration', self)
+        self.btn_screen_salinity.setFont(QFont('Arial', 10))
         self.btn_screen_salinity.clicked.connect(self.on_salinity_button_clicked)
         self.btn_screen_salinity.resize(180, 60)
-        self.btn_screen_salinity.move(10, 80)
-        self.btn_screen_salinity_category = QPushButton('Salinity (categorized)', self)
+        self.btn_screen_salinity.move(10, 100)
+        self.btn_screen_salinity_category = QPushButton('Salinity\n(categorized)', self)
+        self.btn_screen_salinity_category.setFont(QFont('Arial', 10))
         self.btn_screen_salinity_category.clicked.connect(self.on_salinity_category_button_clicked)
         self.btn_screen_salinity_category.resize(180, 60)
-        self.btn_screen_salinity_category.move(10, 160)
+        self.btn_screen_salinity_category.move(10, 180)
 
         """
         self.btn_screen_water_velocity = QPushButton('Water velocity', self)
@@ -480,17 +486,33 @@ class ControlWidget(QWidget):
         self.btn_update.setStyleSheet("background-color:lightgray;")
         """
 
-        self.btn_run_model = QPushButton('Run model', self)
-        self.btn_run_model.clicked.connect(self.on_run_model_button_clicked)
-        self.btn_run_model.resize(180, 60)
-        self.btn_run_model.move(10, 320)
-        self.btn_run_model.setStyleSheet("background-color:lightgray;")
+        self.next_run = QLabel('Next run:', self)
+        # self.lbl_model_info.setStyleSheet("font-weight: bold; font-size: 36")
+        self.next_run.setFont(QFont('Arial', 12))
+        self.next_run.move(10, 300)
+        self.next_run.setFixedWidth(180)
+        self.next_run.setAlignment(Qt.AlignCenter)
 
-        self.btn_run_model = QPushButton('End round', self)
-        self.btn_run_model.clicked.connect(self.on_end_round_button_clicked)
+        self.lbl_model_info = QLabel('turn %s - run %d' % (self.gui.game.turn, self.gui.game.turn_count), self)
+        #self.lbl_model_info.setStyleSheet("font-weight: bold; font-size: 36")
+        self.lbl_model_info.setFont(QFont('Arial', 12))
+        self.lbl_model_info.move(10, 340)
+        self.lbl_model_info.setFixedWidth(180)
+        self.lbl_model_info.setAlignment(Qt.AlignCenter)
+
+        self.btn_run_model = QPushButton('Run model', self)
+        self.btn_run_model.setFont(QFont('Arial', 10))
+        self.btn_run_model.clicked.connect(self.on_run_model_button_clicked)
         self.btn_run_model.resize(180, 60)
         self.btn_run_model.move(10, 400)
         self.btn_run_model.setStyleSheet("background-color:lightgray;")
+
+        self.btn_end_round = QPushButton('End round', self)
+        self.btn_end_round.setFont(QFont('Arial', 10))
+        self.btn_end_round.clicked.connect(self.on_end_round_button_clicked)
+        self.btn_end_round.resize(180, 60)
+        self.btn_end_round.move(10, 480)
+        self.btn_end_round.setStyleSheet("background-color:lightgray;")
         """
         self.btn_board_water_velocity = QPushButton('Water velocity', self)
         self.btn_board_water_velocity.clicked.connect(self.on_board_water_velocity_button_clicked)
@@ -498,35 +520,41 @@ class ControlWidget(QWidget):
         self.btn_board_water_velocity.move(210, 380)
         """
 
-        self.lbl_boundary = QLabel('turn selection', self)
-        self.lbl_boundary.setStyleSheet("font-weight: bold; font-size: 24")
-        self.lbl_boundary.move(10, 500)
+        self.lbl_boundary = QLabel('Output selection', self)
+        self.lbl_boundary.setFont(QFont('Arial', 12))
+        #self.lbl_boundary.setStyleSheet("font-weight: bold; font-size: 36")
+        self.lbl_boundary.move(10, 600)
         self.lbl_boundary.setFixedWidth(180)
         self.lbl_boundary.setAlignment(Qt.AlignCenter)
 
+        """
         self.btn_turn4 = QPushButton('2018 - turn 4', self)
         #self.btn_turn4 = QPushButton('2100he (+1m SLR) +\n widened NWW', self)
         self.btn_turn4.clicked.connect(self.on_turn4_button_clicked)
         self.btn_turn4.resize(180, 60)
         self.btn_turn4.move(10, 820)
         self.btn_turn4.setEnabled(False)
-        self.btn_turn3 = QPushButton('2018 - turn 3', self)
+        """
+        self.btn_turn3 = QPushButton('2100 Hd', self)
+        self.btn_turn3.setFont(QFont('Arial', 10))
         #self.btn_turn3 = QPushButton('2100le (+1m SLR) +\n deepened NWW & Nieuwe Maas', self)
         self.btn_turn3.clicked.connect(self.on_turn3_button_clicked)
         self.btn_turn3.resize(180, 60)
-        self.btn_turn3.move(10, 740)
+        self.btn_turn3.move(10, 820)
         self.btn_turn3.setEnabled(False)
-        self.btn_turn2 = QPushButton('2018 - turn 2', self)
+        self.btn_turn2 = QPushButton('2050 Hd', self)
+        self.btn_turn2.setFont(QFont('Arial', 10))
         #self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
         self.btn_turn2.clicked.connect(self.on_turn2_button_clicked)
         self.btn_turn2.resize(180, 60)
-        self.btn_turn2.move(10, 660)
+        self.btn_turn2.move(10, 740)
         self.btn_turn2.setEnabled(False)
-        self.btn_turn1 = QPushButton('2018 - turn 1', self)
+        self.btn_turn1 = QPushButton('2018', self)
+        self.btn_turn1.setFont(QFont('Arial', 10))
         #self.btn_turn1 = QPushButton('2017', self)
         self.btn_turn1.clicked.connect(self.on_turn1_button_clicked)
         self.btn_turn1.resize(180, 60)
-        self.btn_turn1.move(10, 580)
+        self.btn_turn1.move(10, 660)
         return
 
     def on_update_button_clicked(self):
@@ -536,12 +564,14 @@ class ControlWidget(QWidget):
 
     def on_run_model_button_clicked(self):
         self.gui.game.update()
+        self.lbl_model_info.setText('turn %s - run %d' % (self.gui.game.turn, self.gui.game.turn_count))
         return
 
     def on_end_round_button_clicked(self):
-        print("to implement.")
-        if self.gui.game.turn < 4:
-            print("this would end the round.")
+        #if self.gui.game.turn < 4:
+        if self.gui.game.turn < 3:
+            self.gui.game.end_round()
+        self.lbl_model_info.setText('turn %s - run %d' % (self.gui.game.turn, self.gui.game.turn_count))
         #self.gui.game.update()
         return
 
@@ -624,15 +654,15 @@ class ControlWidget(QWidget):
             self.btn_turn1.setStyleSheet("background-color:lightgray;")
             self.btn_turn2.setStyleSheet("background-color:lightgray;")
             self.btn_turn3.setStyleSheet("background-color:lightgray;")
-            self.btn_turn4.setStyleSheet("background-color:lightgray;")
+            #self.btn_turn4.setStyleSheet("background-color:lightgray;")
             if self.turn_highlight == 1:
                 self.btn_turn1.setStyleSheet("background-color:cyan;")
             elif self.turn_highlight == 2:
                 self.btn_turn2.setStyleSheet("background-color:magenta;")
             elif self.turn_highlight == 3:
                 self.btn_turn3.setStyleSheet("background-color:yellow;")
-            elif self.turn_highlight == 4:
-                self.btn_turn4.setStyleSheet("background-color:green;")
+            #elif self.turn_highlight == 4:
+            #    self.btn_turn4.setStyleSheet("background-color:green;")
         return
 
 

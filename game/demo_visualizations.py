@@ -300,7 +300,7 @@ class ApplicationWindow(QMainWindow):
                         inlet_data.iloc[0]['Num_days_consecutive_normal']) + "\n" +
                             "Number of days above threshold (drought): " + str(
                         inlet_data.iloc[0]['Num_days_exceedance_drought']) + "\n" +
-                            "Number of days above threshold (drought): " + str(
+                            "Number of consecutive days above threshold (drought): " + str(
                         inlet_data.iloc[0]['Num_days_consecutive_drought']))
 
             #ax.text(1.0, -0.4, text_to_plot, horizontalalignment='right', verticalalignment='top', transform=ax.transAxes,
@@ -567,12 +567,12 @@ class ScoreWidget(QWidget):
             number_yellow = len(inlet_data[inlet_data['score_indicator'] == 2])
             number_orange = len(inlet_data[inlet_data['score_indicator'] == 3])
             number_red = len(inlet_data[inlet_data['score_indicator'] == 4])
-            score = (number_green * 1 + number_yellow * 0.75 + number_orange * 0.5 + number_red * 0.25) / 6
+            score = ((number_green * 1 + number_yellow * 0.75 + number_orange * 0.5 + number_red * 0.25) / 6) * 100
             self.lbl_green_inlets.setText('Number of green inlets: %d' % number_green)
             self.lbl_yellow_inlets.setText('Number of yellow inlets: %d' % number_yellow)
             self.lbl_orange_inlets.setText('Number of orange inlets: %d' % number_orange)
             self.lbl_red_inlets.setText('Number of red inlets: %d' % number_red)
-            self.lbl_score.setText('Score: %d' % score)
+            self.lbl_score.setText('Score: %d percent' % score)
         return
 
     def change_highlights(self):

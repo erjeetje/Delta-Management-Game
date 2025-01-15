@@ -58,6 +58,7 @@ class DMG():
         self.index_inlets()
         self.update_inlet_salinity()
         self.export_output()
+        self._turn_count = 2
         self.end_round()
         self.create_visualizations()
         return
@@ -220,6 +221,9 @@ class DMG():
 
 
     def end_round(self):
+        if self.turn_count == 1:
+            print("No run was conducted yet, please first run the model!")
+            return
         self.hexagons_tracker["ref_red_markers"] = self.hexagons_tracker["red_markers"]
         self.hexagons_tracker["ref_blue_markers"] = self.hexagons_tracker["blue_markers"]
         try:

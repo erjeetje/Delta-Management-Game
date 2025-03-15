@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import geojson
 import pandas as pd
 import numpy as np
 from datetime import timedelta
@@ -28,6 +29,7 @@ class DMG():
         self._turn = 1
         self._turn_count = 1
         self._scenario = self.mode["scenarios"][0]
+        self.debug = self.mode["debug"]
         operational = {0: ['Qhag', 20, 0, True], 1: ['Qhar', 50, 1, True], 2: ['Qhar_threshold', 1100, 1, True],
                        3: ['Qhij', 2, 0, True], 4: ['Qhij_threshold', 800, 0, True]}
         self.operational_df = pd.DataFrame.from_dict(
@@ -97,6 +99,7 @@ class DMG():
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.input_files = os.path.join(dir_path, "game", "input_files")
         self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 DMG design\coding (notebooks)\game debugging"
+        self.debug_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\08 Prototype building\debug"
         return
 
     def load_model(self):
@@ -106,6 +109,7 @@ class DMG():
         self.model = imside_model.IMSIDE(scenario=self.scenario, timeseries_length=self.mode["timeseries"])
         model_network_df = self.model.network
         self.model_network_gdf = game_sync.process_model_network(model_network_df)
+        print(self.model_network_gdf.loc["Breeddiep"])
         return
 
     def load_shapes(self):
@@ -124,6 +128,14 @@ class DMG():
                            "Hevel IJsselmonde - Oostdijk", "Gemaal Delta", "Hevel De Noord - Crezeepolder"]
         self.inlets = inlet_tracker[inlet_tracker['name'].isin(selected_inlets)]
         return
+
+    def load_debug_files(self):
+        filename = "hexagons" + str(self.turn) + "_" + str(self.turn_count) + ".geojson"
+        print("loading debug file", filename)
+        path_and_file = os.path.join(self.debug_path, filename)
+        with open(path_and_file) as f:
+            hexagons = geojson.load(f)
+        return hexagons
 
     def index_inlets(self):
         self.inlets = inlet_func.index_inlets_to_model_locations(self.inlets, self.model_output_gdf)
@@ -149,7 +161,10 @@ class DMG():
 
     def run_table(self, update=True):
         self.table.get_board_state()
-        hexagons_board = self.table.hexagons
+        if self.debug:
+            hexagons_board = self.load_debug_files()
+        else:
+            hexagons_board = self.table.hexagons
         self.hexagons_board_gdf = table_func.get_board_gdf(hexagons_board)
         self.hexagons_tracker = table_func.update_hexagon_tracker(self.hexagons_board_gdf, self.hexagons_tracker,
                                                                   update=update)
@@ -478,13 +493,17 @@ def main(mode):
     return
 
 
-scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 0, 0, 0], "timeseries": "month"}
+scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 0, 0, 0],
+                      "timeseries": "month", "debug": False}
 
-scenario_settings2 = {"scenarios": ["2018", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41], "timeseries": "dummy"}
+scenario_settings2 = {"scenarios": ["2018", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41],
+                      "timeseries": "dummy", "debug": False}
 
-scenario_settings3 = {"scenarios": ["2018", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2], "timeseries": "month"}
+scenario_settings3 = {"scenarios": ["2018", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2],
+                      "timeseries": "month", "debug": False}
 
-scenario_settings4 = {"scenarios": ["2018", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82], "timeseries": "month"}
+scenario_settings4 = {"scenarios": ["2018", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82],
+                      "timeseries": "month", "debug": True}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

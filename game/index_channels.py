@@ -5,8 +5,13 @@ import pandas as pd
 def index_polygons_to_channel_geometry(network_gdf):
     new_network_gdf = network_gdf.copy()
 
-    def add_segments(branch_length, polygon_ids):
+    def add_segments(branch_name, branch_length, polygon_ids):
         number_of_segments = len(polygon_ids) * 2 - 2
+        if branch_name == "Breeddiep":
+            branch_length = branch_length[:-1]
+        river_channels = ["Waal", "Maas"]
+        if branch_name in river_channels:
+            branch_length = branch_length[1:]
         segment_length = sum(branch_length) / number_of_segments
         segments = [segment_length for segments in range(number_of_segments)]
         # segments = [segment_length for segments in range(number_of_segments + len(branch_length) - 1)]
@@ -68,7 +73,8 @@ def index_polygons_to_channel_geometry(network_gdf):
     # test = new_network_gdf.loc[["Hollandse IJssel", "Lek"]]
     # test["polygon_to_L"] = test.apply(lambda row: add_segments(row["L"], row["polygon_ids"]), axis=1)
     new_network_gdf[["polygon_to_L", "polygon_to_segment"]] = new_network_gdf.apply(
-        lambda row: add_segments(row["L"], row["polygon_ids"]), axis=1)
+        lambda row: add_segments(row.name, row["L"], row["polygon_ids"]), axis=1)
+    print(new_network_gdf.loc["Breeddiep"])
 
     new_network_gdf = new_network_gdf.rename(
         columns={"Hn": "ref_Hn", "L": "ref_L", "b": "ref_b", "dx": "ref_dx"})

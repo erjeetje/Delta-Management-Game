@@ -99,10 +99,19 @@ def update_channel_length(model_network_df):
     """
     updated_model_network_df = model_network_df.copy()
 
-    def update_L(old_L, segment_L, polygon_ids, changed_polygons, changed, ver_change, hor_change, ref_dx):
+    def update_L(name, old_L, segment_L, polygon_ids, changed_polygons, changed, ver_change, hor_change, ref_dx):
         if not changed:
             # print("I am not changed")
             return pd.Series([old_L, ref_dx, [None for l in old_L], [None for l in old_L]])
+        print("name:", name, ". old_L:", old_L, ". segment_L:", segment_L, ". polygon_ids:", polygon_ids,
+              ". changed_polygons:", changed_polygons, ". changed:", changed, ". ref_dx:", ref_dx)
+        if name == "Breeddiep":
+            old_L = old_L[:-1]
+            ref_dx = ref_dx[:-1]
+        river_channels = ["Waal", "Maas"]
+        if name in river_channels:
+            old_L = old_L[1:]
+            ref_dx = ref_dx[1:]
         # if np.array_equal(polygon_ids, np.array(changed_polygons)):
         #    #print("All my polygons changed")
         #    return pd.Series([old_L, [None for l in old_L], [None for l in old_L]])
@@ -123,7 +132,6 @@ def update_channel_length(model_network_df):
                     unchanged_segments_idx.append(idx)
             except IndexError:
                 unchanged_segments_idx.append(idx)
-
         merged_segment_idx = changed_segments_idx + unchanged_segments_idx
         merged_segment_order = sorted(merged_segment_idx)
         new_L = []
@@ -131,7 +139,6 @@ def update_channel_length(model_network_df):
         for idx in merged_segment_order:
             new_L.append(segment_L[idx] - substract_L)
             substract_L = sum(new_L)
-
         old_L_idx = [0] * len(new_L)
         if len(old_L) > 1:
             for j, l in enumerate(old_L):
@@ -147,10 +154,8 @@ def update_channel_length(model_network_df):
             dx_fraction = round(np.sum(new_L[:i + 1]) / segment_dx, 0)
             new_segment = ((dx_fraction - dx_fraction_ref) * segment_dx)
             new_L_dx.append(new_segment)
-            new_dx.append(float(segment_dx))
+            new_dx.append(segment_dx)
             dx_fraction_ref = dx_fraction
-        new_dx = np.array(new_dx, dtype=float)
-        new_L_dx = np.array(new_L_dx, dtype=float)
         ver_changes_to_segments = []
         hor_changes_to_segments = []
         for idx in merged_segment_order:
@@ -164,7 +169,7 @@ def update_channel_length(model_network_df):
 
     updated_model_network_df[
         ["L", "dx", "ver_changed_segments", "hor_changed_segments"]] = updated_model_network_df.apply(
-        lambda row: update_L(row["ref_L"], row["polygon_to_L"], row["polygon_ids"], row["changed_polygons"],
+        lambda row: update_L(row.name, row["ref_L"], row["polygon_to_L"], row["polygon_ids"], row["changed_polygons"],
                              row["changed"], row["vertical_change"], row["horizontal_change"], row["ref_dx"]), axis=1)
     return updated_model_network_df
 

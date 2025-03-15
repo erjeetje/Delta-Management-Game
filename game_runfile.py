@@ -109,7 +109,6 @@ class DMG():
         self.model = imside_model.IMSIDE(scenario=self.scenario, timeseries_length=self.mode["timeseries"])
         model_network_df = self.model.network
         self.model_network_gdf = game_sync.process_model_network(model_network_df)
-        print(self.model_network_gdf.loc["Breeddiep"])
         return
 
     def load_shapes(self):
@@ -199,7 +198,6 @@ class DMG():
         new_model_network_df = update_func.geometry_to_update(turn_change, new_model_network_df)
         # TODO: consider how to cut channels into segments, as otherwise width changes also affect unchanged polygons
         new_model_network_df = update_func.update_channel_length(new_model_network_df)
-
         new_model_network_df = update_func.update_channel_references(new_model_network_df)
         new_model_network_df = update_func.update_channel_geometry(new_model_network_df)
         new_model_network_df, self.turn_split_channels, split_names = update_func.apply_split(new_model_network_df, self.weir_tracker)
@@ -207,6 +205,7 @@ class DMG():
 
         # TODO: add a check function if segments can be "knitted" back together (basically, ensure lowest # of segments)
         self.model.update_channel_geometries(new_model_network_df, self.turn_split_channels)
+        # TODO: comment out next line and store initial hexagons to compare against to always compare the board to the reference geometry
         self.model_network_gdf = new_model_network_df
         if self.turn_split_channels:
             self.hexagon_index = indexing.create_polygon_id_tracker(self.model_network_gdf,
@@ -497,13 +496,13 @@ scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 
                       "timeseries": "month", "debug": False}
 
 scenario_settings2 = {"scenarios": ["2018", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41],
-                      "timeseries": "dummy", "debug": False}
+                      "timeseries": "dummy", "debug": True}
 
 scenario_settings3 = {"scenarios": ["2018", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2],
                       "timeseries": "month", "debug": False}
 
 scenario_settings4 = {"scenarios": ["2018", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82],
-                      "timeseries": "month", "debug": True}
+                      "timeseries": "dummy", "debug": True}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

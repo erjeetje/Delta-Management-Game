@@ -24,6 +24,25 @@ def process_model_network(model_network_df):
     model_network_gdf = gpd.GeoDataFrame(model_network_df, geometry=model_network_df["line_geometry"], crs="EPSG:4326")
     return model_network_gdf
 
+def remove_sea_river_domains(model_network_gdf):
+    def remove_added_geometry(name, L, Hn, b, dx):
+        if name == "Breeddiep":
+            L = L[:-1]
+            Hn = Hn[:-1]
+            b = b[:-1]
+            dx = dx[:-1]
+        river_channels = ["Waal", "Maas"]
+        if name in river_channels:
+            L = L[1:]
+            Hn = Hn[1:]
+            b = b[1:]
+            dx = dx[1:]
+        return pd.Series([L, Hn, b, dx])
+
+    model_network_gdf[["L", "Hn", "b", "dx"]] = model_network_gdf.apply(lambda row: remove_added_geometry(
+        row.name, row["L"], row["Hn"], row["b"], row["dx"]), axis=1)
+    return model_network_gdf
+
 def find_neighbours(hexagons):
     hex_coor = []
     polygons = []

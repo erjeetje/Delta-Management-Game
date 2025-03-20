@@ -5,6 +5,7 @@
 # =============================================================================
 import numpy as np
 import copy
+import time
 
 class mod42_netw:
     def __init__(self, inp_gen, inp_geo, inp_forc, inp_phys, pars_seadom = (25000,250,10), pars_rivdom = (200000,10000,0) ):
@@ -15,6 +16,7 @@ class mod42_netw:
         #add variables to object
         self.g , self.Be, self.CD, self.r, self.tol = copy.deepcopy(inp_gen)
         self.ch_gegs = copy.deepcopy(inp_geo)
+        self.ch_gegs_original = copy.deepcopy(self.ch_gegs)
         self.Qriv, self.Qweir, self.Qhar, self.n_sea, self.soc, self.sri, self.swe, self.tid_per, self.a_tide, self.p_tide, self.T, self.DT = copy.deepcopy(inp_forc)
 
         #load physics
@@ -69,6 +71,26 @@ class mod42_netw:
             self.add_properties(key)
         self.run_checks()
 
+    def reset_geometry(self, remove_count):
+        t0 = time.time()
+        self.ch_gegs = copy.deepcopy(self.ch_gegs_original)
+        self.ch_pars = {}
+        self.ch_outp = {}
+        self.ch_tide = {}
+        self.ends = []
+        self.ch_keys = list(self.ch_gegs.keys())
+        if remove_count != 0:
+            print(self.Qweir)
+            self.Qweir = self.Qweir[:-remove_count]
+            print(self.Qweir)
+            self.swe = self.swe[:-remove_count]
+        for key in self.ch_keys:
+            self.add_properties(key)
+        self.run_checks()
+        t1 = time.time()
+        print("reset time is", t1-t0, "seconds.")
+        return
+
     def add_properties(self, key, new_channel=True):
         self.ch_pars[key] = {}
         self.ch_outp[key] = {}
@@ -104,7 +126,6 @@ class mod42_netw:
             self.ends.append(self.ch_gegs[key]['loc x=0'])
             self.ends.append(self.ch_gegs[key]['loc x=-L'])
 
-
         # =============================================================================
         # indices, making lists of inputs, etc
         # =============================================================================
@@ -125,11 +146,9 @@ class mod42_netw:
         self.ch_pars[key]['dl'] = np.zeros(self.ch_pars[key]['nxn'].sum()) #normalised dx, per point
         self.ch_pars[key]['dl'][0:self.ch_pars[key]['nxn'][0]] = self.ch_pars[key]['dln'][0]
         for i in range(1,len(self.ch_pars[key]['nxn'])): self.ch_pars[key]['dl'][np.sum(self.ch_pars[key]['nxn'][:i]):np.sum(self.ch_pars[key]['nxn'][:i+1])] = self.ch_pars[key]['dln'][i]
-
         self.ch_pars[key]['bn'] = np.zeros(self.ch_pars[key]['n_seg']) #convergene length
         for i in range(self.ch_pars[key]['n_seg']): self.ch_pars[key]['bn'][i] = np.inf if self.ch_gegs[key]['b'][i+1] == self.ch_gegs[key]['b'][i] \
             else self.ch_gegs[key]['L'][i]/np.log(self.ch_gegs[key]['b'][i+1]/self.ch_gegs[key]['b'][i])
-
         self.ch_pars[key]['b'] = np.zeros(self.ch_pars[key]['nxn'].sum()) #width
         self.ch_pars[key]['b'][0:self.ch_pars[key]['nxn'][0]] = self.ch_gegs[key]['b'][0] * np.exp(self.ch_pars[key]['bn'][0]**(-1) \
               * (np.linspace(-self.ch_gegs[key]['L'][0],0,self.ch_pars[key]['nxn'][0])+self.ch_gegs[key]['L'][0]))
@@ -192,7 +211,6 @@ class mod42_netw:
             rr = self.sf_st_rr + np.zeros(self.ch_pars[key]['di'][-1])
         else:
             raise Exception('No right choice for bottom friction st')
-
 
         #other subtidal parameters
         self.ch_pars[key]['alf'] = self.g*self.Be*self.ch_pars[key]['H']**3/(48*self.ch_pars[key]['Av']) #strength of exchange flow

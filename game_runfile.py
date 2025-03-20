@@ -51,7 +51,6 @@ class DMG():
         self.index_channels()
         self.run_table(update=False)
         self.turn_split_channels = {}
-        self.all_split_channels = {}
         self.turn_updates = {}
         self.model.change_local_boundaries(self.operational_df)
         self.forcing_conditions = self.store_forcings()
@@ -108,7 +107,9 @@ class DMG():
         """
         self.model = imside_model.IMSIDE(scenario=self.scenario, timeseries_length=self.mode["timeseries"])
         model_network_df = self.model.network
-        self.model_network_gdf = game_sync.process_model_network(model_network_df)
+        model_network_df = game_sync.process_model_network(model_network_df)
+        model_network_df = game_sync.remove_sea_river_domains(model_network_df)
+        self.model_network_gdf = model_network_df
         return
 
     def load_shapes(self):
@@ -189,9 +190,9 @@ class DMG():
         if self.turn_count > 3:
             print("max tries reached for this turn, please press 'End round'")
             return
+        self.model.reset_geometry()
+        self.weir_tracker = 3
         self.run_table()
-        slr = self.mode["slr"][self.turn-1] - self.mode["slr"][self.turn-2]
-        self.add_sea_level_rise(slr=slr)
         turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
         turn_change = update_func.to_change(turn_change)
         new_model_network_df = self.model_network_gdf.copy()
@@ -202,25 +203,32 @@ class DMG():
         new_model_network_df = update_func.update_channel_geometry(new_model_network_df)
         new_model_network_df, self.turn_split_channels, split_names = update_func.apply_split(new_model_network_df, self.weir_tracker)
         self.weir_tracker = self.weir_tracker + (len(self.turn_split_channels) * 2)
+        test = new_model_network_df[['L', 'Hn', 'b', 'dx']]
+        try:
+            print(test.loc["Nieuwe Maas 1"])
+        except KeyError:
+            print("Nieuwe Maas 1 was removed from the geometry")
+        print(test.loc["Nieuwe Waterweg"])
+        print(test.loc["Oude Maas 1"])
+        print(test.loc["Hartelkanaal"])
+        print(test.loc["Breeddiep"])
 
         # TODO: add a check function if segments can be "knitted" back together (basically, ensure lowest # of segments)
         self.model.update_channel_geometries(new_model_network_df, self.turn_split_channels)
         # TODO: comment out next line and store initial hexagons to compare against to always compare the board to the reference geometry
-        self.model_network_gdf = new_model_network_df
+        #self.model_network_gdf = new_model_network_df
+
         if self.turn_split_channels:
             self.hexagon_index = indexing.create_polygon_id_tracker(self.model_network_gdf,
                                                                     hexagon_tracker_df=self.hexagons_tracker) #self.split_channels, split_names
-            self.all_split_channels.update(self.turn_split_channels)
+            #self.all_split_channels.update(self.turn_split_channels)
         self.operational_df = operation_func.update_operational_rules(self.operational_df, self.hexagons_board_gdf)
         #operational_updates_df = self.operational_df[self.operational_df["red_changed"] == True]
         self.model.change_local_boundaries(self.operational_df)
-        # TODO: also update hexagon_tracker (references are updated with split channel)
-        #if self.turn == 2:
-        #    self.split_channel(channel="Nieuwe Maas 1 old")
+        # TODO: also update hexagon_tracker (references are updated with split channel)?
         turn_forcing_conditions = self.store_forcings()
         self.forcing_conditions = self.forcing_conditions[self.forcing_conditions["turn"] != self.turn]
         self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
-        #print(self.forcing_conditions)
         model_output_df = self.run_model()
         # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
         # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
@@ -238,8 +246,8 @@ class DMG():
         if self.turn_count == 1:
             print("No run was conducted yet, please first run the model!")
             return
-        self.hexagons_tracker["ref_red_markers"] = self.hexagons_tracker["red_markers"]
-        self.hexagons_tracker["ref_blue_markers"] = self.hexagons_tracker["blue_markers"]
+        #self.hexagons_tracker["ref_red_markers"] = self.hexagons_tracker["red_markers"]
+        #self.hexagons_tracker["ref_blue_markers"] = self.hexagons_tracker["blue_markers"]
         try:
             self.model_network_gdf["ref_L"] = self.model_network_gdf["L"]
         except KeyError:
@@ -258,6 +266,9 @@ class DMG():
             pass
         self.turn += 1
         self.turn_count = 1
+        if self.weir_tracker != 3:
+            self.model.reset_geometry()
+            self.weir_tracker = 3
         if self.turn <= len(self.mode["scenarios"]):
             self.scenario = self.mode["scenarios"][self.turn - 1]
             self.update_forcings()
@@ -272,7 +283,10 @@ class DMG():
             print("scenario remains the same, boundary conditions not updated")
             return
         # TODO consider if the add_row approach below is eventually the way to go.
-        self.model.change_forcings(scenario=self.scenario, add_rows=self.weir_tracker-3)
+        #self.model.change_forcings(scenario=self.scenario, add_rows=self.weir_tracker-3)
+        self.model.change_forcings(scenario=self.scenario)
+        slr = self.mode["slr"][self.turn - 1] - self.mode["slr"][self.turn - 2]
+        self.add_sea_level_rise(slr=slr)
         return
 
     def store_forcings(self):
@@ -403,8 +417,8 @@ class DMG():
             self.game_output_gdf = self.game_output_gdf[self.game_output_gdf["turn"] != self.turn]
             self.inlet_salinity_tracker = self.inlet_salinity_tracker[self.inlet_salinity_tracker["turn"] != self.turn]
             output_to_merge_df = double_exploded_output_df[["id", "branch_rank", "time", "sb_st", 'sb_mgl']]
-            if self.all_split_channels:
-                output_to_merge_df = game_sync.update_split_channel_ids(output_to_merge_df, self.all_split_channels)
+            if self.turn_split_channels:
+                output_to_merge_df = game_sync.update_split_channel_ids(output_to_merge_df, self.turn_split_channels)
             output_to_merge_df = output_to_merge_df.drop(columns=["branch_rank"])
             model_output_gdf = self.model_output_ref_gdf.merge(output_to_merge_df, on="id")
             game_output_gdf = self.game_output_ref_gdf.merge(output_to_merge_df, on="id")

@@ -105,6 +105,7 @@ def update_channel_length(model_network_df):
             return pd.Series([old_L, ref_dx, [None for l in old_L], [None for l in old_L]])
         print("name:", name, ". old_L:", old_L, ". segment_L:", segment_L, ". polygon_ids:", polygon_ids,
               ". changed_polygons:", changed_polygons, ". changed:", changed, ". ref_dx:", ref_dx)
+        """
         if name == "Breeddiep":
             old_L = old_L[:-1]
             ref_dx = ref_dx[:-1]
@@ -112,6 +113,7 @@ def update_channel_length(model_network_df):
         if name in river_channels:
             old_L = old_L[1:]
             ref_dx = ref_dx[1:]
+        """
         # if np.array_equal(polygon_ids, np.array(changed_polygons)):
         #    #print("All my polygons changed")
         #    return pd.Series([old_L, [None for l in old_L], [None for l in old_L]])
@@ -156,6 +158,9 @@ def update_channel_length(model_network_df):
             new_L_dx.append(new_segment)
             new_dx.append(segment_dx)
             dx_fraction_ref = dx_fraction
+        new_L_dx = np.array(new_L_dx, dtype=float)
+        new_dx = np.array(new_dx, dtype=float)
+
         ver_changes_to_segments = []
         hor_changes_to_segments = []
         for idx in merged_segment_order:

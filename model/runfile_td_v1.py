@@ -27,6 +27,8 @@ class IMSIDE():
         network_df = network_df.T
         self._network = network_df
         self._output = None
+        self.new_channel_count = 0
+        self.last_channel_changes = []
         self.Qhar = 0
         self.Qhar_threshold = 0
         self.Qhag = 0
@@ -63,6 +65,11 @@ class IMSIDE():
         self.delta.calc_output()
         output_df = pd.DataFrame.from_dict(self.delta.ch_outp)
         self._output = output_df.T
+        return
+
+    def reset_geometry(self):
+        self.delta.reset_geometry(self.new_channel_count)
+        self.new_channel_count = 0
         return
 
     def get_forcings(self):
@@ -229,7 +236,15 @@ class IMSIDE():
     """
 
     def update_channel_geometries(self, model_network_gdf, channels_to_split):
+        #TODO: better approach could be to also compare hexagons against previous board? To remove previous parts
+        print("From game:", model_network_gdf.loc["Breeddiep"]["L"])
+        print("Before:", self.delta.ch_gegs["Breeddiep"]["L"])
+        #new_changes = model_network_gdf.loc[model_network_gdf['changed'] == True].index.values.tolist()
+        #for key in self.last_channel_changes:
+        #    model_network_gdf.at[key, 'changed'] = True
         model_network_change_gdf = model_network_gdf.loc[model_network_gdf['changed'] == True]
+        #self.last_channel_changes = new_changes
+        #model_network_change_gdf = model_network_gdf.copy()
         model_network_change_gdf = model_network_change_gdf.reset_index()
         model_network_change_gdf = model_network_change_gdf.set_index("Name")
         for old_channel, new_channels in channels_to_split.items():
@@ -259,6 +274,7 @@ class IMSIDE():
                     self.delta.ch_gegs[index][key] = row[key]
                 self.delta.Qweir = np.vstack([self.delta.Qweir, np.zeros(len(self.delta.Qweir[0]))])
                 self.delta.swe = np.vstack([self.delta.swe, np.array([0.15 + np.zeros(len(self.delta.swe[0]))])])
+                self.new_channel_count += 1
             self.delta.add_properties(index, new_channel=new_channel)
             print("new", index, "geometry:",
                   self.delta.ch_gegs[index]["Hn"], "(Hn)",
@@ -270,6 +286,7 @@ class IMSIDE():
                       self.delta.ch_gegs[index]["loc x=0"], "(loc x=0)",
                       self.delta.ch_gegs[index]["loc x=-L"], "(loc x=-L)",
                       self.delta.ch_gegs[index]["Name"], "(Name)")
+        print("After:", self.delta.ch_gegs["Breeddiep"]["L"])
         self.delta.run_checks()
         network_df = pd.DataFrame.from_dict(self.delta.ch_gegs)
         network_df = network_df.T

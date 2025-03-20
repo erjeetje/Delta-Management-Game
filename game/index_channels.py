@@ -7,11 +7,13 @@ def index_polygons_to_channel_geometry(network_gdf):
 
     def add_segments(branch_name, branch_length, polygon_ids):
         number_of_segments = len(polygon_ids) * 2 - 2
+        """
         if branch_name == "Breeddiep":
             branch_length = branch_length[:-1]
         river_channels = ["Waal", "Maas"]
         if branch_name in river_channels:
             branch_length = branch_length[1:]
+        """
         segment_length = sum(branch_length) / number_of_segments
         segments = [segment_length for segments in range(number_of_segments)]
         # segments = [segment_length for segments in range(number_of_segments + len(branch_length) - 1)]

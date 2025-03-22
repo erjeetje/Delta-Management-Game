@@ -105,15 +105,6 @@ def update_channel_length(model_network_df):
             return pd.Series([old_L, ref_dx, [None for l in old_L], [None for l in old_L]])
         print("name:", name, ". old_L:", old_L, ". segment_L:", segment_L, ". polygon_ids:", polygon_ids,
               ". changed_polygons:", changed_polygons, ". changed:", changed, ". ref_dx:", ref_dx)
-        """
-        if name == "Breeddiep":
-            old_L = old_L[:-1]
-            ref_dx = ref_dx[:-1]
-        river_channels = ["Waal", "Maas"]
-        if name in river_channels:
-            old_L = old_L[1:]
-            ref_dx = ref_dx[1:]
-        """
         # if np.array_equal(polygon_ids, np.array(changed_polygons)):
         #    #print("All my polygons changed")
         #    return pd.Series([old_L, [None for l in old_L], [None for l in old_L]])

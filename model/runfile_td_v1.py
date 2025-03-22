@@ -67,8 +67,8 @@ class IMSIDE():
         self._output = output_df.T
         return
 
-    def reset_geometry(self):
-        self.delta.reset_geometry(self.new_channel_count)
+    def reset_geometry(self, slr=0):
+        self.delta.reset_geometry(self.new_channel_count, slr=slr)#, slr=slr)
         self.new_channel_count = 0
         return
 
@@ -82,10 +82,11 @@ class IMSIDE():
 
     def change_forcings(self, scenario, add_rows=0):
         try:
-             self._current_forcing = settings_td_v1.set_forcing(scenario=scenario, timeseries_length=self.timeseries_length)
-             [self.delta.Qriv, self.delta.Qweir, self.delta.Qhar, self.delta.n_sea, self.delta.soc,
-              self.delta.sri, self.delta.swe, self.delta.tid_per, self.delta.a_tide, self.delta.p_tide,
-              self.delta.T, self.delta.DT] = self._current_forcing
+            self._current_forcing = settings_td_v1.set_forcing(scenario=scenario, timeseries_length=self.timeseries_length)
+            [self.delta.Qriv, self.delta.Qweir, self.delta.Qhar, self.delta.n_sea, self.delta.soc,
+            self.delta.sri, self.delta.swe, self.delta.tid_per, self.delta.a_tide, self.delta.p_tide,
+            self.delta.T, self.delta.DT] = self._current_forcing
+            self.new_channel_count = 0
         except TypeError:
             return
         if add_rows != 0:
@@ -236,15 +237,7 @@ class IMSIDE():
     """
 
     def update_channel_geometries(self, model_network_gdf, channels_to_split):
-        #TODO: better approach could be to also compare hexagons against previous board? To remove previous parts
-        print("From game:", model_network_gdf.loc["Breeddiep"]["L"])
-        print("Before:", self.delta.ch_gegs["Breeddiep"]["L"])
-        #new_changes = model_network_gdf.loc[model_network_gdf['changed'] == True].index.values.tolist()
-        #for key in self.last_channel_changes:
-        #    model_network_gdf.at[key, 'changed'] = True
         model_network_change_gdf = model_network_gdf.loc[model_network_gdf['changed'] == True]
-        #self.last_channel_changes = new_changes
-        #model_network_change_gdf = model_network_gdf.copy()
         model_network_change_gdf = model_network_change_gdf.reset_index()
         model_network_change_gdf = model_network_change_gdf.set_index("Name")
         for old_channel, new_channels in channels_to_split.items():
@@ -286,7 +279,6 @@ class IMSIDE():
                       self.delta.ch_gegs[index]["loc x=0"], "(loc x=0)",
                       self.delta.ch_gegs[index]["loc x=-L"], "(loc x=-L)",
                       self.delta.ch_gegs[index]["Name"], "(Name)")
-        print("After:", self.delta.ch_gegs["Breeddiep"]["L"])
         self.delta.run_checks()
         network_df = pd.DataFrame.from_dict(self.delta.ch_gegs)
         network_df = network_df.T
@@ -324,7 +316,8 @@ class IMSIDE():
         as it ends at Hagestein). Not a priority
         """
         for channel in self.delta.ch_keys:
-            self.delta.ch_gegs[channel]["Hn"] += slr
+            self.delta.ch_gegs_original[channel]["Hn"] += slr
+        #self.delta.ch_gegs_original = deepcopy(self.delta.ch_gegs)
         return
 
     def change_channel_geometry(self, channel_to_change, segments_to_update=[0], change_type="widen"):

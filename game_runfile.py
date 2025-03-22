@@ -190,7 +190,7 @@ class DMG():
         if self.turn_count > 3:
             print("max tries reached for this turn, please press 'End round'")
             return
-        self.model.reset_geometry()
+        self.model.reset_geometry(slr=self.mode["slr"][self.turn - 1])
         self.weir_tracker = 3
         self.run_table()
         turn_change = self.hexagons_tracker.loc[self.hexagons_tracker['changed'] == True]
@@ -203,15 +203,6 @@ class DMG():
         new_model_network_df = update_func.update_channel_geometry(new_model_network_df)
         new_model_network_df, self.turn_split_channels, split_names = update_func.apply_split(new_model_network_df, self.weir_tracker)
         self.weir_tracker = self.weir_tracker + (len(self.turn_split_channels) * 2)
-        test = new_model_network_df[['L', 'Hn', 'b', 'dx']]
-        try:
-            print(test.loc["Nieuwe Maas 1"])
-        except KeyError:
-            print("Nieuwe Maas 1 was removed from the geometry")
-        print(test.loc["Nieuwe Waterweg"])
-        print(test.loc["Oude Maas 1"])
-        print(test.loc["Hartelkanaal"])
-        print(test.loc["Breeddiep"])
 
         # TODO: add a check function if segments can be "knitted" back together (basically, ensure lowest # of segments)
         self.model.update_channel_geometries(new_model_network_df, self.turn_split_channels)
@@ -266,9 +257,7 @@ class DMG():
             pass
         self.turn += 1
         self.turn_count = 1
-        if self.weir_tracker != 3:
-            self.model.reset_geometry()
-            self.weir_tracker = 3
+
         if self.turn <= len(self.mode["scenarios"]):
             self.scenario = self.mode["scenarios"][self.turn - 1]
             self.update_forcings()
@@ -309,7 +298,7 @@ class DMG():
                     lambda x: np.array([y + slr for y in x]))
             except KeyError:
                 pass
-            self.model.add_sea_level_rise(slr)
+            #self.model.add_sea_level_rise(slr)
             print("added", slr, "meters sea level rise in model")
         else:
             print("no sea level rise (in meters) provided or set to 0, no sea level rise added in model")

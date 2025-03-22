@@ -1114,7 +1114,6 @@ def geo_RMD_game():
     # =============================================================================
     # Input: plotting - maybe build seperate dictionary for this
     # =============================================================================
-
     path_RM = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Geo_RijnMaas\\")
     list_channels = [f for f in os.listdir(path_RM) if f.endswith('.kml')]
     RM_coords = {}

@@ -6,6 +6,7 @@
 import numpy as np
 import copy
 import time
+from model.inpu.load_geo_RMD import geo_RMD_game
 
 class mod42_netw:
     def __init__(self, inp_gen, inp_geo, inp_forc, inp_phys, pars_seadom = (25000,250,10), pars_rivdom = (200000,10000,0) ):
@@ -15,9 +16,17 @@ class mod42_netw:
         # =============================================================================
         #add variables to object
         self.g , self.Be, self.CD, self.r, self.tol = copy.deepcopy(inp_gen)
+        """
+        self.ch_gegs = {}
+        self.ch_gegs_original = {}
+        for key, values in inp_geo.items():
+            self.ch_gegs[key] = copy.deepcopy(values)
+            self.ch_gegs_original[key] = copy.deepcopy(values)
+        """
         self.ch_gegs = copy.deepcopy(inp_geo)
-        self.ch_gegs_original = copy.deepcopy(self.ch_gegs)
+        #self.ch_gegs_original = geo_RMD_game()
         self.Qriv, self.Qweir, self.Qhar, self.n_sea, self.soc, self.sri, self.swe, self.tid_per, self.a_tide, self.p_tide, self.T, self.DT = copy.deepcopy(inp_forc)
+
 
         #load physics
         self.N, self.Lsc, self.nz, self.nt, self.theta = copy.deepcopy(inp_phys[0]) #theta not used.
@@ -71,20 +80,19 @@ class mod42_netw:
             self.add_properties(key)
         self.run_checks()
 
-    def reset_geometry(self, remove_count):
+    def reset_geometry(self, remove_count, slr=0):
         t0 = time.time()
-        self.ch_gegs = copy.deepcopy(self.ch_gegs_original)
+        self.ch_gegs = geo_RMD_game()
         self.ch_pars = {}
         self.ch_outp = {}
         self.ch_tide = {}
         self.ends = []
         self.ch_keys = list(self.ch_gegs.keys())
         if remove_count != 0:
-            print(self.Qweir)
             self.Qweir = self.Qweir[:-remove_count]
-            print(self.Qweir)
             self.swe = self.swe[:-remove_count]
         for key in self.ch_keys:
+            self.ch_gegs[key]["Hn"] += slr
             self.add_properties(key)
         self.run_checks()
         t1 = time.time()

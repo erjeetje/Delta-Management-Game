@@ -516,7 +516,7 @@ scenario_settings3 = {"scenarios": ["2018", "2050Hd", "2100Hd", "2150Hd"], "slr"
                       "timeseries": "month", "debug": False}
 
 scenario_settings4 = {"scenarios": ["2018", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82],
-                      "timeseries": "dummy", "debug": True}
+                      "timeseries": "dummy", "debug": False}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

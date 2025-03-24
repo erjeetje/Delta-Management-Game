@@ -28,13 +28,13 @@ def update_operational_rules(operational_df_old, hexagon_tracker):
                 return 1500
         elif button == "Qhag":
             if red_markers == 0:
-                return 20
+                return 5
             elif red_markers == 1:
-                return 30
+                return 15
             elif red_markers == 2:
-                return 40
+                return 25
             elif red_markers == 3:
-                return 50
+                return 35
         elif button == "Qhij":
             if red_markers == 0:
                 return 2

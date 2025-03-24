@@ -1031,7 +1031,7 @@ def geo_RMD_game():
                               'Hn': np.array([7], dtype=float),
                               'L': np.array([4260], dtype=float),
                               'b': np.array([250, 250], dtype=float),  # one longer than L
-                              'dx': np.array([852], dtype=float),  # same length as L
+                              'dx': np.array([213], dtype=float),  # same length as L
                               'loc x=0': 'j7',
                               'loc x=-L': 'j6'
                               }

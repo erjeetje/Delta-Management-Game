@@ -103,6 +103,9 @@ def update_channel_length(model_network_df):
         if not changed:
             # print("I am not changed")
             return pd.Series([old_L, ref_dx, [None for l in old_L], [None for l in old_L]])
+        if name == "Maas" or name == "Waal":
+            # print("I am not changed")
+            return pd.Series([old_L, ref_dx, [None for l in old_L], [None for l in old_L]])
         print("name:", name, ". old_L:", old_L, ". segment_L:", segment_L, ". polygon_ids:", polygon_ids,
               ". changed_polygons:", changed_polygons, ". changed:", changed, ". ref_dx:", ref_dx)
         # if np.array_equal(polygon_ids, np.array(changed_polygons)):

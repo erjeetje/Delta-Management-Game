@@ -122,11 +122,13 @@ class DMG():
         return
 
     def load_inlets(self):
-        inlet_tracker = load_files.read_csv(filename='WSHD_modified_inlet_data.csv', path=self.input_files)
+        inlet_tracker = load_files.read_csv(filename='policy_inlet_data.csv', path=self.input_files)
+        #inlet_tracker = load_files.read_csv(filename='WSHD_modified_inlet_data.csv', path=self.input_files)
         # this determines which inlets to include or not (only a few to test for now)
-        selected_inlets = ["Inlaat Oostkade", "Inlaatsluis Bernisse", "Inlaat Trekdam",
-                           "Hevel IJsselmonde - Oostdijk", "Gemaal Delta", "Hevel De Noord - Crezeepolder"]
-        self.inlets = inlet_tracker[inlet_tracker['name'].isin(selected_inlets)]
+        #selected_inlets = ["Inlaat Oostkade", "Inlaatsluis Bernisse", "Inlaat Trekdam",
+        #                   "Hevel IJsselmonde - Oostdijk", "Gemaal Delta", "Hevel De Noord - Crezeepolder"]
+        #self.inlets = inlet_tracker[inlet_tracker['name'].isin(selected_inlets)]
+        self.inlets = inlet_tracker
         return
 
     def load_debug_files(self):

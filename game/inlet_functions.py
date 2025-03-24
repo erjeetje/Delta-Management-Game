@@ -7,7 +7,7 @@ from shapely import wkt
 from scipy.spatial import cKDTree
 
 
-def index_inlets_to_model_locations(water_inlets_data_gdf, model_output_index_gdf):
+def index_inlets_to_model_locations(water_inlets_gdf, model_output_index_gdf):
     model_output_gdf = model_output_index_gdf.copy()
     model_output_gdf = model_output_gdf[model_output_gdf['time'] == model_output_gdf['time'].iloc[0]]
     model_output_gdf = model_output_gdf.set_index("id")
@@ -25,6 +25,10 @@ def index_inlets_to_model_locations(water_inlets_data_gdf, model_output_index_gd
             print(f"Error querying tree for inlet {point_id}: {e}")
             return np.nan
 
+    water_inlets_data_gdf = water_inlets_gdf.copy()
+    water_inlets_data_gdf.reset_index()
+    water_inlets_data_gdf = water_inlets_data_gdf[["name", "geometry", 'CL_threshold_during_regular_operation_(mg/l)', 'CL_threshold_during_drought_(mg/l)']]
+    water_inlets_data_gdf.set_index("name")
     water_inlets_data_gdf["output_location"] = water_inlets_data_gdf.apply(
         lambda row: index_point(row.name, row["geometry"], tree, model_output_gdf), axis=1)
     water_inlets_data_gdf = water_inlets_data_gdf.dropna()

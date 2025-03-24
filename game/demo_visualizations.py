@@ -172,7 +172,6 @@ class ApplicationWindow(QMainWindow):
             self.selected_run = self.viz_tracker.run
             turn_idx = (self.game.model_output_gdf["turn"] == self.selected_turn) & (
                         self.game.model_output_gdf["run"] == self.selected_run)
-            print("set visualizations to turn:", self.selected_turn, "and run:", self.selected_run)
             self.running_simulation = self.game.model_output_gdf[turn_idx]
             self.viz_tracker.update_scenario()
             self.scenario = self.viz_tracker.scenario
@@ -482,52 +481,60 @@ class InletWidget(QWidget):
 
     def initUI(self):
         start_x = 15
-        width = 120
+        width = 104
         height = 60
-        spacing = 10
+        spacing = 7
         spot_x = start_x
         spot_y = 10
         font_size = 9
-        self.btn_inlet1 = QPushButton('Inlaat\nOostkade', self)
+        self.btn_inlet1 = QPushButton('Inlaatsluis\nBernisse', self)
         self.btn_inlet1.setFont(QFont('Arial', font_size))
-        self.btn_inlet1.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet1.text()))
-        self.btn_inlet1.resize(width-10, height)
+        self.btn_inlet1.clicked.connect(lambda: self.on_inlet_button_clicked(0))
+        self.btn_inlet1.resize(width, height)
         self.btn_inlet1.move(spot_x, spot_y)
-        spot_x += width + spacing - 10
-        self.btn_inlet2 = QPushButton('Inlaatsluis\nBernisse', self)
+        spot_x += width + spacing
+        self.btn_inlet2 = QPushButton('Parksluizen', self)
         self.btn_inlet2.setFont(QFont('Arial', font_size))
-        self.btn_inlet2.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet2.text()))
+        self.btn_inlet2.clicked.connect(lambda: self.on_inlet_button_clicked(1))
         self.btn_inlet2.resize(width, height)
         self.btn_inlet2.move(spot_x, spot_y)
         spot_x += width + spacing
-        self.btn_inlet3 = QPushButton('Inlaat\nTrekdam', self)
+        self.btn_inlet3 = QPushButton('Krimpen aan\nden IJssel', self)
         self.btn_inlet3.setFont(QFont('Arial', font_size))
-        self.btn_inlet3.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet3.text()))
-        self.btn_inlet3.resize(width - 10, height)
+        self.btn_inlet3.clicked.connect(lambda: self.on_inlet_button_clicked(2))
+        self.btn_inlet3.resize(width + 10, height)
         self.btn_inlet3.move(spot_x, spot_y)
-        spot_x += width + spacing - 10
-        self.btn_inlet4 = QPushButton('Hevel IJsselmonde\n- Oostdijk', self)
+        spot_x += width + spacing + 10
+        self.btn_inlet4 = QPushButton('Kinderdijk', self)
         self.btn_inlet4.setFont(QFont('Arial', font_size))
-        self.btn_inlet4.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet4.text()))
-        self.btn_inlet4.resize(width + 20, height)
+        self.btn_inlet4.clicked.connect(lambda: self.on_inlet_button_clicked(3))
+        self.btn_inlet4.resize(width - 10, height)
         self.btn_inlet4.move(spot_x, spot_y)
-        spot_x += width + spacing + 20
-        self.btn_inlet5 = QPushButton('Gemaal\nDelta', self)
-        self.btn_inlet5.setFont(QFont('Arial', font_size))
-        self.btn_inlet5.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet5.text()))
-        self.btn_inlet5.resize(width - 10, height)
-        self.btn_inlet5.move(spot_x, spot_y)
         spot_x += width + spacing - 10
-        self.btn_inlet6 = QPushButton('Hevel De Noord\n- Crezeepolder', self)
+        self.btn_inlet5 = QPushButton('Krimpener-\nwaard', self)
+        self.btn_inlet5.setFont(QFont('Arial', font_size))
+        self.btn_inlet5.clicked.connect(lambda: self.on_inlet_button_clicked(4))
+        self.btn_inlet5.resize(width, height)
+        self.btn_inlet5.move(spot_x, spot_y)
+        spot_x += width + spacing
+        self.btn_inlet6 = QPushButton('Snelle\nSluis', self)
         self.btn_inlet6.setFont(QFont('Arial', font_size))
-        self.btn_inlet6.clicked.connect(lambda: self.on_inlet_button_clicked(self.btn_inlet6.text()))
-        self.btn_inlet6.resize(width + 10, height)
+        self.btn_inlet6.clicked.connect(lambda: self.on_inlet_button_clicked(5))
+        self.btn_inlet6.resize(width - 10, height)
+        self.btn_inlet6.move(spot_x, spot_y)
+        spot_x += width + spacing - 10
+        self.btn_inlet6 = QPushButton('Boezemgemaal\nGouda', self)
+        self.btn_inlet6.setFont(QFont('Arial', font_size))
+        self.btn_inlet6.clicked.connect(lambda: self.on_inlet_button_clicked(6))
+        self.btn_inlet6.resize(width + 20, height)
         self.btn_inlet6.move(spot_x, spot_y)
         return
 
-    def on_inlet_button_clicked(self, btn_string):
-        btn_string = btn_string.replace('\n', ' ')
-        self.viz_tracker.inlet_to_plot = btn_string
+    def on_inlet_button_clicked(self, btn_number):
+        inlets = ['Inlaatsluis Bernisse', 'Parksluizen', 'Krimpen aan den IJssel', 'Kinderdijk', 'Krimpenerwaard',
+                  'Snelle Sluis', 'Boezemgemaal Gouda']
+        inlet_to_plot = inlets[btn_number]
+        self.viz_tracker.inlet_to_plot = inlet_to_plot
         self.gui.plot_salinity_inlets()
         return
 

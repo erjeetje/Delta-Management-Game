@@ -1,0 +1,8 @@
+name,structure_type,code,water_threshold,inlet/outlet,geometry,CL_threshold_during_regular_operation_(mg/l),CL_threshold_during_drought_(mg/l),subarea,main_water_branch
+Inlaatsluis Bernisse,Sluis,08177SL,0,primair inlaatpunt,POINT (4.289943675966091 51.807306009071205),150,150,Voorne-Putten,Spui
+Parksluizen,Sluis,,,,POINT (4.4610756 51.9074141),2500,4000,,
+Krimpen aan den IJssel,Inlaat,,,,POINT (4.6115067 51.9280061),200,1000,,
+Kinderdijk,Inlaat,,,,POINT (4.6354403 51.8884358),250,550,,
+Krimpenerwaard,Inlaat,,,,POINT (4.7428651 51.9071375),200,400,,
+Snelle Sluis,Inlaat,,,,POINT (4.6514161 51.9791075),300,400,,
+Boezemgemaal Gouda,Inlaat,,,,POINT (4.6957545 51.9986662),250,250,,

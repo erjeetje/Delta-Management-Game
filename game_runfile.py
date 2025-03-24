@@ -142,7 +142,8 @@ class DMG():
         return
 
     def update_inlet_salinity(self):
-        inlet_salinity_tracker = inlet_func.get_inlet_salinity(self.inlets, self.model_output_gdf, turn=self.turn)
+        inlet_salinity_tracker = inlet_func.get_inlet_salinity(
+            self.inlets, self.model_output_gdf, turn=self.turn, run=self.turn_count) #, turn_count = self.turn_count):
         inlet_salinity_tracker = inlet_func.get_exceedance_at_inlets(inlet_salinity_tracker)
         if self.inlet_salinity_tracker is None:
             self.inlet_salinity_tracker = inlet_salinity_tracker
@@ -218,7 +219,7 @@ class DMG():
         self.model.change_local_boundaries(self.operational_df)
         # TODO: also update hexagon_tracker (references are updated with split channel)?
         turn_forcing_conditions = self.store_forcings()
-        self.forcing_conditions = self.forcing_conditions[self.forcing_conditions["turn"] != self.turn]
+        #self.forcing_conditions = self.forcing_conditions[self.forcing_conditions["turn"] != self.turn]
         self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
         model_output_df = self.run_model()
         # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
@@ -226,7 +227,7 @@ class DMG():
         #self.model_output_to_game(model_output_df, scenario=self.scenario)
         self.model_output_to_game(model_output_df)
         self.update_inlet_salinity()
-        self.gui.show_turn_button(self.turn)
+        self.gui.show_turn_button(self.turn, self.turn_count)
         self.export_output()
         print("updated to turn", self.turn, "- run", self.turn_count)
         self.turn_count += 1
@@ -281,8 +282,10 @@ class DMG():
     def store_forcings(self):
         forcing_conditions = self.model.get_forcings()
         forcing_conditions_df = pd.DataFrame.from_dict(forcing_conditions)
+        forcing_conditions_df = forcing_conditions_df.round(0).astype(int)
         forcing_conditions_df["Sea Level Rise"] = self.mode["slr"][self.turn-1]
         forcing_conditions_df["turn"] = self.turn
+        forcing_conditions_df["run"] = self.turn_count
         return forcing_conditions_df
 
     def add_sea_level_rise(self, slr=0):
@@ -386,8 +389,10 @@ class DMG():
             self.model_output_ref_gdf = self.model_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
             self.game_output_ref_gdf = self.game_output_gdf.loc[self.game_output_gdf['time'] == timestep_0]
             self.game_output_ref_gdf = self.game_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
-            self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, turn=self.turn)
-            self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, turn=self.turn)
+            self.model_output_gdf = game_sync.output_to_timeseries(
+                self.model_output_gdf, turn=self.turn, turn_count=self.turn_count)
+            self.game_output_gdf = game_sync.output_to_timeseries(
+                self.game_output_gdf, turn=self.turn, turn_count=self.turn_count)
             duration = timedelta(seconds=time.perf_counter() - start_time)
             print('Initial output processing took:', duration)
         else:
@@ -401,18 +406,22 @@ class DMG():
             print(self.model_output_gdf)
             """
 
-            # The code below appends the output GeoDataFrames
-            self.model_output_gdf = self.model_output_gdf[self.model_output_gdf["turn"] != self.turn]
-            self.game_output_gdf = self.game_output_gdf[self.game_output_gdf["turn"] != self.turn]
-            self.inlet_salinity_tracker = self.inlet_salinity_tracker[self.inlet_salinity_tracker["turn"] != self.turn]
+            # The lines below are commented out to no longer overwrite simulations
+            #self.model_output_gdf = self.model_output_gdf[self.model_output_gdf["turn"] != self.turn]
+            #self.game_output_gdf = self.game_output_gdf[self.game_output_gdf["turn"] != self.turn]
+            #self.inlet_salinity_tracker = self.inlet_salinity_tracker[self.inlet_salinity_tracker["turn"] != self.turn]
             output_to_merge_df = double_exploded_output_df[["id", "branch_rank", "time", "sb_st", 'sb_mgl']]
             if self.turn_split_channels:
                 output_to_merge_df = game_sync.update_split_channel_ids(output_to_merge_df, self.turn_split_channels)
             output_to_merge_df = output_to_merge_df.drop(columns=["branch_rank"])
             model_output_gdf = self.model_output_ref_gdf.merge(output_to_merge_df, on="id")
             game_output_gdf = self.game_output_ref_gdf.merge(output_to_merge_df, on="id")
-            model_output_gdf = game_sync.output_to_timeseries(model_output_gdf, turn=self.turn)
-            game_output_gdf = game_sync.output_to_timeseries(game_output_gdf, turn=self.turn)
+            model_output_gdf = game_sync.output_to_timeseries(
+                model_output_gdf, turn=self.turn, turn_count=self.turn_count)
+            game_output_gdf = game_sync.output_to_timeseries(
+                game_output_gdf, turn=self.turn, turn_count=self.turn_count)
+            print(model_output_gdf.iloc[0])
+            print(game_output_gdf.iloc[0])
             self.model_output_gdf = pd.concat([self.model_output_gdf, model_output_gdf])
             self.game_output_gdf = pd.concat([self.game_output_gdf, game_output_gdf])
             duration = timedelta(seconds=time.perf_counter() - start_time)

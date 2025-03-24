@@ -14,6 +14,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
 from pandas import to_datetime
+from functools import partial
 
 
 class pandasModel(QAbstractTableModel):
@@ -48,6 +49,7 @@ class ApplicationWindow(QMainWindow):
         self.game = game
         self.viz_tracker = viz_tracker
         self.selected_turn = self.viz_tracker.turn
+        self.selected_run = self.viz_tracker.run
         self.scenario = self.viz_tracker.scenario
         self.selected_variable = self.viz_tracker.viz_variable
         #self.selected_game_variable = self.viz_tracker.game_variable
@@ -142,12 +144,13 @@ class ApplicationWindow(QMainWindow):
         #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
         self.ax.set_axis_off()
         self.ax.set_position([0.1, 0.1, 0.8, 0.8])
-        turn_idx = self.game.model_output_gdf["turn"] == self.selected_turn
-        self.running_turn = self.game.model_output_gdf[turn_idx]
+        turn_idx = (self.game.model_output_gdf["turn"] == self.selected_turn) & (
+                    self.game.model_output_gdf["run"] == self.selected_run)
+        self.running_simulation = self.game.model_output_gdf[turn_idx]
         t_idx = self.viz_tracker.time_index
-        t = self.running_turn.iloc[t_idx]["time"]
-        idx = self.running_turn["time"] == t
-        self.plot_data = self.running_turn[idx]
+        t = self.running_simulation.iloc[t_idx]["time"]
+        idx = self.running_simulation["time"] == t
+        self.plot_data = self.running_simulation[idx]
         self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="RdBu_r", markersize=150.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
@@ -164,10 +167,13 @@ class ApplicationWindow(QMainWindow):
         return
 
     def update_plot_model(self):
-        if self.selected_turn != self.viz_tracker.turn:
+        if self.selected_turn != self.viz_tracker.turn or self.selected_run != self.viz_tracker.run:
             self.selected_turn = self.viz_tracker.turn
-            turn_idx = self.game.model_output_gdf["turn"] == self.selected_turn
-            self.running_turn = self.game.model_output_gdf[turn_idx]
+            self.selected_run = self.viz_tracker.run
+            turn_idx = (self.game.model_output_gdf["turn"] == self.selected_turn) & (
+                        self.game.model_output_gdf["run"] == self.selected_run)
+            print("set visualizations to turn:", self.selected_turn, "and run:", self.selected_run)
+            self.running_simulation = self.game.model_output_gdf[turn_idx]
             self.viz_tracker.update_scenario()
             self.scenario = self.viz_tracker.scenario
         if self.selected_variable != self.viz_tracker.viz_variable:
@@ -191,10 +197,10 @@ class ApplicationWindow(QMainWindow):
             self.pc.set_norm(norm)
             self.update_colorbars()
         t = self.viz_tracker.get_time_index()
-        idx = self.running_turn["time"] == t
-        self.plot_data = self.running_turn[idx]
+        idx = self.running_simulation["time"] == t
+        self.plot_data = self.running_simulation[idx]
         self.pc.set_array(self.plot_data[self.selected_variable])
-        title_string = "turn: " + str(self.selected_turn) + " - " + self.scenario + " - " + f"timestep: {t}"
+        title_string = "turn: " + str(self.selected_turn) + " - run: " + str(self.selected_run) + " - " + self.scenario + " - " + f"timestep: {t}"
         self.ax.set_title(title_string[:-8])
         self.model_canvas.draw()
         self.viz_tracker.time_index = 1
@@ -226,7 +232,9 @@ class ApplicationWindow(QMainWindow):
         ax.set_axis_off()
 
         model_output = self.game.model_output_gdf.copy()
-        model_output = model_output[model_output["turn"] == self.viz_tracker.turn]
+        #model_output = model_output[model_output["turn"] == self.viz_tracker.turn]
+        model_output = model_output[
+            (model_output["turn"] == self.viz_tracker.turn) & (model_output["run"] == self.viz_tracker.run)]
         model_output = model_output[model_output["time"] == model_output.iloc[0]["time"]]
         if model_output.empty:
             print("there seems to be no output data yet")
@@ -234,13 +242,15 @@ class ApplicationWindow(QMainWindow):
             model_output.plot(ax=ax, color="deepskyblue", markersize=50)
 
         inlet_data = self.game.inlet_salinity_tracker.copy()
-        inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
+        #inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
+        inlet_data = inlet_data[
+            (inlet_data["turn"] == self.viz_tracker.turn) & (inlet_data["run"] == self.viz_tracker.run)]
         if inlet_data.empty:
             print("there seems to be no inlet data yet")
         else:
             inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
             inlet_data = inlet_data.reset_index()
-            cmap = LinearSegmentedColormap.from_list("", ["green", "yellow", "orange", "red"])
+            cmap = LinearSegmentedColormap.from_list("", ["green", "orange", "red"])
             inlet_data.plot("score_indicator", ax=ax, cmap=cmap, markersize=300)  # , legend=True)
             for x, y, label in zip(inlet_data["geometry"].x, inlet_data["geometry"].y, inlet_data["name"]):
                 ax.annotate(label, xy=(x, y), xytext=(0, 12), ha='center', textcoords="offset points", size=10)
@@ -248,27 +258,43 @@ class ApplicationWindow(QMainWindow):
         self.inlet_canvas.draw()
         return
 
-    def plot_salinity_inlets(self):
+    def plot_salinity_inlets(self, combined_plot=True):
         to_plot = self.viz_tracker.inlet_to_plot
         self.inlet_plots.figure.clf()
         ax = self.inlet_plots.figure.subplots()
 
         inlet_data = self.game.inlet_salinity_tracker.copy()
-        inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
+        if combined_plot:
+            inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
+            run_idx = inlet_data['run'].unique()
+        else:
+            inlet_data = inlet_data[
+                (inlet_data["turn"] == self.viz_tracker.turn) & (inlet_data["run"] == self.viz_tracker.run)]
         if inlet_data.empty:
             print("there seems to be no inlet data yet")
         else:
             inlet_data = inlet_data.reset_index()
             inlet_data = inlet_data[inlet_data['name'] == to_plot]
-
             ax.set_facecolor('lightgray')
 
-            time_steps = to_datetime(inlet_data['time']).dt.strftime('%Y-%m-%d')
-            salinity_values = inlet_data['water_salinity'].values
+            if combined_plot:
+                markers = ['o', 's', 'h', 'v', 'D']
+                color = ['blue', 'darkgreen', 'orange', 'gold', 'purple']
+
+                for idx in run_idx:
+                    run_data = inlet_data[inlet_data['run'] == idx]
+                    time_steps = to_datetime(run_data['time']).dt.strftime('%Y-%m-%d')
+                    salinity_values = run_data['water_salinity'].values
+
+                    ax.plot(time_steps, salinity_values, marker=markers[idx-1], linestyle='-', color=color[idx-1], label='Salinity (mg/l) run %d' % idx)
+            else:
+                time_steps = to_datetime(inlet_data['time']).dt.strftime('%Y-%m-%d')
+                salinity_values = inlet_data['water_salinity'].values
+                ax.plot(time_steps, salinity_values, marker='o', linestyle='-', color='blue',
+                        label='Salinity (mg/l) run %d' % self.viz_tracker.turn)
+
             cl_threshold_normal = inlet_data.iloc[0]['CL_threshold_during_regular_operation_(mg/l)']
             cl_threshold_drought = inlet_data.iloc[0]['CL_threshold_during_drought_(mg/l)']
-
-            ax.plot(time_steps, salinity_values, marker='o', linestyle='-', color='blue', label='Salinity (mg/l)')
 
             ax.axhline(y=cl_threshold_normal, color='green', linestyle=(0, (3, 1.5, 1, 1.5)),
                         label='CL Threshold Normal')  # Custom dash-dot pattern: (dash length, gap length, dot length, gap length)
@@ -315,19 +341,28 @@ class ApplicationWindow(QMainWindow):
 
     def show_forcing_conditions(self):
         forcing_conditions_df = self.game.forcing_conditions
-        forcing_conditions_df = forcing_conditions_df[forcing_conditions_df["turn"] == self.viz_tracker.turn]
-        forcing_conditions_df = forcing_conditions_df.drop(columns="turn")
+        forcing_conditions_df = forcing_conditions_df[
+            (forcing_conditions_df["turn"] == self.viz_tracker.turn) &
+            (forcing_conditions_df["run"] == self.viz_tracker.run)]
+        forcing_conditions_df = forcing_conditions_df.drop(columns=["turn", "run"])
         forcing_conditions = pandasModel(forcing_conditions_df)
         self.forcing_table.setModel(forcing_conditions)
         return
 
-    def show_turn_button(self, turn):
+    def show_turn_button(self, turn, run):
+        self.control_widget.turn_buttons[turn][run-1].setEnabled(True)
+        if turn == 2:
+            self.control_widget.on_turn2_button_clicked(run)
+        elif turn == 3:
+            self.control_widget.on_turn3_button_clicked(run)
+        """
         if turn == 2:
             self.control_widget.btn_turn2.setEnabled(True)
             self.control_widget.on_turn2_button_clicked()
         elif turn == 3:
             self.control_widget.btn_turn3.setEnabled(True)
             self.control_widget.on_turn3_button_clicked()
+        """
         """
         elif turn == 4:
             self.control_widget.btn_turn4.setEnabled(True)
@@ -346,6 +381,7 @@ class GameVisualization(QWidget):
         self.game = game
         self.viz_tracker=viz_tracker
         self.selected_turn = self.viz_tracker.turn
+        self.selected_run = self.viz_tracker.run
         self.selected_variable = self.viz_tracker.viz_variable
         self.setWindowTitle('Game world visualization')
         x_min = -50
@@ -377,12 +413,13 @@ class GameVisualization(QWidget):
         #self.ax.set_aspect(1)
         self.ax.axis(bbox)
         self.ax.set_axis_off()
-        turn_idx = self.game.game_output_gdf["turn"] == self.selected_turn
-        self.running_turn = self.game.game_output_gdf[turn_idx]
+        turn_idx = (self.game.game_output_gdf["turn"] == self.selected_turn) & (
+                    self.game.game_output_gdf["run"] == self.selected_run)
+        self.running_simulation = self.game.game_output_gdf[turn_idx]
         t_idx = self.viz_tracker.time_index
-        t = self.running_turn.iloc[t_idx]["time"]
-        idx = self.running_turn["time"] == t
-        self.plot_data = self.running_turn[idx]
+        t = self.running_simulation.iloc[t_idx]["time"]
+        idx = self.running_simulation["time"] == t
+        self.plot_data = self.running_simulation[idx]
         self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="RdBu_r", aspect=1, markersize=200.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
@@ -396,10 +433,12 @@ class GameVisualization(QWidget):
         return
 
     def update_plot_model(self):
-        if self.selected_turn != self.viz_tracker.turn:
+        if self.selected_turn != self.viz_tracker.turn or self.selected_run != self.viz_tracker.run:
             self.selected_turn = self.viz_tracker.turn
-            turn_idx = self.game.game_output_gdf["turn"] == self.selected_turn
-            self.running_turn = self.game.game_output_gdf[turn_idx]
+            self.selected_run = self.viz_tracker.run
+            turn_idx = (self.game.game_output_gdf["turn"] == self.selected_turn) & (
+                        self.game.game_output_gdf["run"] == self.selected_run)
+            self.running_simulation = self.game.game_output_gdf[turn_idx]
         if self.selected_variable != self.viz_tracker.viz_variable:
             self.selected_variable = self.viz_tracker.viz_variable
             if self.selected_variable == "water_salinity":
@@ -421,8 +460,8 @@ class GameVisualization(QWidget):
             self.pc.set_norm(norm)
             return
         t = self.viz_tracker.get_time_index()
-        idx = self.running_turn["time"] == t
-        self.plot_data = self.running_turn[idx]
+        idx = self.running_simulation["time"] == t
+        self.plot_data = self.running_simulation[idx]
         self.pc.set_array(self.plot_data[self.selected_variable])
         #self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
         self.game_canvas.draw()
@@ -512,7 +551,7 @@ class ScoreWidget(QWidget):
         start_x = 30
         width = 300
         height = 60
-        spacing = 10
+        spacing = 50
         spot_x = start_x
         spot_y = 5
         font_size = 12
@@ -521,14 +560,6 @@ class ScoreWidget(QWidget):
         self.lbl_green_inlets.move(spot_x, spot_y)
         self.lbl_green_inlets.setFixedWidth(width)
         self.lbl_green_inlets.setAlignment(Qt.AlignLeft)
-        spot_x += width + spacing
-
-        self.lbl_yellow_inlets = QLabel('Number of yellow inlets', self)
-        self.lbl_yellow_inlets.setFont(QFont('Arial', font_size))
-        self.lbl_yellow_inlets.setStyleSheet("font-weight: bold; font-size: 24")
-        self.lbl_yellow_inlets.move(spot_x, spot_y)
-        self.lbl_yellow_inlets.setFixedWidth(width)
-        self.lbl_yellow_inlets.setAlignment(Qt.AlignLeft)
         spot_x += width + spacing
 
         self.lbl_orange_inlets = QLabel('Number of orange inlets', self)
@@ -557,19 +588,21 @@ class ScoreWidget(QWidget):
 
     def update_text(self):
         inlet_data = self.gui.game.inlet_salinity_tracker.copy()
-        inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
+        inlet_data = inlet_data[(inlet_data["turn"] == self.viz_tracker.turn) & (inlet_data["run"] == self.viz_tracker.run)]
+        #df1 = df[(df.a != -1) & (df.b != -1)]
         if inlet_data.empty:
             print("there seems to be no inlet data yet")
         else:
             inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
             inlet_data = inlet_data.reset_index()
             number_green = len(inlet_data[inlet_data['score_indicator'] == 1])
-            number_yellow = len(inlet_data[inlet_data['score_indicator'] == 2])
-            number_orange = len(inlet_data[inlet_data['score_indicator'] == 3])
-            number_red = len(inlet_data[inlet_data['score_indicator'] == 4])
-            score = ((number_green * 1 + number_yellow * 0.75 + number_orange * 0.5 + number_red * 0.25) / 6) * 100
+            #number_yellow = len(inlet_data[inlet_data['score_indicator'] == 2])
+            number_orange = len(inlet_data[inlet_data['score_indicator'] == 2])
+            number_red = len(inlet_data[inlet_data['score_indicator'] == 3])
+            #score = ((number_green * 1 + number_yellow * 0.75 + number_orange * 0.5 + number_red * 0.25) / 6) * 100
+            score = ((number_green * 1 + number_orange * 0.5) / len(inlet_data)) * 100
             self.lbl_green_inlets.setText('Number of green inlets: %d' % number_green)
-            self.lbl_yellow_inlets.setText('Number of yellow inlets: %d' % number_yellow)
+            #self.lbl_yellow_inlets.setText('Number of yellow inlets: %d' % number_yellow)
             self.lbl_orange_inlets.setText('Number of orange inlets: %d' % number_orange)
             self.lbl_red_inlets.setText('Number of red inlets: %d' % number_red)
             self.lbl_score.setText('Score: %d percent' % score)
@@ -589,28 +622,39 @@ class ControlWidget(QWidget):
         self.screen_highlight = None
         self.board_highlight = None
         self.turn_highlight = None
+        self.run_highlight = None
         self.initUI()
         self.change_highlights()
         self.show()  # app.exec_()
 
     def initUI(self):
-        self.lbl_screen_variable = QLabel('Visualization\nselection', self)
+        label_spacing = 30
+        button_spacing = 15
+        button_height = 60
+        y_location = 0
+
+        self.lbl_screen_variable = QLabel('Visualization', self)
         self.lbl_screen_variable.setFont(QFont('Arial', 12))
         self.lbl_screen_variable.setStyleSheet("font-weight: bold; font-size: 24")
-        self.lbl_screen_variable.move(10, 20)
+        self.lbl_screen_variable.move(10, y_location)
         self.lbl_screen_variable.setFixedWidth(180)
         self.lbl_screen_variable.setAlignment(Qt.AlignCenter)
+
+        y_location += label_spacing
 
         self.btn_screen_salinity = QPushButton('Salinity\nconcentration', self)
         self.btn_screen_salinity.setFont(QFont('Arial', 10))
         self.btn_screen_salinity.clicked.connect(self.on_salinity_button_clicked)
         self.btn_screen_salinity.resize(180, 60)
-        self.btn_screen_salinity.move(10, 100)
+        self.btn_screen_salinity.move(10, y_location)
+
+        y_location += (button_height + button_spacing)
+
         self.btn_screen_salinity_category = QPushButton('Salinity\n(categorized)', self)
         self.btn_screen_salinity_category.setFont(QFont('Arial', 10))
         self.btn_screen_salinity_category.clicked.connect(self.on_salinity_category_button_clicked)
         self.btn_screen_salinity_category.resize(180, 60)
-        self.btn_screen_salinity_category.move(10, 180)
+        self.btn_screen_salinity_category.move(10, y_location)
 
         """
         self.btn_screen_water_velocity = QPushButton('Water velocity', self)
@@ -649,32 +693,40 @@ class ControlWidget(QWidget):
         self.btn_update.setStyleSheet("background-color:lightgray;")
         """
 
+        y_location = 180
+
         self.next_run = QLabel('Next run:', self)
         # self.lbl_model_info.setStyleSheet("font-weight: bold; font-size: 36")
         self.next_run.setFont(QFont('Arial', 12))
-        self.next_run.move(10, 300)
+        self.next_run.move(10, y_location)
         self.next_run.setFixedWidth(180)
         self.next_run.setAlignment(Qt.AlignCenter)
+
+        y_location += label_spacing
 
         self.lbl_model_info = QLabel('turn %s - run %d' % (self.gui.game.turn, self.gui.game.turn_count), self)
         #self.lbl_model_info.setStyleSheet("font-weight: bold; font-size: 36")
         self.lbl_model_info.setFont(QFont('Arial', 12))
-        self.lbl_model_info.move(10, 340)
+        self.lbl_model_info.move(10, y_location)
         self.lbl_model_info.setFixedWidth(180)
         self.lbl_model_info.setAlignment(Qt.AlignCenter)
+
+        y_location += label_spacing
 
         self.btn_run_model = QPushButton('Run model', self)
         self.btn_run_model.setFont(QFont('Arial', 10))
         self.btn_run_model.clicked.connect(self.on_run_model_button_clicked)
         self.btn_run_model.resize(180, 60)
-        self.btn_run_model.move(10, 400)
+        self.btn_run_model.move(10, y_location)
         self.btn_run_model.setStyleSheet("background-color:lightgray;")
+
+        y_location += (button_height + button_spacing)
 
         self.btn_end_round = QPushButton('End round', self)
         self.btn_end_round.setFont(QFont('Arial', 10))
         self.btn_end_round.clicked.connect(self.on_end_round_button_clicked)
         self.btn_end_round.resize(180, 60)
-        self.btn_end_round.move(10, 480)
+        self.btn_end_round.move(10, y_location)
         self.btn_end_round.setStyleSheet("background-color:lightgray;")
         """
         self.btn_board_water_velocity = QPushButton('Water velocity', self)
@@ -683,20 +735,140 @@ class ControlWidget(QWidget):
         self.btn_board_water_velocity.move(210, 380)
         """
 
+        y_location = 400
+
         self.lbl_boundary = QLabel('Output selection', self)
         self.lbl_boundary.setFont(QFont('Arial', 12))
         #self.lbl_boundary.setStyleSheet("font-weight: bold; font-size: 36")
-        self.lbl_boundary.move(10, 600)
+        self.lbl_boundary.move(10, y_location)
         self.lbl_boundary.setFixedWidth(180)
         self.lbl_boundary.setAlignment(Qt.AlignCenter)
 
+        y_location += label_spacing
+
+        self.lbl_turn1 = QLabel('2018:', self)
+        self.lbl_turn1.setFont(QFont('Arial', 12))
+        # self.lbl_boundary.setStyleSheet("font-weight: bold; font-size: 36")
+        self.lbl_turn1.move(10, y_location)
+        self.lbl_turn1.setFixedWidth(180)
+        self.lbl_turn1.setAlignment(Qt.AlignCenter)
+
+        y_location += label_spacing
+
+        self.btn_turn1 = QPushButton('Reference', self)
+        self.btn_turn1.setFont(QFont('Arial', 10))
+        # self.btn_turn1 = QPushButton('2017', self)
+        self.btn_turn1.clicked.connect(self.on_turn1_button_clicked)
+        self.btn_turn1.resize(180, 60)
+        self.btn_turn1.move(10, y_location)
+
+        y_location += (button_height + button_spacing)
+
+        self.lbl_turn2 = QLabel('2050 Hd - run:', self)
+        self.lbl_turn2.setFont(QFont('Arial', 12))
+        # self.lbl_boundary.setStyleSheet("font-weight: bold; font-size: 36")
+        self.lbl_turn2.move(10, y_location)
+        self.lbl_turn2.setFixedWidth(180)
+        self.lbl_turn2.setAlignment(Qt.AlignCenter)
+
+        y_location += label_spacing
+
+        button_width = 50
+        button_height = 60
+        x_location = 10
+        #y_location = 590
+        x_spacing = 15
+        y_spacing = 15
+
+        self.btn_turn2_run1 = QPushButton('1', self)
+        self.btn_turn2_run1.setFont(QFont('Arial', 12))
+        # self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
+        output_update = partial(self.on_turn2_button_clicked, 1)
+        #self.btn_turn2_run1.clicked.connect(self.on_turn2_run1_button_clicked)
+        self.btn_turn2_run1.clicked.connect(output_update)
+        self.btn_turn2_run1.resize(button_width, button_height)
+        self.btn_turn2_run1.move(x_location, y_location)
+        self.btn_turn2_run1.setEnabled(False)
+
+        x_location += (x_spacing + button_width)
+        if x_location >= 190:
+            x_location = 10
+            y_location += (y_spacing + button_height)
+
+        self.btn_turn2_run2 = QPushButton('2', self)
+        self.btn_turn2_run2.setFont(QFont('Arial', 12))
+        # self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
+        output_update = partial(self.on_turn2_button_clicked, 2)
+        #self.btn_turn2_run2.clicked.connect(self.on_turn2_run2_button_clicked)
+        self.btn_turn2_run2.clicked.connect(output_update)
+        self.btn_turn2_run2.resize(button_width, button_height)
+        self.btn_turn2_run2.move(x_location, y_location)
+        self.btn_turn2_run2.setEnabled(False)
+
+        x_location += (x_spacing + button_width)
+        if x_location >= 190:
+            x_location = 10
+            y_location += (y_spacing + button_height)
+
+        self.btn_turn2_run3 = QPushButton('3', self)
+        self.btn_turn2_run3.setFont(QFont('Arial', 12))
+        # self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
+        output_update = partial(self.on_turn2_button_clicked, 3)
+        self.btn_turn2_run3.clicked.connect(output_update)
+        #self.btn_turn2_run3.clicked.connect(self.on_turn2_run3_button_clicked)
+        self.btn_turn2_run3.resize(button_width, button_height)
+        self.btn_turn2_run3.move(x_location, y_location)
+        self.btn_turn2_run3.setEnabled(False)
+
+        x_location += (x_spacing + button_width)
+        if x_location >= 190:
+            x_location = 10
+            y_location += (y_spacing + button_height)
+
+        self.btn_turn2_run4 = QPushButton('4', self)
+        self.btn_turn2_run4.setFont(QFont('Arial', 12))
+        # self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
+        output_update = partial(self.on_turn2_button_clicked, 4)
+        self.btn_turn2_run4.clicked.connect(output_update)
+        #self.btn_turn2_run4.clicked.connect(self.on_turn2_run4_button_clicked)
+        self.btn_turn2_run4.resize(button_width, button_height)
+        self.btn_turn2_run4.move(x_location, y_location)
+        self.btn_turn2_run4.setEnabled(False)
+
+        x_location += (x_spacing + button_width)
+        if x_location >= 190:
+            x_location = 10
+            y_location += (y_spacing + button_height)
+
+        self.btn_turn2_run5 = QPushButton('5', self)
+        self.btn_turn2_run5.setFont(QFont('Arial', 12))
+        # self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
+        output_update = partial(self.on_turn2_button_clicked, 5)
+        self.btn_turn2_run5.clicked.connect(output_update)
+        #self.btn_turn2_run5.clicked.connect(self.on_turn2_run5_button_clicked)
+        self.btn_turn2_run5.resize(button_width, button_height)
+        self.btn_turn2_run5.move(x_location, y_location)
+        self.btn_turn2_run5.setEnabled(False)
+
         """
-        self.btn_turn4 = QPushButton('2018 - turn 4', self)
-        #self.btn_turn4 = QPushButton('2100he (+1m SLR) +\n widened NWW', self)
-        self.btn_turn4.clicked.connect(self.on_turn4_button_clicked)
-        self.btn_turn4.resize(180, 60)
-        self.btn_turn4.move(10, 820)
-        self.btn_turn4.setEnabled(False)
+        self.btn_turn2 = QPushButton('2050 Hd', self)
+        self.btn_turn2.setFont(QFont('Arial', 10))
+        # self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
+        self.btn_turn2.clicked.connect(self.on_turn2_button_clicked)
+        self.btn_turn2.resize(180, 60)
+        self.btn_turn2.move(10, 740)
+        self.btn_turn2.setEnabled(False)
+        """
+
+        y_location += (button_height + y_spacing)
+
+        self.lbl_turn3 = QLabel('2100 Hd - run:', self)
+        self.lbl_turn3.setFont(QFont('Arial', 12))
+        # self.lbl_boundary.setStyleSheet("font-weight: bold; font-size: 36")
+        self.lbl_turn3.move(10, y_location)
+        self.lbl_turn3.setFixedWidth(180)
+        self.lbl_turn3.setAlignment(Qt.AlignCenter)
+
         """
         self.btn_turn3 = QPushButton('2100 Hd', self)
         self.btn_turn3.setFont(QFont('Arial', 10))
@@ -705,19 +877,80 @@ class ControlWidget(QWidget):
         self.btn_turn3.resize(180, 60)
         self.btn_turn3.move(10, 820)
         self.btn_turn3.setEnabled(False)
-        self.btn_turn2 = QPushButton('2050 Hd', self)
-        self.btn_turn2.setFont(QFont('Arial', 10))
-        #self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
-        self.btn_turn2.clicked.connect(self.on_turn2_button_clicked)
-        self.btn_turn2.resize(180, 60)
-        self.btn_turn2.move(10, 740)
-        self.btn_turn2.setEnabled(False)
-        self.btn_turn1 = QPushButton('2018', self)
-        self.btn_turn1.setFont(QFont('Arial', 10))
-        #self.btn_turn1 = QPushButton('2017', self)
-        self.btn_turn1.clicked.connect(self.on_turn1_button_clicked)
-        self.btn_turn1.resize(180, 60)
-        self.btn_turn1.move(10, 660)
+        """
+
+        x_location = 10
+        y_location += label_spacing
+
+        self.btn_turn3_run1 = QPushButton('1', self)
+        self.btn_turn3_run1.setFont(QFont('Arial', 12))
+        output_update = partial(self.on_turn3_button_clicked, 1)
+        #self.btn_turn3_run2.clicked.connect(self.on_turn2_run1_button_clicked)
+        self.btn_turn3_run1.clicked.connect(output_update)
+        self.btn_turn3_run1.resize(button_width, button_height)
+        self.btn_turn3_run1.move(x_location, y_location)
+        self.btn_turn3_run1.setEnabled(False)
+
+        x_location += (x_spacing + button_width)
+        if x_location >= 190:
+            x_location = 10
+            y_location += (y_spacing + button_height)
+
+        self.btn_turn3_run2 = QPushButton('2', self)
+        self.btn_turn3_run2.setFont(QFont('Arial', 12))
+        output_update = partial(self.on_turn3_button_clicked, 2)
+        #self.btn_turn3_run2.clicked.connect(self.on_turn2_run2_button_clicked)
+        self.btn_turn3_run2.clicked.connect(output_update)
+        self.btn_turn3_run2.resize(button_width, button_height)
+        self.btn_turn3_run2.move(x_location, y_location)
+        self.btn_turn3_run2.setEnabled(False)
+
+        x_location += (x_spacing + button_width)
+        if x_location >= 190:
+            x_location = 10
+            y_location += (y_spacing + button_height)
+
+        self.btn_turn3_run3 = QPushButton('3', self)
+        self.btn_turn3_run3.setFont(QFont('Arial', 12))
+        output_update = partial(self.on_turn3_button_clicked, 3)
+        self.btn_turn3_run3.clicked.connect(output_update)
+        #self.btn_turn3_run3.clicked.connect(self.on_turn2_run3_button_clicked)
+        self.btn_turn3_run3.resize(button_width, button_height)
+        self.btn_turn3_run3.move(x_location, y_location)
+        self.btn_turn3_run3.setEnabled(False)
+
+        x_location += (x_spacing + button_width)
+        if x_location >= 190:
+            x_location = 10
+            y_location += (y_spacing + button_height)
+
+        self.btn_turn3_run4 = QPushButton('4', self)
+        self.btn_turn3_run4.setFont(QFont('Arial', 12))
+        # self.btn_turn2 = QPushButton('2018 +\n partly deepened NWW', self)
+        output_update = partial(self.on_turn3_button_clicked, 4)
+        self.btn_turn3_run4.clicked.connect(output_update)
+        #self.btn_turn2_run4.clicked.connect(self.on_turn2_run4_button_clicked)
+        self.btn_turn3_run4.resize(button_width, button_height)
+        self.btn_turn3_run4.move(x_location, y_location)
+        self.btn_turn3_run4.setEnabled(False)
+
+        x_location += (x_spacing + button_width)
+        if x_location >= 190:
+            x_location = 10
+            y_location += (y_spacing + button_height)
+
+        self.btn_turn3_run5 = QPushButton('5', self)
+        self.btn_turn3_run5.setFont(QFont('Arial', 12))
+        output_update = partial(self.on_turn3_button_clicked, 5)
+        self.btn_turn3_run5.clicked.connect(output_update)
+        #self.btn_turn3_run5.clicked.connect(self.on_turn2_run5_button_clicked)
+        self.btn_turn3_run5.resize(button_width, button_height)
+        self.btn_turn3_run5.move(x_location, y_location)
+        self.btn_turn3_run5.setEnabled(False)
+
+        self.turn_buttons = {1: [self.btn_turn1],
+                             2: [self.btn_turn2_run1, self.btn_turn2_run2, self.btn_turn2_run3, self.btn_turn2_run4, self.btn_turn2_run5],
+                             3: [self.btn_turn3_run1, self.btn_turn3_run2, self.btn_turn3_run3, self.btn_turn3_run4, self.btn_turn3_run5]}
         return
 
     def on_update_button_clicked(self):
@@ -762,6 +995,7 @@ class ControlWidget(QWidget):
 
     def on_turn1_button_clicked(self):
         self.viz_tracker.turn = 1
+        self.viz_tracker.run = 1
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
@@ -769,6 +1003,7 @@ class ControlWidget(QWidget):
         self.change_highlights()
         return
 
+    """
     def on_turn2_button_clicked(self):
         self.viz_tracker.turn = 2
         self.gui.show_forcing_conditions()
@@ -777,9 +1012,21 @@ class ControlWidget(QWidget):
         self.gui.score_widget.update_text()
         self.change_highlights()
         return
+    """
 
-    def on_turn3_button_clicked(self):
+    def on_turn2_button_clicked(self, run):
+        self.viz_tracker.turn = 2
+        self.viz_tracker.run = run
+        self.gui.show_forcing_conditions()
+        self.gui.plot_inlet_indicators()
+        self.gui.plot_salinity_inlets()
+        self.gui.score_widget.update_text()
+        self.change_highlights()
+        return
+
+    def on_turn3_button_clicked(self, run):
         self.viz_tracker.turn = 3
+        self.viz_tracker.run = run
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
@@ -816,18 +1063,36 @@ class ControlWidget(QWidget):
             elif self.board_highlight == "salinity_category":
                 self.btn_board_salinity_category.setStyleSheet("background-color:blue;")
         """
-        if self.turn_highlight != self.viz_tracker.turn:
+        if self.turn_highlight != self.viz_tracker.turn or self.run_highlight != self.viz_tracker.run:
             self.turn_highlight = self.viz_tracker.turn
+            self.run_highlight = self.viz_tracker.run
+            for key, btn_list in self.turn_buttons.items():
+                for btn in btn_list:
+                    btn.setStyleSheet("background-color:lightgray;")
+            """
             self.btn_turn1.setStyleSheet("background-color:lightgray;")
-            self.btn_turn2.setStyleSheet("background-color:lightgray;")
+            self.btn_turn2_run1.setStyleSheet("background-color:lightgray;")
+            self.btn_turn2_run2.setStyleSheet("background-color:lightgray;")
+            self.btn_turn2_run3.setStyleSheet("background-color:lightgray;")
+            self.btn_turn2_run4.setStyleSheet("background-color:lightgray;")
+            self.btn_turn2_run5.setStyleSheet("background-color:lightgray;")
             self.btn_turn3.setStyleSheet("background-color:lightgray;")
             #self.btn_turn4.setStyleSheet("background-color:lightgray;")
+            
             if self.turn_highlight == 1:
                 self.btn_turn1.setStyleSheet("background-color:cyan;")
             elif self.turn_highlight == 2:
                 self.btn_turn2.setStyleSheet("background-color:magenta;")
             elif self.turn_highlight == 3:
                 self.btn_turn3.setStyleSheet("background-color:yellow;")
+            """
+            if self.turn_highlight == 1:
+                background_color="background-color:cyan;"
+            elif self.turn_highlight == 2:
+                background_color="background-color:magenta;"
+            elif self.turn_highlight == 3:
+                background_color="background-color:yellow;"
+            self.turn_buttons[self.turn_highlight][self.run_highlight-1].setStyleSheet(background_color)
             #elif self.turn_highlight == 4:
             #    self.btn_turn4.setStyleSheet("background-color:green;")
         return
@@ -838,6 +1103,7 @@ class VisualizationTracker():
     def __init__(self, starting_turn, scenarios, starting_variable, time_steps, starting_time,
                  salinity_range, salinity_category, inlet_to_plot): #, water_level_range, water_velocity_range
         self._turn = starting_turn
+        self._run = 1
         self.scenarios = scenarios
         self._scenario = scenarios[0]
         self._viz_variable = starting_variable
@@ -861,6 +1127,10 @@ class VisualizationTracker():
     @property
     def turn(self):
         return self._turn
+
+    @property
+    def run(self):
+        return self._run
 
     @property
     def scenario(self):
@@ -909,6 +1179,11 @@ class VisualizationTracker():
     @turn.setter
     def turn(self, turn):
         self._turn = turn
+        return
+
+    @run.setter
+    def run(self, run):
+        self._run = run
         return
 
     @scenario.setter

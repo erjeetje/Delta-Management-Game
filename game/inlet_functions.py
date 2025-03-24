@@ -30,13 +30,14 @@ def index_inlets_to_model_locations(water_inlets_data_gdf, model_output_index_gd
     water_inlets_data_gdf = water_inlets_data_gdf.dropna()
     return water_inlets_data_gdf
 
-def get_inlet_salinity(water_inlets_data_gdf, model_output_gdf, turn):
+def get_inlet_salinity(water_inlets_data_gdf, model_output_gdf, turn, run):
     inlet_data = water_inlets_data_gdf.copy()
     model_output = model_output_gdf.copy()
-    turn_model_output = model_output[model_output["turn"] == turn]
+    turn_model_output = model_output[(model_output["turn"] == turn) & (model_output["run"] == run)]
+    #run_model_output = model_output[model_output["run"] == run]
     turn_model_output = turn_model_output.set_index("id")
     turn_inlet_salinity = inlet_data.set_index("output_location").merge(
-        turn_model_output[["time", "water_salinity", "salinity_category", "turn"]], left_index=True,
+        turn_model_output[["time", "water_salinity", "salinity_category", "turn", "run"]], left_index=True,
         right_index=True)
     turn_inlet_salinity = turn_inlet_salinity.reset_index()
     turn_inlet_salinity = turn_inlet_salinity.set_index("name")
@@ -100,6 +101,17 @@ def get_exceedance_at_inlets(inlets_with_salinity):
                                                              max_streak_drought,
                                                              inlets_df['Num_days_consecutive_drought'])
         num_days = len(salinity_values)
+
+        if isinstance(num_days_exceeding_drought, int):
+            if num_days_exceeding_normal == 0:
+                score_indicator = 1
+            elif num_days_exceeding_drought == 0:
+                score_indicator = 2
+            else:
+                score_indicator = 3
+        else:
+            score_indicator = np.nan
+        """
         if isinstance(num_days_exceeding_drought, int):
             if (num_days_exceeding_drought / num_days) < 0.25:
                 score_indicator = 1
@@ -111,6 +123,8 @@ def get_exceedance_at_inlets(inlets_with_salinity):
                 score_indicator = 4
         else:
             score_indicator = np.nan
+        """
+
 
         inlets_df['score_indicator'] = np.where((inlets_df['name'] == inlet_name),
                                                              score_indicator,

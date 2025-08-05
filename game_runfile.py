@@ -56,45 +56,17 @@ class DMG():
         self.model.change_local_boundaries(self.operational_df)
         self.forcing_conditions = self.store_forcings()
 
-        """
+
         #multiprocessing test
+        model_drought_output_df, model_normal_output_df = self.run_simulations(sim_count=2)
+        #model_drought_output_df = self.run_model()
 
-        test_range = 2
-        start_time = time.perf_counter()
-        if __name__ == '__main__':
-            manager = Manager()
-            return_dict = manager.dict()
-            jobs = []
-
-            for i in range(test_range):
-                p = Process(target=run_model, args=(self.model, i, return_dict))
-                jobs.append(p)
-                p.start()
-
-            for proc in jobs:
-                proc.join()
-
-            model_output_df = return_dict[0]
-
-        duration1 = timedelta(seconds=time.perf_counter() - start_time)
-
-        #model_output_df = self.model_outputs[0]
-        print(model_output_df)
-
-        start_time = time.perf_counter()
-        for i in range(test_range):
-            model_output_df = self.run_model()
-        
-        duration2 = timedelta(seconds=time.perf_counter() - start_time)
-        print('Parallel simulation duration:', duration1)
-        print('Serial simulation duration:', duration2)
-        """
-
-        model_output_df = self.run_model()
-        self.model_output_to_game(model_output_df, initialize=True)
+        self.model_output_to_game(model_drought_output_df, initialize=True)
+        self.model_output_to_game(model_normal_output_df, type="normal", initialize=True)
         self.index_inlets()
         self.update_inlet_salinity()
         self.export_output()
+        self.export_output(type="normal")
         self._turn_count = 2
         self.end_round()
         self.create_visualizations()
@@ -133,7 +105,7 @@ class DMG():
         """
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.input_files = os.path.join(dir_path, "game", "input_files")
-        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\07 DMG design\coding (notebooks)\game debugging"
+        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\09 Prototype refinement summer 2025\coding (notebooks)\multiprocessing test"
         self.debug_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\08 Prototype building\debug"
         return
 
@@ -177,12 +149,12 @@ class DMG():
         return hexagons
 
     def index_inlets(self):
-        self.inlets = inlet_func.index_inlets_to_model_locations(self.inlets, self.model_output_gdf)
+        self.inlets = inlet_func.index_inlets_to_model_locations(self.inlets, self.model_drought_output_gdf)
         return
 
     def update_inlet_salinity(self):
         inlet_salinity_tracker = inlet_func.get_inlet_salinity(
-            self.inlets, self.model_output_gdf, turn=self.turn, run=self.turn_count) #, turn_count = self.turn_count):
+            self.inlets, self.model_drought_output_gdf, turn=self.turn, run=self.turn_count) #, turn_count = self.turn_count):
         inlet_salinity_tracker = inlet_func.get_exceedance_at_inlets(inlet_salinity_tracker)
         if self.inlet_salinity_tracker is None:
             self.inlet_salinity_tracker = inlet_salinity_tracker
@@ -190,6 +162,46 @@ class DMG():
             self.inlet_salinity_tracker = pd.concat([self.inlet_salinity_tracker, inlet_salinity_tracker])
         print(self.inlet_salinity_tracker.shape)
         return
+
+    def run_simulations(self, sim_count=2):
+        start_time = time.perf_counter()
+        if __name__ == '__main__':
+            manager = Manager()
+            return_dict = manager.dict()
+            jobs = []
+
+            for i in range(sim_count):
+                if i != 0:
+                    self.model.change_forcings(scenario=self.scenario, timeseries_type="normal")
+                    # self.model.change_local_boundaries(self.operational_df)
+                # TODO properly store forcings for drought and normal conditions, it is now a df, perhaps merge? or dict of dfs?
+                # self.forcing_conditions = self.store_forcings()
+                p = Process(target=run_model, args=(self.model, i, return_dict))
+                jobs.append(p)
+                p.start()
+
+            for proc in jobs:
+                proc.join()
+
+            model_drought_output_df = return_dict[0]
+            model_normal_output_df = return_dict[1]
+
+        # print("multiprocessing test")
+        # print(model_drought_output_df)
+        # print(model_normal_output_df)
+        duration1 = timedelta(seconds=time.perf_counter() - start_time)
+        print('Parallel simulation duration:', duration1)
+
+        """
+        start_time = time.perf_counter()
+        for i in range(test_range):
+            model_drought_output_df = self.run_model()
+
+        duration2 = timedelta(seconds=time.perf_counter() - start_time)
+        print('Parallel simulation duration:', duration1)
+        print('Serial simulation duration:', duration2)
+        """
+        return model_drought_output_df, model_normal_output_df
 
     def run_model(self):
         """
@@ -260,14 +272,19 @@ class DMG():
         turn_forcing_conditions = self.store_forcings()
         #self.forcing_conditions = self.forcing_conditions[self.forcing_conditions["turn"] != self.turn]
         self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
-        model_output_df = self.run_model()
+        # multiprocessing test
+        model_drought_output_df, model_normal_output_df = self.run_simulations(sim_count=2)
+        #model_output_df = self.run_model()
         # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
         # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
         #self.model_output_to_game(model_output_df, scenario=self.scenario)
-        self.model_output_to_game(model_output_df)
+        self.model_output_to_game(model_drought_output_df)
+        self.model_output_to_game(model_normal_output_df, type="normal")
+        #self.model_output_to_game(model_output_df)
         self.update_inlet_salinity()
         self.gui.show_turn_button(self.turn, self.turn_count)
         self.export_output()
+        self.export_output(type="normal")
         print("updated to turn", self.turn, "- run", self.turn_count)
         self.turn_count += 1
         return
@@ -404,70 +421,108 @@ class DMG():
         self.hexagons_tracker = indexing.create_polygon_id_tracker(self.model_network_gdf)
         return
 
-    def model_output_to_game(self, model_output_df, initialize=False):
+    def model_output_to_game(self, model_output_df, type="drought", initialize=False):
         """
         function to process the model output to the model and game output geodataframes respectively.
         """
-        #filename = "model_output_gdf_" + str(self.turn) + ".xlsx"
+        #filename = "model_drought_output_gdf_" + str(self.turn) + ".xlsx"
         #model_output_df.to_excel(os.path.join(self.save_path, filename), index=True)
         start_time = time.perf_counter()
         double_exploded_output_df, exploded_output_df = game_sync.process_model_output(
             model_output_df, scenario=self.mode["scenarios"][self.turn-1])
         if initialize == True:
+            """
+            model_drought_output_gdf = game_sync.output_df_to_gdf(double_exploded_output_df)
+            model_drought_output_gdf = game_sync.add_polygon_ids(model_drought_output_gdf, self.world_polygons)
+
+            # NOTE: first point in Lek is double ? check source
+            # NOTE 2: first and last points all match earlier runs, but there are less points in Lek ? check source
+            self.game_output_gdf = game_sync.model_output_to_game_locations(self.game_network_gdf,
+                                                                            model_drought_output_gdf, exploded_output_df)
+            model_drought_output_gdf = model_drought_output_gdf.reset_index()
+            self.model_drought_output_gdf = model_drought_output_gdf.drop(columns="index")
+            timestep_0 = self.model_drought_output_gdf.iloc[0]["time"]
+            self.model_drought_output_ref_gdf = self.model_drought_output_gdf.loc[self.model_drought_output_gdf['time'] == timestep_0]
+            self.model_drought_output_ref_gdf = self.model_drought_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
+            self.game_output_ref_gdf = self.game_output_gdf.loc[self.game_output_gdf['time'] == timestep_0]
+            self.game_output_ref_gdf = self.game_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
+            self.model_drought_output_gdf = game_sync.output_to_timeseries(
+                self.model_drought_output_gdf, turn=self.turn, turn_count=self.turn_count)
+            self.game_output_gdf = game_sync.output_to_timeseries(
+                self.game_output_gdf, turn=self.turn, turn_count=self.turn_count)
+            """
             model_output_gdf = game_sync.output_df_to_gdf(double_exploded_output_df)
             model_output_gdf = game_sync.add_polygon_ids(model_output_gdf, self.world_polygons)
 
             # NOTE: first point in Lek is double ? check source
             # NOTE 2: first and last points all match earlier runs, but there are less points in Lek ? check source
-            self.game_output_gdf = game_sync.model_output_to_game_locations(self.game_network_gdf,
+            game_output_gdf = game_sync.model_output_to_game_locations(self.game_network_gdf,
                                                                             model_output_gdf, exploded_output_df)
             model_output_gdf = model_output_gdf.reset_index()
-            self.model_output_gdf = model_output_gdf.drop(columns="index")
-            timestep_0 = self.model_output_gdf.iloc[0]["time"]
-            self.model_output_ref_gdf = self.model_output_gdf.loc[self.model_output_gdf['time'] == timestep_0]
-            self.model_output_ref_gdf = self.model_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
-            self.game_output_ref_gdf = self.game_output_gdf.loc[self.game_output_gdf['time'] == timestep_0]
-            self.game_output_ref_gdf = self.game_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
-            self.model_output_gdf = game_sync.output_to_timeseries(
-                self.model_output_gdf, turn=self.turn, turn_count=self.turn_count)
-            self.game_output_gdf = game_sync.output_to_timeseries(
-                self.game_output_gdf, turn=self.turn, turn_count=self.turn_count)
+            model_output_gdf = model_output_gdf.drop(columns="index")
+            timestep_0 = model_output_gdf.iloc[0]["time"]
+            model_output_ref_gdf = model_output_gdf.copy()
+            model_output_ref_gdf = model_output_ref_gdf.loc[model_output_ref_gdf['time'] == timestep_0]
+            model_output_ref_gdf = model_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
+            game_output_ref_gdf = game_output_gdf.copy()
+            game_output_ref_gdf = game_output_ref_gdf.loc[game_output_ref_gdf['time'] == timestep_0]
+            game_output_ref_gdf = game_output_ref_gdf.drop(columns=["time", "sb_st", 'sb_mgl'])
+            model_output_gdf = game_sync.output_to_timeseries(
+                model_output_gdf, turn=self.turn, turn_count=self.turn_count)
+            game_output_gdf = game_sync.output_to_timeseries(
+                game_output_gdf, turn=self.turn, turn_count=self.turn_count)
+            if type == "drought":
+                self.model_drought_output_gdf = model_output_gdf
+                self.model_drought_output_ref_gdf = model_output_ref_gdf
+                self.game_drought_output_gdf = game_output_gdf
+                self.game_drought_output_ref_gdf = game_output_ref_gdf
+            elif type == "normal":
+                self.model_normal_output_gdf = model_output_gdf
+                self.model_normal_output_ref_gdf = model_output_ref_gdf
+                self.game_normal_output_gdf = game_output_gdf
+                self.game_normal_output_ref_gdf = game_output_ref_gdf
             duration = timedelta(seconds=time.perf_counter() - start_time)
             print('Initial output processing took:', duration)
         else:
             """
             # The code below overrides the output GeoDataFrames
             output_to_merge_df = double_exploded_output_df[["id", "time", "sb_st"]]
-            self.model_output_gdf = self.model_output_ref_gdf.merge(output_to_merge_df, on="id")
+            self.model_drought_output_gdf = self.model_drought_output_ref_gdf.merge(output_to_merge_df, on="id")
             self.game_output_gdf = self.game_output_ref_gdf.merge(output_to_merge_df, on="id")
-            self.model_output_gdf = game_sync.output_to_timeseries(self.model_output_gdf, scenario="2100le")
+            self.model_drought_output_gdf = game_sync.output_to_timeseries(self.model_drought_output_gdf, scenario="2100le")
             self.game_output_gdf = game_sync.output_to_timeseries(self.game_output_gdf, scenario="2100le")
-            print(self.model_output_gdf)
+            print(self.model_drought_output_gdf)
             """
 
             # The lines below are commented out to no longer overwrite simulations
-            #self.model_output_gdf = self.model_output_gdf[self.model_output_gdf["turn"] != self.turn]
+            #self.model_drought_output_gdf = self.model_drought_output_gdf[self.model_drought_output_gdf["turn"] != self.turn]
             #self.game_output_gdf = self.game_output_gdf[self.game_output_gdf["turn"] != self.turn]
             #self.inlet_salinity_tracker = self.inlet_salinity_tracker[self.inlet_salinity_tracker["turn"] != self.turn]
             output_to_merge_df = double_exploded_output_df[["id", "branch_rank", "time", "sb_st", 'sb_mgl']]
             if self.turn_split_channels:
                 output_to_merge_df = game_sync.update_split_channel_ids(output_to_merge_df, self.turn_split_channels)
             output_to_merge_df = output_to_merge_df.drop(columns=["branch_rank"])
-            model_output_gdf = self.model_output_ref_gdf.merge(output_to_merge_df, on="id")
-            game_output_gdf = self.game_output_ref_gdf.merge(output_to_merge_df, on="id")
+            model_output_gdf = self.model_drought_output_ref_gdf.merge(output_to_merge_df, on="id")
+            game_output_gdf = self.game_drought_output_ref_gdf.merge(output_to_merge_df, on="id")
             model_output_gdf = game_sync.output_to_timeseries(
                 model_output_gdf, turn=self.turn, turn_count=self.turn_count)
             game_output_gdf = game_sync.output_to_timeseries(
                 game_output_gdf, turn=self.turn, turn_count=self.turn_count)
             print(model_output_gdf.iloc[0])
             print(game_output_gdf.iloc[0])
-            self.model_output_gdf = pd.concat([self.model_output_gdf, model_output_gdf])
-            self.game_output_gdf = pd.concat([self.game_output_gdf, game_output_gdf])
+            #self.model_drought_output_gdf = pd.concat([self.model_drought_output_gdf, model_output_gdf])
+            #self.game_drought_output_gdf = pd.concat([self.game_drought_output_gdf, game_output_gdf])
+            if type == "drought":
+                self.model_drought_output_gdf = pd.concat([self.model_drought_output_gdf, model_output_gdf])
+                self.game_drought_output_gdf = pd.concat([self.game_drought_output_gdf, game_output_gdf])
+            elif type == "normal":
+                self.model_normal_output_gdf = pd.concat([self.model_normal_output_gdf, model_output_gdf])
+                self.game_normal_output_gdf = pd.concat([self.game_normal_output_gdf, game_output_gdf])
             duration = timedelta(seconds=time.perf_counter() - start_time)
             print('Update output processing took:', duration)
         return
 
-    def export_output(self):
+    def export_output(self, type="drought"):
         """
         The part before saving is only to make it easier to convert the output back into numpy arrays in a jupyter
         notebook, as the output file has to be read in raw binary mode (making all values in the DataFrame strings).
@@ -487,8 +542,12 @@ class DMG():
         #filename = "model_network_gdf%d.xlsx" % self.turn
         #df_copy.to_excel(os.path.join(self.save_path, filename), index=True)
         #self.game_network_gdf.to_excel(os.path.join(self.save_path, "game_network_gdf.xlsx"), index=True)
-        filename = "model_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
-        self.model_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
+        if type == "drought":
+            filename = "model_drought_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
+            self.model_drought_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
+        elif type == "normal":
+            filename = "model_normal_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
+            self.model_normal_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
         #self.game_output_gdf.to_excel(os.path.join(self.save_path, "game_output_gdf.xlsx"), index=True)
 
     def debug_output(self):
@@ -508,14 +567,14 @@ class DMG():
         """
         function that sets up and runs the demonstrator visualizations.
         """
-        world_bbox = demo_processing.get_bbox(self.model_output_gdf, gdf_type="world")
-        game_bbox = demo_processing.get_bbox(self.game_output_gdf, gdf_type="game")
-        salinity_range = demo_processing.get_salinity_scale(self.model_output_gdf)
-        salinity_category = demo_processing.get_salinity_scale(self.model_output_gdf, column="salinity_category")
+        world_bbox = demo_processing.get_bbox(self.model_drought_output_gdf, gdf_type="world")
+        game_bbox = demo_processing.get_bbox(self.game_drought_output_gdf, gdf_type="game")
+        salinity_range = demo_processing.get_salinity_scale(self.model_drought_output_gdf)
+        salinity_category = demo_processing.get_salinity_scale(self.model_drought_output_gdf, column="salinity_category")
         qapp = QApplication.instance()
         if not qapp:
             qapp = QApplication(sys.argv)
-        time_steps = list(sorted(set(self.model_output_gdf["time"])))
+        time_steps = list(sorted(set(self.model_drought_output_gdf["time"])))
         time_index = 0
         starting_variable = "water_salinity"
         viz_tracker = visualizer.VisualizationTracker(
@@ -541,8 +600,9 @@ def run_model(model, procnumber, return_dict):
     """
     call the function run_model function of the model object and retrieve the output.
     """
+    # set forcings here
+
     model.run_model()
-    print("1")
     #self.hexagons_tracker.to_excel(os.path.join(self.save_path, "hexagons_tracker.xlsx"), index=True)
     #return_dict = queue.get()
     return_dict[procnumber] = model.output

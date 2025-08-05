@@ -144,9 +144,9 @@ class ApplicationWindow(QMainWindow):
         #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
         self.ax.set_axis_off()
         self.ax.set_position([0.1, 0.1, 0.8, 0.8])
-        turn_idx = (self.game.model_output_gdf["turn"] == self.selected_turn) & (
-                    self.game.model_output_gdf["run"] == self.selected_run)
-        self.running_simulation = self.game.model_output_gdf[turn_idx]
+        turn_idx = (self.game.model_drought_output_gdf["turn"] == self.selected_turn) & (
+                self.game.model_drought_output_gdf["run"] == self.selected_run)
+        self.running_simulation = self.game.model_drought_output_gdf[turn_idx]
         t_idx = self.viz_tracker.time_index
         t = self.running_simulation.iloc[t_idx]["time"]
         idx = self.running_simulation["time"] == t
@@ -171,9 +171,9 @@ class ApplicationWindow(QMainWindow):
         if self.selected_turn != self.viz_tracker.turn or self.selected_run != self.viz_tracker.run:
             self.selected_turn = self.viz_tracker.turn
             self.selected_run = self.viz_tracker.run
-            turn_idx = (self.game.model_output_gdf["turn"] == self.selected_turn) & (
-                        self.game.model_output_gdf["run"] == self.selected_run)
-            self.running_simulation = self.game.model_output_gdf[turn_idx]
+            turn_idx = (self.game.model_drought_output_gdf["turn"] == self.selected_turn) & (
+                    self.game.model_drought_output_gdf["run"] == self.selected_run)
+            self.running_simulation = self.game.model_drought_output_gdf[turn_idx]
             self.viz_tracker.update_scenario()
             self.scenario = self.viz_tracker.scenario
         if self.selected_variable != self.viz_tracker.viz_variable:
@@ -232,7 +232,7 @@ class ApplicationWindow(QMainWindow):
         ax = self.inlet_canvas.figure.subplots()
         ax.set_axis_off()
 
-        model_output = self.game.model_output_gdf.copy()
+        model_output = self.game.model_drought_output_gdf.copy()
         #model_output = model_output[model_output["turn"] == self.viz_tracker.turn]
         model_output = model_output[
             (model_output["turn"] == self.viz_tracker.turn) & (model_output["run"] == self.viz_tracker.run)]
@@ -255,7 +255,6 @@ class ApplicationWindow(QMainWindow):
             inlet_data.plot("score_indicator", ax=ax, cmap=cmap, vmin=1, vmax=3, markersize=300)  # , legend=True)
             for x, y, label in zip(inlet_data["geometry"].x, inlet_data["geometry"].y, inlet_data["name"]):
                 ax.annotate(label, xy=(x, y), xytext=(0, 12), ha='center', textcoords="offset points", size=10)
-
         self.inlet_canvas.draw()
         return
 
@@ -263,7 +262,6 @@ class ApplicationWindow(QMainWindow):
         to_plot = self.viz_tracker.inlet_to_plot
         self.inlet_plots.figure.clf()
         ax = self.inlet_plots.figure.subplots()
-
         inlet_data = self.game.inlet_salinity_tracker.copy()
         if combined_plot:
             inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
@@ -336,12 +334,11 @@ class ApplicationWindow(QMainWindow):
                     fontsize=11)
 
             ax.legend(loc='best', fontsize=10)
-
         self.inlet_plots.draw()
         return
 
     def show_forcing_conditions(self):
-        forcing_conditions_df = self.game.forcing_conditions
+        forcing_conditions_df = self.game.forcing_conditions.copy()
         forcing_conditions_df = forcing_conditions_df[
             (forcing_conditions_df["turn"] == self.viz_tracker.turn) &
             (forcing_conditions_df["run"] == self.viz_tracker.run)]
@@ -414,9 +411,9 @@ class GameVisualization(QWidget):
         #self.ax.set_aspect(1)
         self.ax.axis(bbox)
         self.ax.set_axis_off()
-        turn_idx = (self.game.game_output_gdf["turn"] == self.selected_turn) & (
-                    self.game.game_output_gdf["run"] == self.selected_run)
-        self.running_simulation = self.game.game_output_gdf[turn_idx]
+        turn_idx = (self.game.game_drought_output_gdf["turn"] == self.selected_turn) & (
+                    self.game.game_drought_output_gdf["run"] == self.selected_run)
+        self.running_simulation = self.game.game_drought_output_gdf[turn_idx]
         t_idx = self.viz_tracker.time_index
         t = self.running_simulation.iloc[t_idx]["time"]
         idx = self.running_simulation["time"] == t
@@ -438,9 +435,9 @@ class GameVisualization(QWidget):
         if self.selected_turn != self.viz_tracker.turn or self.selected_run != self.viz_tracker.run:
             self.selected_turn = self.viz_tracker.turn
             self.selected_run = self.viz_tracker.run
-            turn_idx = (self.game.game_output_gdf["turn"] == self.selected_turn) & (
-                        self.game.game_output_gdf["run"] == self.selected_run)
-            self.running_simulation = self.game.game_output_gdf[turn_idx]
+            turn_idx = (self.game.game_drought_output_gdf["turn"] == self.selected_turn) & (
+                        self.game.game_drought_output_gdf["run"] == self.selected_run)
+            self.running_simulation = self.game.game_drought_output_gdf[turn_idx]
         if self.selected_variable != self.viz_tracker.viz_variable:
             self.selected_variable = self.viz_tracker.viz_variable
             if self.selected_variable == "water_salinity":

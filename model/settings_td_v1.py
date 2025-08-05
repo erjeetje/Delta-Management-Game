@@ -92,7 +92,6 @@ def set_forcing(scenario="2017", timeseries_type="drought", timeseries_length=No
         filename = '\\forcing_' + scenario + "_" + timeseries_type + "_" + timeseries_length + ".csv"
     else:
         filename = '\\forcing_' + scenario + "_" + timeseries_type + ".csv"
-    print(filename)
     forc_pars = forc_RMD_game(input_dir, filename)
     print("next scenario is:", scenario)
     return forc_pars

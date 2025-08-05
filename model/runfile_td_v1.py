@@ -81,9 +81,10 @@ class IMSIDE():
         Haringvliet = deepcopy(self.delta.Qhar[0])
         return {"Waal": Waal, "Meuse": Meuse, "Hol_IJssel": Hol_IJssel, "Lek": Lek, "Haringvliet": Haringvliet}
 
-    def change_forcings(self, scenario, add_rows=0):
+    def change_forcings(self, scenario, timeseries_type="drought", add_rows=0):
         try:
-            self._current_forcing = settings_td_v1.set_forcing(scenario=scenario, timeseries_length=self.timeseries_length)
+            self._current_forcing = settings_td_v1.set_forcing(scenario=scenario, timeseries_type=timeseries_type,
+                                                               timeseries_length=self.timeseries_length)
             [self.delta.Qriv, self.delta.Qweir, self.delta.Qhar, self.delta.n_sea, self.delta.soc,
             self.delta.sri, self.delta.swe, self.delta.tid_per, self.delta.a_tide, self.delta.p_tide,
             self.delta.T, self.delta.DT] = self._current_forcing

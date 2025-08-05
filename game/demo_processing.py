@@ -25,5 +25,4 @@ def get_salinity_scale(output_gdf, column="water_salinity"):
     #                           output_gdf[column].max())
     salinity_range = LogNorm(output_gdf[column].min(),
                                output_gdf[column].max())
-    print(column, output_gdf[column].min(), output_gdf[column].max())
     return salinity_range

@@ -6,10 +6,40 @@
   <component name="ChangeListManager">
     <list default="true" id="761f18cf-aed8-4002-b562-2aab5055ed9d" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game/channel_manipulations.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/channel_manipulations.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game/operational_manipulations.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/operational_manipulations.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game/demo_processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/demo_processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game/demo_visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/demo_visualizations.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game_runfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/game_runfile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/inpu/load_geo_RMD.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/inpu/load_geo_RMD.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2018.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2018_dummy.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2018_game_scenario.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2018_month.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2050Hd.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2050Hd_dummy.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2050Hd_game_scenario.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2050Hd_month.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2050Md.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2050Md_dummy.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2050Md_game_scenario.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2050Md_month.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2100Hd.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2100Hd_dummy.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2100Hd_game_scenario.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2100Hd_month.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2100Md.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2100Md_dummy.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2100Md_game_scenario.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2100Md_month.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2150Hd.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2150Hd_dummy.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2150Hd_game_scenario.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2150Hd_month.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2150Md.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2150Md_dummy.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2150Md_game_scenario.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_2150Md_month.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/runfile_td_v1.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/runfile_td_v1.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/settings_td_v1.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/settings_td_v1.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/visualisation/calc_rawtofine_td_v1.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/visualisation/calc_rawtofine_td_v1.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,30 +67,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.bouke_model_demonstrator.executor": "Run",
-    "Python.boundaries_v1.executor": "Run",
-    "Python.channel_manipulations.executor": "Run",
-    "Python.core_td_v1.executor": "Run",
-    "Python.demo_visualizations.executor": "Debug",
-    "Python.game_runfile.executor": "Run",
-    "Python.indices_v1.executor": "Run",
-    "Python.load_geo_RMD.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.model_to_game.executor": "Run",
-    "Python.runfile_td_v1.executor": "Run",
-    "Python.solve_td_v1.executor": "Run",
-    "Python.table_runfile.executor": "Run",
-    "Python.tidal_hydro_v1.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/HaanRJ/OneDrive - University of Twente/Documents/GitHub/Delta-Management-Game",
-    "settings.editor.selected.configurable": "reference.settingsdialog.project.grazie"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.bouke_model_demonstrator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.boundaries_v1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.channel_manipulations.executor&quot;: &quot;Run&quot;,
+    &quot;Python.core_td_v1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.demo_visualizations.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.game_runfile.executor&quot;: &quot;Run&quot;,
+    &quot;Python.indices_v1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.load_geo_RMD.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.model_to_game.executor&quot;: &quot;Run&quot;,
+    &quot;Python.runfile_td_v1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.solve_td_v1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.table_runfile.executor&quot;: &quot;Run&quot;,
+    &quot;Python.tidal_hydro_v1.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/HaanRJ/OneDrive - University of Twente/Documents/GitHub/Delta-Management-Game&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settingsdialog.project.grazie&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\HaanRJ\OneDrive - University of Twente\Documents\GitHub\Delta-Management-Game" />
@@ -73,7 +103,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-14705d77f0bb-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.25659.43" />
+        <option value="bundled-python-sdk-2ee2454479a3-9cdd278e9d02-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-251.25410.122" />
       </set>
     </attachedChunks>
   </component>

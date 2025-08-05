@@ -8,6 +8,7 @@ from datetime import timedelta
 from copy import deepcopy
 from PyQt5.QtWidgets import QApplication
 from ast import literal_eval
+from multiprocessing import Process, Queue, Manager
 from game import demo_visualizations as visualizer
 from game import load_functions as load_files
 from game import model_to_game as game_sync
@@ -30,7 +31,7 @@ class DMG():
         self._turn_count = 1
         self._scenario = self.mode["scenarios"][0]
         self.debug = self.mode["debug"]
-        operational = {0: ['Qhag', 20, 0, True], 1: ['Qhar', 50, 1, True], 2: ['Qhar_threshold', 1100, 1, True],
+        operational = {0: ['Qhag', 5, 0, True], 1: ['Qhar', 50, 1, True], 2: ['Qhar_threshold', 1100, 1, True],
                        3: ['Qhij', 2, 0, True], 4: ['Qhij_threshold', 800, 0, True]}
         self.operational_df = pd.DataFrame.from_dict(
             operational, orient='index', columns=['Qtype', 'Qvalue', 'red_markers', 'red_changed'])
@@ -54,6 +55,41 @@ class DMG():
         self.turn_updates = {}
         self.model.change_local_boundaries(self.operational_df)
         self.forcing_conditions = self.store_forcings()
+
+        """
+        #multiprocessing test
+
+        test_range = 2
+        start_time = time.perf_counter()
+        if __name__ == '__main__':
+            manager = Manager()
+            return_dict = manager.dict()
+            jobs = []
+
+            for i in range(test_range):
+                p = Process(target=run_model, args=(self.model, i, return_dict))
+                jobs.append(p)
+                p.start()
+
+            for proc in jobs:
+                proc.join()
+
+            model_output_df = return_dict[0]
+
+        duration1 = timedelta(seconds=time.perf_counter() - start_time)
+
+        #model_output_df = self.model_outputs[0]
+        print(model_output_df)
+
+        start_time = time.perf_counter()
+        for i in range(test_range):
+            model_output_df = self.run_model()
+        
+        duration2 = timedelta(seconds=time.perf_counter() - start_time)
+        print('Parallel simulation duration:', duration1)
+        print('Serial simulation duration:', duration2)
+        """
+
         model_output_df = self.run_model()
         self.model_output_to_game(model_output_df, initialize=True)
         self.index_inlets()
@@ -105,7 +141,8 @@ class DMG():
         """
         load the IMSIDE model and extract network.
         """
-        self.model = imside_model.IMSIDE(scenario=self.scenario, timeseries_length=self.mode["timeseries"])
+        self.model = imside_model.IMSIDE(
+            scenario=self.scenario, timeseries_type="drought", timeseries_length=self.mode["timeseries"])
         model_network_df = self.model.network
         model_network_df = game_sync.process_model_network(model_network_df)
         model_network_df = game_sync.remove_sea_river_domains(model_network_df)
@@ -154,12 +191,12 @@ class DMG():
         print(self.inlet_salinity_tracker.shape)
         return
 
-    def run_model(self, scenario="2017"):
+    def run_model(self):
         """
         call the function run_model function of the model object and retrieve the output.
         """
         self.model.run_model()
-        self.hexagons_tracker.to_excel(os.path.join(self.save_path, "hexagons_tracker.xlsx"), index=True)
+        #self.hexagons_tracker.to_excel(os.path.join(self.save_path, "hexagons_tracker.xlsx"), index=True)
         return self.model.output
 
     def run_table(self, update=True):
@@ -500,23 +537,35 @@ class DMG():
         return
 
 
+def run_model(model, procnumber, return_dict):
+    """
+    call the function run_model function of the model object and retrieve the output.
+    """
+    model.run_model()
+    print("1")
+    #self.hexagons_tracker.to_excel(os.path.join(self.save_path, "hexagons_tracker.xlsx"), index=True)
+    #return_dict = queue.get()
+    return_dict[procnumber] = model.output
+    #queue.put(return_dict)
+    return #self.model.output
+
 def main(mode):
     game = DMG(mode)
     print("initialized")
     return
 
 
-scenario_settings1 = {"scenarios": ["2018", "2018", "2018", "2018"], "slr": [0, 0, 0, 0],
+scenario_settings1 = {"scenarios": ["reference", "reference", "reference", "reference"], "slr": [0, 0, 0, 0],
                       "timeseries": "month", "debug": False}
 
-scenario_settings2 = {"scenarios": ["2018", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41],
+scenario_settings2 = {"scenarios": ["reference", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41],
                       "timeseries": "dummy", "debug": True}
 
-scenario_settings3 = {"scenarios": ["2018", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2],
+scenario_settings3 = {"scenarios": ["reference", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2],
                       "timeseries": "month", "debug": False}
 
-scenario_settings4 = {"scenarios": ["2018", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82],
-                      "timeseries": "dummy", "debug": False}
+scenario_settings4 = {"scenarios": ["reference", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82],
+                      "timeseries": "dummy", "debug": True}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

@@ -18,9 +18,10 @@ from shapely.geometry import LineString
 
 
 class IMSIDE():
-    def __init__(self, scenario, timeseries_length=None):
+    def __init__(self, scenario, timeseries_type=None, timeseries_length=None):
         self.timeseries_length = timeseries_length
-        self._current_forcing = settings_td_v1.set_forcing(scenario=scenario, timeseries_length=self.timeseries_length)
+        self._current_forcing = settings_td_v1.set_forcing(
+            scenario=scenario, timeseries_type="drought", timeseries_length=self.timeseries_length)
         self.delta = core_td_v1.mod42_netw(settings_td_v1.constants, settings_td_v1.geo_pars, self._current_forcing,
                                            settings_td_v1.phys_pars)#, pars_seadom = (25000,100,10), pars_rivdom = (200000,2000,0))
         network_df = pd.DataFrame.from_dict(self.delta.ch_gegs)

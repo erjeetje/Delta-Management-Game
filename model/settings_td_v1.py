@@ -85,13 +85,14 @@ def set_forcing_beta(scenario="2017", timeseries_length=None):
     print("next scenario is:", scenario)
     return forc_pars
 
-def set_forcing(scenario="2017", timeseries_length=None):
+def set_forcing(scenario="2017", timeseries_type="drought", timeseries_length=None):
     file_dir = os.path.dirname(os.path.realpath('__file__'))
     input_dir = os.path.join(file_dir, "model", "inpu", "forcing_files")
     if timeseries_length is not None:
-        filename = '\\forcing_' + scenario + "_" + timeseries_length + ".csv"
+        filename = '\\forcing_' + scenario + "_" + timeseries_type + "_" + timeseries_length + ".csv"
     else:
-        filename = '\\forcing_' + scenario + ".csv"
+        filename = '\\forcing_' + scenario + "_" + timeseries_type + ".csv"
+    print(filename)
     forc_pars = forc_RMD_game(input_dir, filename)
     print("next scenario is:", scenario)
     return forc_pars

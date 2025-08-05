@@ -12,7 +12,7 @@ from PyQt5.QtGui import QFont
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
 from pandas import to_datetime
 from functools import partial
 
@@ -152,6 +152,7 @@ class ApplicationWindow(QMainWindow):
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
         self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="RdBu_r", markersize=150.0)
+        #self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", markersize=150.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
@@ -179,6 +180,7 @@ class ApplicationWindow(QMainWindow):
             self.selected_variable = self.viz_tracker.viz_variable
             if self.selected_variable == "water_salinity":
                 color_map = "RdBu_r"
+                #color_map = "coolwarm"
                 norm = self.viz_tracker.salinity_norm
             elif self.selected_variable == "water_level":
                 color_map = "viridis_r"
@@ -250,7 +252,7 @@ class ApplicationWindow(QMainWindow):
             inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
             inlet_data = inlet_data.reset_index()
             cmap = LinearSegmentedColormap.from_list("", ["green", "orange", "red"])
-            inlet_data.plot("score_indicator", ax=ax, cmap=cmap, markersize=300)  # , legend=True)
+            inlet_data.plot("score_indicator", ax=ax, cmap=cmap, vmin=1, vmax=3, markersize=300)  # , legend=True)
             for x, y, label in zip(inlet_data["geometry"].x, inlet_data["geometry"].y, inlet_data["name"]):
                 ax.annotate(label, xy=(x, y), xytext=(0, 12), ha='center', textcoords="offset points", size=10)
 
@@ -420,6 +422,7 @@ class GameVisualization(QWidget):
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
         self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="RdBu_r", aspect=1, markersize=200.0)
+        #self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", aspect=1, markersize=200.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
@@ -442,6 +445,7 @@ class GameVisualization(QWidget):
             self.selected_variable = self.viz_tracker.viz_variable
             if self.selected_variable == "water_salinity":
                 color_map = "RdBu_r"
+                #color_map = "coolwarm"
                 norm = self.viz_tracker.salinity_norm
             elif self.selected_variable == "water_level":
                 color_map = "viridis_r"

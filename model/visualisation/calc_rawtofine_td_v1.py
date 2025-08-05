@@ -82,12 +82,12 @@ def calc_output(self):
         # remove sea and river domain
         # =============================================================================
         #remove sea domain
-        if self.ch_gegs[key]['loc x=0'][0] == 's':           
+        if self.ch_gegs[key]['loc x=0'][0] == 's':
             self.ch_outp[key]['px'] = self.ch_outp[key]['px'][:-self.nx_sea]+self.length_sea
             #self.ch_outp[key]['eta'] = self.ch_outp[key]['eta'][:-self.nx_sea]
             self.ch_outp[key]['s_st'] = self.ch_outp[key]['s_st'][:,:-self.nx_sea]
             #self.ch_outp[key]['ss_st'] = self.ch_outp[key]['ss_st'][:-self.nx_sea]
-            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,:-self.nx_sea] 
+            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,:-self.nx_sea]
             self.ch_outp[key]['sn_st'] = self.ch_outp[key]['sn_st'][:,:-self.nx_sea]
             #self.ch_outp[key]['u_st'] = self.ch_outp[key]['u_st'][:-self.nx_sea]
             #self.ch_outp[key]['sb_st_x'] = self.ch_outp[key]['sb_st_x'][:-self.nx_sea]
@@ -96,21 +96,21 @@ def calc_output(self):
             #self.ch_outp[key]['wt_r'] = self.ch_outp[key]['wt_r'][:-self.nx_sea]
             #self.ch_outp[key]['s_ti'] = self.ch_outp[key]['s_ti'][:-self.nx_sea]
             #self.ch_outp[key]['s_ti_r'] = self.ch_outp[key]['s_ti_r'][:-self.nx_sea]
-            
+
             self.ch_outp[key]['TQ'] = self.ch_outp[key]['TQ'][:,:-self.nx_sea]
             self.ch_outp[key]['TE'] = self.ch_outp[key]['TE'][:,:-self.nx_sea]
             self.ch_outp[key]['TD'] = self.ch_outp[key]['TD'][:,:-self.nx_sea]
             self.ch_outp[key]['TT'] = self.ch_outp[key]['TT'][:,:-self.nx_sea]
             tot_L = np.sum(self.ch_gegs[key]['L'][:-1])
-            self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][:-self.nx_sea] 
-            self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][:-self.nx_sea] 
+            self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][:-self.nx_sea]
+            self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][:-self.nx_sea]
 
         elif self.ch_gegs[key]['loc x=-L'][0] == 's':
             self.ch_outp[key]['px'] = self.ch_outp[key]['px'][self.nx_sea:]
             #self.ch_outp[key]['eta'] = self.ch_outp[key]['eta'][self.nx_sea:]
             self.ch_outp[key]['s_st'] = self.ch_outp[key]['s_st'][:,self.nx_sea:]
             #self.ch_outp[key]['ss_st'] = self.ch_outp[key]['ss_st'][self.nx_sea:]
-            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,self.nx_sea:] 
+            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,self.nx_sea:]
             self.ch_outp[key]['sn_st'] = self.ch_outp[key]['sn_st'][:,self.nx_sea:]
             #self.ch_outp[key]['u_st'] = self.ch_outp[key]['u_st'][self.nx_sea:]
             #self.ch_outp[key]['sb_st_x'] = self.ch_outp[key]['sb_st_x'][self.nx_sea:]
@@ -119,8 +119,8 @@ def calc_output(self):
             #self.ch_outp[key]['wt_r'] = self.ch_outp[key]['wt_r'][self.nx_sea:]
             #self.ch_outp[key]['s_ti'] = self.ch_outp[key]['s_ti'][self.nx_sea:]
             #self.ch_outp[key]['s_ti_r'] = self.ch_outp[key]['s_ti_r'][self.nx_sea:]
-            self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][self.nx_sea:] 
-            self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][self.nx_sea:] 
+            self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][self.nx_sea:]
+            self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][self.nx_sea:]
             self.ch_outp[key]['TQ'] = self.ch_outp[key]['TQ'][:,self.nx_sea:]
             self.ch_outp[key]['TE'] = self.ch_outp[key]['TE'][:,self.nx_sea:]
             self.ch_outp[key]['TD'] = self.ch_outp[key]['TD'][:,self.nx_sea:]
@@ -128,14 +128,14 @@ def calc_output(self):
 
             tot_L = np.sum(self.ch_gegs[key]['L'][1:])
 
-                    
+
         #remove river domain
         if self.ch_gegs[key]['loc x=0'][0] == 'r':
             self.ch_outp[key]['px'] = self.ch_outp[key]['px'][:-self.nx_riv]+self.length_riv
             #self.ch_outp[key]['eta'] = self.ch_outp[key]['eta'][:-self.nx_riv]
             self.ch_outp[key]['s_st'] = self.ch_outp[key]['s_st'][:,:-self.nx_riv]
             #self.ch_outp[key]['ss_st'] = self.ch_outp[key]['ss_st'][:-self.nx_riv]
-            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,:-self.nx_riv] 
+            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,:-self.nx_riv]
             self.ch_outp[key]['sn_st'] = self.ch_outp[key]['sn_st'][:,:-self.nx_riv]
             #self.ch_outp[key]['u_st'] = self.ch_outp[key]['u_st'][:-self.nx_riv]
             #self.ch_outp[key]['sb_st_x'] = self.ch_outp[key]['sb_st_x'][:-self.nx_riv]
@@ -158,7 +158,7 @@ def calc_output(self):
             #self.ch_outp[key]['eta'] = self.ch_outp[key]['eta'][self.nx_riv:]
             self.ch_outp[key]['s_st'] = self.ch_outp[key]['s_st'][:,self.nx_riv:]
             #self.ch_outp[key]['ss_st'] = self.ch_outp[key]['ss_st'][self.nx_riv:]
-            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,self.nx_riv:] 
+            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,self.nx_riv:]
             self.ch_outp[key]['sn_st'] = self.ch_outp[key]['sn_st'][:,self.nx_riv:]
             #self.ch_outp[key]['u_st'] = self.ch_outp[key]['u_st'][self.nx_riv:]
             #self.ch_outp[key]['sb_st_x'] = self.ch_outp[key]['sb_st_x'][self.nx_riv:]
@@ -172,7 +172,7 @@ def calc_output(self):
             self.ch_outp[key]['TD'] = self.ch_outp[key]['TD'][:,self.nx_riv:]
             self.ch_outp[key]['TT'] = self.ch_outp[key]['TT'][:,self.nx_riv:]
 
-            tot_L = np.sum(self.ch_gegs[key]['L'][1:])          
+            tot_L = np.sum(self.ch_gegs[key]['L'][1:])
             self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][self.nx_riv:]
             self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][self.nx_riv:]
 
@@ -185,11 +185,11 @@ def calc_output(self):
         self.ch_outp[key]['plot d'] = (self.ch_outp[key]['plot d']-self.ch_outp[key]['plot d'][-1])/self.ch_outp[key]['plot d'][-1]*tot_L
         self.ch_outp[key]['plot xs'] = np.interp(self.ch_outp[key]['px'],self.ch_outp[key]['plot d'],self.ch_gegs[key]['plot x'])
         self.ch_outp[key]['plot ys'] = np.interp(self.ch_outp[key]['px'],self.ch_outp[key]['plot d'],self.ch_gegs[key]['plot y'])
-            
+
         self.ch_outp[key]['points'] = np.array([self.ch_outp[key]['plot xs'],self.ch_outp[key]['plot ys']]).T.reshape(-1, 1, 2)
         self.ch_outp[key]['segments'] = np.concatenate([self.ch_outp[key]['points'][:-1], self.ch_outp[key]['points'][1:]], axis=1)
 
-        
+
 
 #calc_output(delta)
 

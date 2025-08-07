@@ -8,10 +8,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game/demo_visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/demo_visualizations.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game_runfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/game_runfile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_reference_normal_dummy.csv" beforeDir="false" afterPath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_reference_normal_dummy.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_reference_normal_game_scenario.csv" beforeDir="false" afterPath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_reference_normal_game_scenario.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_reference_normal_month.csv" beforeDir="false" afterPath="$PROJECT_DIR$/model/inpu/forcing_files/forcing_reference_normal_month.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/runfile_td_v1.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/runfile_td_v1.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/model/settings_td_v1.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/settings_td_v1.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

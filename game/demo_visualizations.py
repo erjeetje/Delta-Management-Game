@@ -341,8 +341,9 @@ class ApplicationWindow(QMainWindow):
         forcing_conditions_df = self.game.forcing_conditions.copy()
         forcing_conditions_df = forcing_conditions_df[
             (forcing_conditions_df["turn"] == self.viz_tracker.turn) &
-            (forcing_conditions_df["run"] == self.viz_tracker.run)]
-        forcing_conditions_df = forcing_conditions_df.drop(columns=["turn", "run"])
+            (forcing_conditions_df["run"] == self.viz_tracker.run) &
+            (forcing_conditions_df["type"] == "drought")] # in case simulation types become selectable, add self.game.simulations to viz_tracker and select accordingly
+        forcing_conditions_df = forcing_conditions_df.drop(columns=["turn", "run", "type"])
         forcing_conditions = pandasModel(forcing_conditions_df)
         self.forcing_table.setModel(forcing_conditions)
         return

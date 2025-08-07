@@ -31,6 +31,8 @@ class DMG():
         self._turn_count = 1
         self._scenario = self.mode["scenarios"][0]
         self.debug = self.mode["debug"]
+        self.sim_count = self.mode["sim_count"]
+        self.simulations = ["drought", "normal", "average"]
         operational = {0: ['Qhag', 5, 0, True], 1: ['Qhar', 50, 1, True], 2: ['Qhar_threshold', 1100, 1, True],
                        3: ['Qhij', 2, 0, True], 4: ['Qhij_threshold', 800, 0, True]}
         self.operational_df = pd.DataFrame.from_dict(
@@ -40,6 +42,7 @@ class DMG():
         self.hexagons_tracker = None
         self.inlets = None
         self.inlet_salinity_tracker = None
+        self.forcing_conditions = None
         self.gui = None
         self.load_paths()
         self.load_model()
@@ -53,12 +56,12 @@ class DMG():
         self.run_table(update=False)
         self.turn_split_channels = {}
         self.turn_updates = {}
-        self.model.change_local_boundaries(self.operational_df)
-        self.forcing_conditions = self.store_forcings()
+        #self.model.change_local_boundaries(self.operational_df)
+        #self.forcing_conditions = self.store_forcings()
 
 
         #multiprocessing test
-        model_drought_output_df, model_normal_output_df = self.run_simulations(sim_count=2)
+        model_drought_output_df, model_normal_output_df = self.run_simulations()
         #model_drought_output_df = self.run_model()
 
         self.model_output_to_game(model_drought_output_df, initialize=True)
@@ -163,17 +166,21 @@ class DMG():
         print(self.inlet_salinity_tracker.shape)
         return
 
-    def run_simulations(self, sim_count=2):
+    def run_simulations(self):
         start_time = time.perf_counter()
         if __name__ == '__main__':
             manager = Manager()
             return_dict = manager.dict()
             jobs = []
 
-            for i in range(sim_count):
-                if i != 0:
-                    self.model.change_forcings(scenario=self.scenario, timeseries_type="normal")
-                    # self.model.change_local_boundaries(self.operational_df)
+            for i in range(self.sim_count):
+                self.model.change_forcings(scenario=self.scenario, timeseries_type=self.simulations[i])
+                self.model.change_local_boundaries(self.operational_df)
+                turn_forcing_conditions = self.store_forcings(sim_type=self.simulations[i])
+                if self.forcing_conditions is not None:
+                    self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
+                else:
+                    self.forcing_conditions = turn_forcing_conditions
                 # TODO properly store forcings for drought and normal conditions, it is now a df, perhaps merge? or dict of dfs?
                 # self.forcing_conditions = self.store_forcings()
                 p = Process(target=run_model, args=(self.model, i, return_dict))
@@ -203,13 +210,14 @@ class DMG():
         """
         return model_drought_output_df, model_normal_output_df
 
+    """ currently not used
+    #call the function run_model function of the model object and retrieve the output.
+    
     def run_model(self):
-        """
-        call the function run_model function of the model object and retrieve the output.
-        """
         self.model.run_model()
         #self.hexagons_tracker.to_excel(os.path.join(self.save_path, "hexagons_tracker.xlsx"), index=True)
         return self.model.output
+    """
 
     def run_table(self, update=True):
         self.table.get_board_state()
@@ -222,6 +230,7 @@ class DMG():
                                                                   update=update)
         return
 
+    """ currently not used
     def get_changes(self, updates):
         updates = "{" + updates + "}"
         try:
@@ -234,6 +243,7 @@ class DMG():
         self.hexagons_tracker = update_func.update_polygon_tracker(self.hexagons_tracker, updates)
         self.model.change_local_boundaries(updates)
         return
+    """
 
     def update(self):
         """
@@ -273,7 +283,7 @@ class DMG():
         #self.forcing_conditions = self.forcing_conditions[self.forcing_conditions["turn"] != self.turn]
         self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
         # multiprocessing test
-        model_drought_output_df, model_normal_output_df = self.run_simulations(sim_count=2)
+        model_drought_output_df, model_normal_output_df = self.run_simulations()
         #model_output_df = self.run_model()
         # to test if this overrides values or not, otherwise adjust code in the function below to remove any values
         # from the same scenario of this exist (for logging purposes, perhaps do store those somewhere).
@@ -317,14 +327,16 @@ class DMG():
 
         if self.turn <= len(self.mode["scenarios"]):
             self.scenario = self.mode["scenarios"][self.turn - 1]
-            self.update_forcings()
+            #self.update_forcings()
         self.table.end_round()
         return
 
+    """
+    currently not used
+    
+    function that handles updating the model forcings to subsequent turns (final scenario forcings to be determined)
+    
     def update_forcings(self):
-        """
-        function that handles updating the model forcings to subsequent turns (final scenario forcings to be determined)
-        """
         if self.scenario == self.mode["scenarios"][self.turn-2]:
             print("scenario remains the same, boundary conditions not updated")
             return
@@ -334,16 +346,21 @@ class DMG():
         slr = self.mode["slr"][self.turn - 1] - self.mode["slr"][self.turn - 2]
         self.add_sea_level_rise(slr=slr)
         return
+    """
 
-    def store_forcings(self):
+    def store_forcings(self, sim_type="drought"):
         forcing_conditions = self.model.get_forcings()
         forcing_conditions_df = pd.DataFrame.from_dict(forcing_conditions)
         forcing_conditions_df = forcing_conditions_df.round(0).astype(int)
         forcing_conditions_df["Sea Level Rise"] = self.mode["slr"][self.turn-1]
         forcing_conditions_df["turn"] = self.turn
         forcing_conditions_df["run"] = self.turn_count
+        forcing_conditions_df["type"] = sim_type
         return forcing_conditions_df
 
+    """
+    currently not used
+    
     def add_sea_level_rise(self, slr=0):
         if slr != 0:
             try:
@@ -362,6 +379,7 @@ class DMG():
         else:
             print("no sea level rise (in meters) provided or set to 0, no sea level rise added in model")
         return
+    """
 
 
     def update_channel_geometries(self, channels_to_update=[], change_type="deepen"):
@@ -600,14 +618,9 @@ def run_model(model, procnumber, return_dict):
     """
     call the function run_model function of the model object and retrieve the output.
     """
-    # set forcings here
-
     model.run_model()
-    #self.hexagons_tracker.to_excel(os.path.join(self.save_path, "hexagons_tracker.xlsx"), index=True)
-    #return_dict = queue.get()
     return_dict[procnumber] = model.output
-    #queue.put(return_dict)
-    return #self.model.output
+    return
 
 def main(mode):
     game = DMG(mode)
@@ -616,16 +629,16 @@ def main(mode):
 
 
 scenario_settings1 = {"scenarios": ["reference", "reference", "reference", "reference"], "slr": [0, 0, 0, 0],
-                      "timeseries": "month", "debug": False}
+                      "timeseries": "month", "debug": False, "sim_count": 2}
 
 scenario_settings2 = {"scenarios": ["reference", "2050Md", "2100Md", "2150Md"], "slr": [0, 0.25, 0.59, 1.41],
-                      "timeseries": "dummy", "debug": True}
+                      "timeseries": "dummy", "debug": True, "sim_count": 2}
 
 scenario_settings3 = {"scenarios": ["reference", "2050Hd", "2100Hd", "2150Hd"], "slr": [0, 0.27, 0.82, 2],
-                      "timeseries": "month", "debug": False}
+                      "timeseries": "month", "debug": False, "sim_count": 2}
 
 scenario_settings4 = {"scenarios": ["reference", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82],
-                      "timeseries": "dummy", "debug": True}
+                      "timeseries": "dummy", "debug": True, "sim_count": 2}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

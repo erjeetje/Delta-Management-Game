@@ -69,7 +69,6 @@ def index_polygons_to_channel_geometry(network_gdf):
     # test["polygon_to_L"] = test.apply(lambda row: add_segments(row["L"], row["polygon_ids"]), axis=1)
     new_network_gdf[["polygon_to_L", "polygon_to_segment"]] = new_network_gdf.apply(
         lambda row: add_segments(row.name, row["L"], row["polygon_ids"]), axis=1)
-    print(new_network_gdf.loc["Breeddiep"])
 
     new_network_gdf = new_network_gdf.rename(
         columns={"Hn": "ref_Hn", "L": "ref_L", "b": "ref_b", "dx": "ref_dx"})

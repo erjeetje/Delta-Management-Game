@@ -40,9 +40,15 @@ def get_inlet_salinity(water_inlets_data_gdf, model_output_gdf, turn, run):
     turn_model_output = model_output[(model_output["turn"] == turn) & (model_output["run"] == run)]
     #run_model_output = model_output[model_output["run"] == run]
     turn_model_output = turn_model_output.set_index("id")
+    possible_columns = ['time', 'turn', 'run', 'water_salinity_drought', 'salinity_category_drought',
+                        'water_salinity_normal', 'salinity_category_normal', 'water_salinity_average',
+                        'salinity_category_average']
+    columns_to_merge = []
+    for column in possible_columns:
+        if column in turn_model_output.columns.values:
+            columns_to_merge.append(column)
     turn_inlet_salinity = inlet_data.set_index("output_location").merge(
-        turn_model_output[["time", "water_salinity", "salinity_category", "turn", "run"]], left_index=True,
-        right_index=True)
+        turn_model_output[columns_to_merge], left_index=True, right_index=True)
     turn_inlet_salinity = turn_inlet_salinity.reset_index()
     turn_inlet_salinity = turn_inlet_salinity.set_index("name")
     return turn_inlet_salinity
@@ -73,7 +79,8 @@ def get_exceedance_at_inlets(inlets_with_salinity):
     for inlet_name in inlets_df['name'].unique():
         inlet_data = inlets_df[inlets_df['name'] == inlet_name]
 
-        salinity_values = inlet_data['water_salinity'].values
+        #TODO make this a for loop to cycle through all simulations?
+        salinity_values = inlet_data['water_salinity_drought'].values
         cl_threshold_normal = inlet_data.iloc[0]['CL_threshold_during_regular_operation_(mg/l)']
         cl_threshold_drought = inlet_data.iloc[0]['CL_threshold_during_drought_(mg/l)']
 

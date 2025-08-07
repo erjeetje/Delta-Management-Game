@@ -143,101 +143,6 @@ class IMSIDE():
                 self.delta.Qriv[0][i] -= (self.Qhij - Qold)
         return
 
-
-    def change_local_boundaries_old(self, values):
-        """
-        Function sets local boundary conditions.
-
-        TODO: In the version connected to the table, this needs to be run at every update, hence the "resetting" below.
-        """
-        self.delta.Qriv[0] = self.ref_Qwaal
-        self.delta.Qweir[0] = self.ref_Qhij
-        self.delta.Qweir[1] = self.ref_Qlek
-        self.delta.Qhar[0] = self.ref_Qhar
-        for key, value in values.items():
-            if not isinstance(key, str):
-                print("no boundary input", key)
-                continue
-            else:
-                Qloc = key
-                if isinstance(value, int):
-                    print("int")
-                    Qout = value
-                elif isinstance(value, list):
-                    print("list")
-                    Qthreshold = value[0]
-                    Qout = value[1]
-                if Qloc == "Qhar":
-                    print("Qwaal:", self.delta.Qriv[0])
-                    print("Qhar:", self.delta.Qhar[0])
-                    for i, Q in enumerate(self.delta.Qriv[0]):
-                        if Q / 0.75 <= Qthreshold: # Waal takes approximately 75% of Lobith discharge (low flow)
-                            self.delta.Qhar[0][i] = 0
-                        elif self.delta.Qhar[0][i] <= Qout:
-                            self.delta.Qhar[0][i] = Qout
-                    print("Set Qhar to", self.delta.Qhar)
-                elif Qloc == "Qlek":
-                    print("ref_Qlek", self.delta.Qweir[1])
-                    print("ref_Qwaal", self.delta.Qriv[0])
-                    for i, Q in enumerate(self.delta.Qweir[1]):
-                        if Q < Qout:
-                            self.delta.Qweir[1][i] = Qout
-                            self.delta.Qriv[0][i] -= (Qout - Q)
-                    print("new_Qlek", self.delta.Qweir[1])
-                    print("new_Qwaal", self.delta.Qriv[0])
-                elif Qloc == "Qhij":
-                    print("ref_Qhij", self.delta.Qweir[0])
-                    print("ref_Qwaal", self.delta.Qriv[0])
-                    for i, Q in enumerate(self.delta.Qriv[0]):
-                        if Q / 0.75 <= Qthreshold: # Waal takes approximately 75% of Lobith discharge (low flow)
-                            Qold = self.delta.Qweir[0][i]
-                            self.delta.Qweir[0][i] = Qout
-                            self.delta.Qriv[0][i] -= (Qout - Qold)
-                    print("new_Qhij", self.delta.Qweir[0])
-                    print("new_Qwaal", self.delta.Qriv[0])
-                else:
-                    print("unknown type given, no local boundary is updated.")
-        return
-
-    def change_local_boundaries_old(self, type, value):
-        if type == "Qhar":
-            self.delta.Qhar[0] = np.array([value + np.zeros(len(self.delta.Qhar[0]))])
-            print("Set Qhar to", self.delta.Qhar)
-        elif type == "Qlek":
-            ref_Qlek = self.delta.Qweir[1]
-            print("ref_Qlek", ref_Qlek)
-            print("ref_Qwaal", self.delta.Qriv[0])
-            dif_Qlek = np.array([value - x for x in ref_Qlek])
-            print("dif_Qlek", dif_Qlek)
-            self.delta.Qweir[1] = np.array([value + np.zeros(len(self.delta.Qweir[1]))])
-            print("new_Qlek", self.delta.Qweir[1])
-            self.delta.Qriv[0] = np.subtract(self.delta.Qriv[0], dif_Qlek)
-            print("new_Qwaal", self.delta.Qriv[0])
-        elif type == "Qhij":
-            ref_Qhij = self.delta.Qweir[0]
-            print("ref_Qhij", ref_Qhij)
-            print("ref_Qwaal", self.delta.Qriv[0])
-            dif_Qhij = np.array([value - x for x in ref_Qhij])
-            print("dif_Qhij", dif_Qhij)
-            self.delta.Qweir[0] = np.array([value + np.zeros(len(self.delta.Qweir[0]))])
-            print("new_Qlek", self.delta.Qweir[0])
-            self.delta.Qriv[0] = np.subtract(self.delta.Qriv[0], dif_Qhij)
-            print("new_Qwaal", self.delta.Qriv[0])
-        else:
-            print("unknown type given, no local boundary is updated.")
-        return
-
-    """
-    def add_segments_to_channels(self, model_network_gdf):
-        model_network_gdf = model_network_gdf.set_index("Name")
-        for index, row in model_network_gdf.iterrows():
-            for key in ["Hn", "L", "b", "dx"]:
-                self.delta.ch_gegs[index][key] = row[key]
-            self.delta.add_properties(index, new_channel=False)
-        self.delta.run_checks()
-        return
-    """
-
     def update_channel_geometries(self, model_network_gdf, channels_to_split):
         model_network_change_gdf = model_network_gdf.loc[model_network_gdf['changed'] == True]
         model_network_change_gdf = model_network_change_gdf.reset_index()
@@ -358,7 +263,6 @@ class IMSIDE():
         new_channel2['Name'] = new_channel2['Name'] + "_2"
         # currently, this function only works for channels with one segment
         # TODO update for multiple segments
-        print(old_channel)
         if len(new_channel1['L']) == 1:
             # channel 1 is sea side, channel 2 land side - check
             width_at_break_location = ((old_channel['b'][1] - old_channel['b'][0]) * location) + old_channel['b'][0]
@@ -369,9 +273,6 @@ class IMSIDE():
             new_channel2['L'] = new_channel2['L'] * (1 - location)
             new_channel2['b'][1] = width_at_break_location
             new_channel2['loc x=0'] = 'w' + str(next_weir_number + 1)
-
-            # print(new_channel1)
-            # print(new_channel2)
 
         def multiline_interpolate_point(line_geometry, distance):
             new_line1_coordinates = []

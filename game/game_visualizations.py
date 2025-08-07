@@ -144,15 +144,15 @@ class ApplicationWindow(QMainWindow):
         #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
         self.ax.set_axis_off()
         self.ax.set_position([0.1, 0.1, 0.8, 0.8])
-        turn_idx = (self.game.model_drought_output_gdf["turn"] == self.selected_turn) & (
-                self.game.model_drought_output_gdf["run"] == self.selected_run)
-        self.running_simulation = self.game.model_drought_output_gdf[turn_idx]
+        turn_idx = (self.game.model_output_gdf["turn"] == self.selected_turn) & (
+                self.game.model_output_gdf["run"] == self.selected_run)
+        self.running_simulation = self.game.model_output_gdf[turn_idx]
         t_idx = self.viz_tracker.time_index
         t = self.running_simulation.iloc[t_idx]["time"]
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
-        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="RdBu_r", markersize=150.0)
-        #self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", markersize=150.0)
+        set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
+        self.plot_data.plot(column=set_variable, ax=self.ax, cmap="RdBu_r", markersize=150.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
@@ -171,9 +171,9 @@ class ApplicationWindow(QMainWindow):
         if self.selected_turn != self.viz_tracker.turn or self.selected_run != self.viz_tracker.run:
             self.selected_turn = self.viz_tracker.turn
             self.selected_run = self.viz_tracker.run
-            turn_idx = (self.game.model_drought_output_gdf["turn"] == self.selected_turn) & (
-                    self.game.model_drought_output_gdf["run"] == self.selected_run)
-            self.running_simulation = self.game.model_drought_output_gdf[turn_idx]
+            turn_idx = (self.game.model_output_gdf["turn"] == self.selected_turn) & (
+                    self.game.model_output_gdf["run"] == self.selected_run)
+            self.running_simulation = self.game.model_output_gdf[turn_idx]
             self.viz_tracker.update_scenario()
             self.scenario = self.viz_tracker.scenario
         if self.selected_variable != self.viz_tracker.viz_variable:
@@ -200,7 +200,8 @@ class ApplicationWindow(QMainWindow):
         t = self.viz_tracker.get_time_index()
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
-        self.pc.set_array(self.plot_data[self.selected_variable])
+        set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
+        self.pc.set_array(self.plot_data[set_variable])
         title_string = "turn: " + str(self.selected_turn) + " - run: " + str(self.selected_run) + " - " + self.scenario + " - " + f"timestep: {t}"
         self.ax.set_title(title_string[:-8])
         self.model_canvas.draw()
@@ -232,8 +233,7 @@ class ApplicationWindow(QMainWindow):
         ax = self.inlet_canvas.figure.subplots()
         ax.set_axis_off()
 
-        model_output = self.game.model_drought_output_gdf.copy()
-        #model_output = model_output[model_output["turn"] == self.viz_tracker.turn]
+        model_output = self.game.model_output_gdf.copy()
         model_output = model_output[
             (model_output["turn"] == self.viz_tracker.turn) & (model_output["run"] == self.viz_tracker.run)]
         model_output = model_output[model_output["time"] == model_output.iloc[0]["time"]]
@@ -243,7 +243,6 @@ class ApplicationWindow(QMainWindow):
             model_output.plot(ax=ax, color="deepskyblue", markersize=50)
 
         inlet_data = self.game.inlet_salinity_tracker.copy()
-        #inlet_data = inlet_data[inlet_data["turn"] == self.viz_tracker.turn]
         inlet_data = inlet_data[
             (inlet_data["turn"] == self.viz_tracker.turn) & (inlet_data["run"] == self.viz_tracker.run)]
         if inlet_data.empty:
@@ -275,20 +274,18 @@ class ApplicationWindow(QMainWindow):
             inlet_data = inlet_data.reset_index()
             inlet_data = inlet_data[inlet_data['name'] == to_plot]
             ax.set_facecolor('lightgray')
-
+            set_variable = 'water_salinity' + "_" + self.viz_tracker.sim_type
             if combined_plot:
                 markers = ['o', 's', 'h', 'v', 'D']
                 color = ['blue', 'darkgreen', 'orange', 'gold', 'purple']
-
                 for idx in run_idx:
                     run_data = inlet_data[inlet_data['run'] == idx]
                     time_steps = to_datetime(run_data['time']).dt.strftime('%Y-%m-%d')
-                    salinity_values = run_data['water_salinity'].values
-
+                    salinity_values = run_data[set_variable].values
                     ax.plot(time_steps, salinity_values, marker=markers[idx-1], linestyle='-', color=color[idx-1], label='Salinity (mg/l) run %d' % idx)
             else:
                 time_steps = to_datetime(inlet_data['time']).dt.strftime('%Y-%m-%d')
-                salinity_values = inlet_data['water_salinity'].values
+                salinity_values = inlet_data[set_variable].values
                 ax.plot(time_steps, salinity_values, marker='o', linestyle='-', color='blue',
                         label='Salinity (mg/l) run %d' % self.viz_tracker.turn)
 
@@ -328,8 +325,6 @@ class ApplicationWindow(QMainWindow):
                             "Number of consecutive days above threshold (drought): " + str(
                         inlet_data.iloc[0]['Num_days_consecutive_drought']))
 
-            #ax.text(1.0, -0.4, text_to_plot, horizontalalignment='right', verticalalignment='top', transform=ax.transAxes,
-            #        fontsize=16)
             ax.text(0.96, 0.04, text_to_plot, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes,
                     fontsize=11)
 
@@ -342,7 +337,7 @@ class ApplicationWindow(QMainWindow):
         forcing_conditions_df = forcing_conditions_df[
             (forcing_conditions_df["turn"] == self.viz_tracker.turn) &
             (forcing_conditions_df["run"] == self.viz_tracker.run) &
-            (forcing_conditions_df["type"] == "drought")] # in case simulation types become selectable, add self.game.simulations to viz_tracker and select accordingly
+            (forcing_conditions_df["type"] == self.viz_tracker.sim_type)]
         forcing_conditions_df = forcing_conditions_df.drop(columns=["turn", "run", "type"])
         forcing_conditions = pandasModel(forcing_conditions_df)
         self.forcing_table.setModel(forcing_conditions)
@@ -412,16 +407,15 @@ class GameVisualization(QWidget):
         #self.ax.set_aspect(1)
         self.ax.axis(bbox)
         self.ax.set_axis_off()
-        turn_idx = (self.game.game_drought_output_gdf["turn"] == self.selected_turn) & (
-                    self.game.game_drought_output_gdf["run"] == self.selected_run)
-        self.running_simulation = self.game.game_drought_output_gdf[turn_idx]
+        turn_idx = (self.game.game_output_gdf["turn"] == self.selected_turn) & (
+                self.game.game_output_gdf["run"] == self.selected_run)
+        self.running_simulation = self.game.game_output_gdf[turn_idx]
         t_idx = self.viz_tracker.time_index
         t = self.running_simulation.iloc[t_idx]["time"]
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
-        self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="RdBu_r", aspect=1, markersize=200.0)
-        #self.plot_data.plot(column=self.selected_variable, ax=self.ax, cmap="coolwarm", aspect=1, markersize=200.0)
-
+        set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
+        self.plot_data.plot(column=set_variable, ax=self.ax, cmap="RdBu_r", aspect=1, markersize=200.0)
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
         self.pc = pcs[0]
@@ -436,9 +430,9 @@ class GameVisualization(QWidget):
         if self.selected_turn != self.viz_tracker.turn or self.selected_run != self.viz_tracker.run:
             self.selected_turn = self.viz_tracker.turn
             self.selected_run = self.viz_tracker.run
-            turn_idx = (self.game.game_drought_output_gdf["turn"] == self.selected_turn) & (
-                        self.game.game_drought_output_gdf["run"] == self.selected_run)
-            self.running_simulation = self.game.game_drought_output_gdf[turn_idx]
+            turn_idx = (self.game.game_output_gdf["turn"] == self.selected_turn) & (
+                    self.game.game_output_gdf["run"] == self.selected_run)
+            self.running_simulation = self.game.game_output_gdf[turn_idx]
         if self.selected_variable != self.viz_tracker.viz_variable:
             self.selected_variable = self.viz_tracker.viz_variable
             if self.selected_variable == "water_salinity":
@@ -463,7 +457,8 @@ class GameVisualization(QWidget):
         t = self.viz_tracker.get_time_index()
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
-        self.pc.set_array(self.plot_data[self.selected_variable])
+        set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
+        self.pc.set_array(self.plot_data[set_variable])
         #self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
         self.game_canvas.draw()
         return
@@ -1110,12 +1105,13 @@ class ControlWidget(QWidget):
 
 class VisualizationTracker():
     def __init__(self, starting_turn, scenarios, starting_variable, time_steps, starting_time,
-                 salinity_range, salinity_category, inlet_to_plot): #, water_level_range, water_velocity_range
+                 salinity_range, salinity_category, inlet_to_plot, sim_type="drought"): #, water_level_range, water_velocity_range
         self._turn = starting_turn
         self._run = 1
         self.scenarios = scenarios
         self._scenario = scenarios[0]
         self._viz_variable = starting_variable
+        self._sim_type = sim_type
         self._time_steps = time_steps
         self._time_index = starting_time
         self._salinity_norm = salinity_range
@@ -1148,6 +1144,10 @@ class VisualizationTracker():
     @property
     def viz_variable(self):
         return self._viz_variable
+
+    @property
+    def sim_type(self):
+        return self._sim_type
 
     """
     @property
@@ -1204,6 +1204,11 @@ class VisualizationTracker():
     @viz_variable.setter
     def viz_variable(self, variable):
         self._viz_variable = variable
+        return
+
+    @sim_type.setter
+    def sim_type(self, variable):
+        self._sim_type = variable
         return
 
     """

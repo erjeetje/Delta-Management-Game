@@ -126,30 +126,6 @@ def calc_output(self):
         # save total velocity
         self.ch_outp[key]['utot'] = u_ti_h + u_st_h
 
-        """
-        # adjust for river and sea domains
-        if self.ch_gegs[key]['loc x=-L'][0] == 's':
-            print("water level output correction for", key)
-            print('loc x=-L: ', self.ch_gegs[key]['loc x=-L'])
-            htot = htot[:, self.ch_pars[key]['di'][1] + 1:]
-            utot = utot[:, self.ch_pars[key]['di'][1] + 1:,:]
-        if self.ch_gegs[key]['loc x=0'][0] == 's':
-            print("water level output correction for", key)
-            print('loc x=0: ', self.ch_gegs[key]['loc x=0'])
-            htot = htot[:, :self.ch_pars[key]['di'][1] - 1]
-            utot = utot[:,:self.ch_pars[key]['di'][1]-1, :]
-        if self.ch_gegs[key]['loc x=-L'][0] == 'r':
-            print("water level output correction for", key)
-            print('loc x=-L: ', self.ch_gegs[key]['loc x=-L'])
-            htot = htot[:, self.ch_pars[key]['di'][1] + 1:]
-            utot = utot[:, self.ch_pars[key]['di'][1] + 1:, :]
-        if self.ch_gegs[key]['loc x=0'][0] == 'r':
-            print("water level output correction for", key)
-            print('loc x=0: ', self.ch_gegs[key]['loc x=0'])
-            htot = htot[:, :self.ch_pars[key]['di'][1] - 1]
-            utot = utot[:, :self.ch_pars[key]['di'][1] - 1, :]
-        """
-
 
         # =============================================================================
         # remove sea and river domain
@@ -178,11 +154,7 @@ def calc_output(self):
             self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][:-self.nx_sea]
             self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][:-self.nx_sea]
 
-            # added
-            #self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, :self.ch_pars[key]['di'][1] - 1]
-            #self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, :self.ch_pars[key]['di'][1] - 1, :]
-            #htot = htot[:, :self.ch_pars[key]['di'][1] - 1]
-            #utot = utot[:, :self.ch_pars[key]['di'][1] - 1, :]
+            # added for game
             self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, :-self.nx_sea]
             self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, :-self.nx_sea, :]
 
@@ -209,9 +181,7 @@ def calc_output(self):
 
             tot_L = np.sum(self.ch_gegs[key]['L'][1:])
 
-            #added
-            #htot = htot[:, self.ch_pars[key]['di'][1] + 1:]
-            #utot = utot[:, self.ch_pars[key]['di'][1] + 1:, :]
+            # added for game
             self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, self.nx_sea:]
             self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, self.nx_sea:, :]
 
@@ -241,9 +211,7 @@ def calc_output(self):
             self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][:-self.nx_riv]
             self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][:-self.nx_riv]
 
-            #added
-            #htot = htot[:, :self.ch_pars[key]['di'][1] - 1]
-            #utot = utot[:, :self.ch_pars[key]['di'][1] - 1, :]
+            #added for game
             self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, :-self.nx_riv]
             self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, :-self.nx_riv, :]
 
@@ -270,13 +238,11 @@ def calc_output(self):
             self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][self.nx_riv:]
             self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][self.nx_riv:]
 
-            # added
-            #htot = htot[:, self.ch_pars[key]['di'][1] + 1:]
-            #utot = utot[:, self.ch_pars[key]['di'][1] + 1:, :]
+            # added for game
             self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, self.nx_riv:]
             self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, self.nx_riv:, :]
 
-        # added: reshape and transpose to get output shape (days, location, hours)
+        # added for game: reshape and transpose to get htot and utot output shape (days, location, hours)
         n_days = len(self.Tvec)
         htot_shape = self.ch_outp[key]['htot'].shape
         utot_shape = self.ch_outp[key]['utot'].shape
@@ -287,9 +253,6 @@ def calc_output(self):
         self.ch_outp[key]['utot'] = np.reshape(self.ch_outp[key]['utot'], utot_shape_new)
         self.ch_outp[key]['utot'] = np.transpose(self.ch_outp[key]['utot'], axes=(0, 2, 1, 3))
 
-        if key in ["Breeddiep", "Maas", "Waal"]:
-            print("htot shape after:", self.ch_outp[key]['htot'].shape)
-            print("utot shape after:", self.ch_outp[key]['utot'].shape)
 
         # =============================================================================
         # prepare some plotting quantities, x and y coordinates in map plots
@@ -303,8 +266,6 @@ def calc_output(self):
 
         self.ch_outp[key]['points'] = np.array([self.ch_outp[key]['plot xs'],self.ch_outp[key]['plot ys']]).T.reshape(-1, 1, 2)
         self.ch_outp[key]['segments'] = np.concatenate([self.ch_outp[key]['points'][:-1], self.ch_outp[key]['points'][1:]], axis=1)
-
-
 
 #calc_output(delta)
 

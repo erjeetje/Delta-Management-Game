@@ -279,8 +279,8 @@ class DMG():
         self.operational_df = operation_func.update_operational_rules(self.operational_df, self.hexagons_board_gdf)
         self.model.change_local_boundaries(self.operational_df)
         # TODO: also update hexagon_tracker (references are updated with split channel)?
-        turn_forcing_conditions = self.store_forcings()
-        self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
+        #turn_forcing_conditions = self.store_forcings()
+        #self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
 
         model_drought_output_df, model_normal_output_df, model_average_output_df = self.run_simulations()
         merged_model_output_df, columns_to_explode, next_columns_to_explode = game_sync.merge_model_output(
@@ -289,7 +289,13 @@ class DMG():
         self.model_output_to_game(merged_model_output_df)
 
         self.update_inlet_salinity()
-        self.gui.show_turn_button(self.turn, self.turn_count)
+        """
+        This is not the most neat way as the time_steps below needs to be updated in the viz_tracker, which the game
+        does not have as an object, but the gui object does. So this works and is robust. Neater would be if it can
+        be set directly. It is possible to do it dynamically, but it makes more sense to just store it once.
+        """
+        time_steps = {self.turn: list(sorted(set(self.model_output_gdf[self.model_output_gdf["turn"] == self.turn]["time"])))}
+        self.gui.show_turn_button(self.turn, self.turn_count, time_steps)
         if self.export:
             self.export_output()
         print("updated to turn", self.turn, "- run", self.turn_count)
@@ -541,7 +547,7 @@ class DMG():
         qapp = QApplication.instance()
         if not qapp:
             qapp = QApplication(sys.argv)
-        time_steps = list(sorted(set(self.model_output_gdf["time"])))
+        time_steps = {1: list(sorted(set(self.model_output_gdf["time"])))}
         time_index = 0
         starting_variable = "water_salinity"
         viz_tracker = visualizer.VisualizationTracker(
@@ -586,7 +592,7 @@ scenario_settings3 = {"scenarios": ["reference", "2050Hd", "2100Hd", "2150Hd"], 
                       "timeseries": "month", "sim_count": 2, "debug": False, "export": False}
 
 scenario_settings4 = {"scenarios": ["reference", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82],
-                      "timeseries": "dummy", "sim_count": 2, "debug": True, "export": True}
+                      "timeseries": "month", "sim_count": 2, "debug": True, "export": False}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

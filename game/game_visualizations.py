@@ -201,6 +201,7 @@ class ApplicationWindow(QMainWindow):
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
         set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
+        print(self.plot_data[set_variable].shape)
         self.pc.set_array(self.plot_data[set_variable])
         title_string = "turn: " + str(self.selected_turn) + " - run: " + str(self.selected_run) + " - " + self.scenario + " - " + f"timestep: {t}"
         self.ax.set_title(title_string[:-8])
@@ -343,7 +344,8 @@ class ApplicationWindow(QMainWindow):
         self.forcing_table.setModel(forcing_conditions)
         return
 
-    def show_turn_button(self, turn, run):
+    def show_turn_button(self, turn, run, time_steps):
+        self.viz_tracker.time_steps = time_steps
         self.control_widget.turn_buttons[turn][run-1].setEnabled(True)
         if turn == 2:
             self.control_widget.on_turn2_button_clicked(run)
@@ -1000,6 +1002,12 @@ class ControlWidget(QWidget):
     def on_turn1_button_clicked(self):
         self.viz_tracker.turn = 1
         self.viz_tracker.run = 1
+        """
+        self.viz_tracker.time_steps = list(
+            sorted(set(self.game.model_output_gdf[(self.game.model_output_gdf["turn"] == self.viz_tracker.turn) &
+                                                  (self.game.model_output_gdf["run"] == self.viz_tracker.run)][
+                           "time"])))
+        """
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
@@ -1021,6 +1029,12 @@ class ControlWidget(QWidget):
     def on_turn2_button_clicked(self, run):
         self.viz_tracker.turn = 2
         self.viz_tracker.run = run
+        """
+        self.viz_tracker.time_steps = list(
+            sorted(set(self.game.model_output_gdf[(self.game.model_output_gdf["turn"] == self.viz_tracker.turn) &
+                                                  (self.game.model_output_gdf["run"] == self.viz_tracker.run)][
+                           "time"])))
+        """
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
@@ -1031,6 +1045,12 @@ class ControlWidget(QWidget):
     def on_turn3_button_clicked(self, run):
         self.viz_tracker.turn = 3
         self.viz_tracker.run = run
+        """
+        self.viz_tracker.time_steps = list(
+            sorted(set(self.game.model_output_gdf[(self.game.model_output_gdf["turn"] == self.viz_tracker.turn) &
+                                                  (self.game.model_output_gdf["run"] == self.viz_tracker.run)][
+                           "time"])))
+        """
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
@@ -1038,15 +1058,21 @@ class ControlWidget(QWidget):
         self.change_highlights()
         return
 
-    def on_turn4_button_clicked(self):
+    def on_turn4_button_clicked(self, run):
         self.viz_tracker.turn = 4
+        self.viz_tracker.run = run
+        """
+        self.viz_tracker.time_steps = list(
+            sorted(set(self.game.model_output_gdf[(self.game.model_output_gdf["turn"] == self.viz_tracker.turn) &
+                                                  (self.game.model_output_gdf["run"] == self.viz_tracker.run)][
+                           "time"])))
+        """
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
         self.gui.score_widget.update_text()
         self.change_highlights()
         return
-
 
     def change_highlights(self):
         if self.screen_highlight != self.viz_tracker.viz_variable:
@@ -1122,8 +1148,8 @@ class VisualizationTracker():
         return
 
     def get_time_index(self):
-        t_idx = self.time_index % len(self.time_steps)
-        return self.time_steps[t_idx]
+        t_idx = self.time_index % len(self.time_steps[self.turn])
+        return self.time_steps[self.turn][t_idx]
 
     def update_scenario(self):
         self.scenario = self.scenarios[self.turn-1]
@@ -1219,8 +1245,8 @@ class VisualizationTracker():
     """
 
     @time_steps.setter
-    def time_steps(self, time_steps):
-        self._time_steps = time_steps
+    def time_steps(self, new_time_steps):
+        self._time_steps = self._time_steps | new_time_steps
         return
 
     @time_index.setter

@@ -271,16 +271,19 @@ def merge_model_output(simulations, model_output_df1, model_output_df2=None, mod
         del output_dfs[-1]
     if model_output_df2 is None:
         del output_dfs[-1]
-    columns_to_merge = ["sss", "sb_st", "sn_st", "sp_st", "s_st"]
-    next_columns_to_merge = ["sb_st", "sn_st", "s_st"]
-    next_columns_to_keep = ["px", "plot xs", "plot ys", "points"]
+
+    columns_to_merge = ["sss", "sb_st", "sn_st", "sp_st", "s_st", "htot", "utot"]
+    next_columns_to_merge = ["sb_st", "sn_st", "s_st", "htot", "utot"]
+    columns_to_keep = ["px", "plot xs", "plot ys", "points"]
     columns_to_explode = []
     next_columns_to_explode = []
+
     def flatten(xss):
         return [x for xs in xss for x in xs]
+
     for i in range(len(output_dfs)):
         #output_dfs[i] = output_dfs[i].set_index("Unnamed: 0") # this should not be needed in the game code
-        output_dfs[i] = output_dfs[i][flatten([columns_to_merge, next_columns_to_keep])]
+        output_dfs[i] = output_dfs[i][flatten([columns_to_merge, columns_to_keep])]
         if False:
             for j in range(len(output_dfs[i])):
                 for column in columns_to_merge:
@@ -298,23 +301,30 @@ def merge_model_output(simulations, model_output_df1, model_output_df2=None, mod
         columns_to_explode.append(list(columns_to_rename.values()))
         next_columns_to_explode.append(list(next_columns_to_rename.values()))
         if i != 0:
-            output_dfs[i] = output_dfs[i].drop(columns=next_columns_to_keep)
+            output_dfs[i] = output_dfs[i].drop(columns=columns_to_keep)
+
     merged_model_output_df = output_dfs[0].copy()
     for i in range(1, len(output_dfs)):
         merged_model_output_df = pd.merge(merged_model_output_df, output_dfs[i].copy(), left_index=True, right_index=True)
     columns_to_explode = flatten(columns_to_explode)
-    next_columns_to_explode.append(next_columns_to_keep)
+    next_columns_to_explode.append(columns_to_keep)
     next_columns_to_explode = flatten(next_columns_to_explode)
     return merged_model_output_df, columns_to_explode, next_columns_to_explode
 
-def process_model_output(model_output_df, columns_to_explode, next_columns_to_explode, sim_count, simulations, scenario="2018"):
+def process_model_output(model_output_df, columns_to_explode, next_columns_to_explode, sim_count, simulations,
+                         scenario="2018"):
     timesteps = list(range(len(model_output_df.iloc[0]["sb_st_drought"])))
     # TODO add proper timesteps
     #timestamp = scenario[:4] + "-08-01"
     #timeseries = pd.to_datetime(pd.Timestamp(timestamp)) + pd.to_timedelta(timesteps, unit='D')
+    if scenario == "reference":
+        year = "2018"
+    else:
+        year = scenario[:4]
     key = "time"
-    timeseries = pd.to_datetime(pd.Timestamp('2020-08-01')) + pd.to_timedelta(timesteps, unit='D')
+    timeseries = pd.to_datetime(pd.Timestamp(year + '-08-01')) + pd.to_timedelta(timesteps, unit='D')
     model_output_df[key] = [timeseries for i in model_output_df.index]
+
     if key not in columns_to_explode:
         columns_to_explode.append(key)
 
@@ -354,11 +364,13 @@ def process_model_output(model_output_df, columns_to_explode, next_columns_to_ex
 
     # just a quick check for element counts
     if False:
+        print_names = ["Breeddiep", "Maas", "Waal"]
         for i in range(len(exploded_output_df)):
-            print(exploded_output_df.iloc[i].name)
-            for column in next_columns_to_explode:
-                print("element count", column, ":", len(exploded_output_df.iloc[i][column]))
-            print("")
+            if exploded_output_df.iloc[i].name in print_names:
+                print(exploded_output_df.iloc[i].name)
+                for column in next_columns_to_explode:
+                    print("element count", column, ":", len(exploded_output_df.iloc[i][column]))
+                print("")
 
     double_exploded_output_df = exploded_output_df.explode(next_columns_to_explode)
     for i in range(sim_count):
@@ -369,7 +381,9 @@ def process_model_output(model_output_df, columns_to_explode, next_columns_to_ex
     return double_exploded_output_df, exploded_output_df
 
 def output_df_to_gdf(double_exploded_output_df):
-    possible_columns = ['id', 'branch_rank', 'time', 'sb_st_drought', 'water_salinity_drought', 'sb_st_normal', 'water_salinity_normal', 'sb_st_average', 'water_salinity_average']
+    possible_columns = ['id', 'branch_rank', 'time', 'sb_st_drought', 'water_salinity_drought', 'htot_drought',
+                        'sb_st_normal', 'water_salinity_normal', 'htot_normal', 'sb_st_average',
+                        'water_salinity_average', 'htot_average']
     columns_to_keep = []
     for column in possible_columns:
         if column in double_exploded_output_df.columns.values:

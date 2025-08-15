@@ -88,12 +88,12 @@ class DMG():
 
     def start_game(self):
         model_drought_output_df, model_normal_output_df, model_average_output_df = self.run_simulations()
-        merged_model_output_df, columns_to_explode, next_columns_to_explode = game_sync.merge_model_output(
-            self.simulations, model_drought_output_df, model_output_df2=model_normal_output_df,
-            model_output_df3=model_average_output_df)
+        (merged_model_output_df, columns_to_explode, next_columns_to_explode) = (
+            game_sync.merge_model_output(self.simulations, model_drought_output_df,
+                                         model_output_df2=model_normal_output_df,
+                                         model_output_df3=model_average_output_df))
         self.columns_to_explode = columns_to_explode
         self.next_columns_to_explode = next_columns_to_explode
-
         self.model_output_to_game(merged_model_output_df, initialize=True)
         self.index_inlets()
         self.update_inlet_salinity()
@@ -111,7 +111,7 @@ class DMG():
         """
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.input_files = os.path.join(dir_path, "game", "input_files")
-        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\09 Prototype refinement summer 2025\coding (notebooks)\multiprocessing test"
+        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\09 Prototype refinement summer 2025\coding (notebooks)\hydrodynamics test"
         self.debug_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\08 Prototype building\debug"
         return
 
@@ -442,6 +442,7 @@ class DMG():
         double_exploded_output_df, exploded_output_df = game_sync.process_model_output(
             model_output_df, self.columns_to_explode, self.next_columns_to_explode, self.sim_count, self.simulations,
             scenario=self.mode["scenarios"][self.turn-1])
+
         if initialize == True:
             model_output_gdf = game_sync.output_df_to_gdf(double_exploded_output_df)
             model_output_gdf = game_sync.add_polygon_ids(model_output_gdf, self.world_polygons)
@@ -449,7 +450,7 @@ class DMG():
             # NOTE: first point in Lek is double ? check source
             # NOTE 2: first and last points all match earlier runs, but there are less points in Lek ? check source
             game_output_gdf = game_sync.model_output_to_game_locations(self.game_network_gdf,
-                                                                            model_output_gdf, exploded_output_df)
+                                                                       model_output_gdf, exploded_output_df)
             model_output_gdf = model_output_gdf.reset_index()
             model_output_gdf = model_output_gdf.drop(columns="index")
             timestep_0 = model_output_gdf.iloc[0]["time"]
@@ -585,7 +586,7 @@ scenario_settings3 = {"scenarios": ["reference", "2050Hd", "2100Hd", "2150Hd"], 
                       "timeseries": "month", "sim_count": 2, "debug": False, "export": False}
 
 scenario_settings4 = {"scenarios": ["reference", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82],
-                      "timeseries": "dummy", "sim_count": 2, "debug": True, "export": False}
+                      "timeseries": "dummy", "sim_count": 2, "debug": True, "export": True}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

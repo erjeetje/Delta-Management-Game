@@ -151,6 +151,22 @@ class mod42_netw:
         for i in range(1,self.ch_pars[key]['n_seg']):   self.ch_pars[key]['di'][i] = np.sum(self.ch_pars[key]['nxn'][:i])
         self.ch_pars[key]['di'][-1] = np.sum(self.ch_pars[key]['nxn'])
 
+        # test
+        print_values = False
+        if self.ch_gegs[key]['loc x=-L'][0] == 's':
+            print_values = True
+        if self.ch_gegs[key]['loc x=0'][0] == 's':
+            print_values = True
+        if self.ch_gegs[key]['loc x=-L'][0] == 'r':
+            print_values = True
+        if self.ch_gegs[key]['loc x=0'][0] == 'r':
+            print_values = True
+
+        if print_values:
+            print(key, "di value:", self.ch_pars[key]['di'])
+        # end test
+
+
         self.ch_pars[key]['dl'] = np.zeros(self.ch_pars[key]['nxn'].sum()) #normalised dx, per point
         self.ch_pars[key]['dl'][0:self.ch_pars[key]['nxn'][0]] = self.ch_pars[key]['dln'][0]
         for i in range(1,len(self.ch_pars[key]['nxn'])): self.ch_pars[key]['dl'][np.sum(self.ch_pars[key]['nxn'][:i]):np.sum(self.ch_pars[key]['nxn'][:i+1])] = self.ch_pars[key]['dln'][i]

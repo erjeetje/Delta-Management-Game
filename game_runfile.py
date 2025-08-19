@@ -7,7 +7,6 @@ import pandas as pd
 from datetime import timedelta
 from copy import deepcopy
 from PyQt5.QtWidgets import QApplication
-#from ast import literal_eval
 from multiprocessing import Process, Manager
 from game import game_visualizations as visualizer
 from game import load_functions as load_files
@@ -88,6 +87,10 @@ class DMG():
 
     def start_game(self):
         model_drought_output_df, model_normal_output_df, model_average_output_df = self.run_simulations()
+        #print(self.scenario, "drought scenario output:")
+        #print(model_drought_output_df[["sb_st", "htot"]].head())
+        #print(self.scenario, "normal scenario output:")
+        #print(model_normal_output_df[["sb_st", "htot"]].head())
         (merged_model_output_df, columns_to_explode, next_columns_to_explode) = (
             game_sync.merge_model_output(self.simulations, model_drought_output_df,
                                          model_output_df2=model_normal_output_df,
@@ -99,7 +102,6 @@ class DMG():
         self.update_inlet_salinity()
         if self.export:
             self.export_output()
-        # self.export_output(type="normal")
         self._turn_count = 2
         self.end_round()
         self.create_visualizations()
@@ -283,6 +285,10 @@ class DMG():
         #self.forcing_conditions = pd.concat([self.forcing_conditions, turn_forcing_conditions])
 
         model_drought_output_df, model_normal_output_df, model_average_output_df = self.run_simulations()
+        #print(self.scenario, "drought scenario output:")
+        #print(model_drought_output_df[["sb_st", "htot"]].head())
+        #print(self.scenario, "normal scenario output:")
+        #print(model_normal_output_df[["sb_st", "htot"]].head())
         merged_model_output_df, columns_to_explode, next_columns_to_explode = game_sync.merge_model_output(
             self.simulations, model_drought_output_df, model_output_df2=model_normal_output_df,
             model_output_df3=model_average_output_df)
@@ -293,6 +299,14 @@ class DMG():
         This is not the most neat way as the time_steps below needs to be updated in the viz_tracker, which the game
         does not have as an object, but the gui object does. So this works and is robust. Neater would be if it can
         be set directly. It is possible to do it dynamically, but it makes more sense to just store it once.
+        
+        If the ControlWidget can access the game object, then this could work, but this updates it on every
+        visualization change:
+        
+        self.viz_tracker.time_steps = list(
+            sorted(set(self.game.model_output_gdf[(self.game.model_output_gdf["turn"] == self.viz_tracker.turn) &
+                                                  (self.game.model_output_gdf["run"] == self.viz_tracker.run)][
+                           "time"])))
         """
         time_steps = {self.turn: list(sorted(set(self.model_output_gdf[self.model_output_gdf["turn"] == self.turn]["time"])))}
         self.gui.show_turn_button(self.turn, self.turn_count, time_steps)
@@ -462,7 +476,8 @@ class DMG():
             timestep_0 = model_output_gdf.iloc[0]["time"]
 
             possible_columns_to_drop = ['time', 'sb_st_drought', 'water_salinity_drought', 'sb_st_normal',
-                                'water_salinity_normal', 'sb_st_average', 'water_salinity_average']
+                                        'water_salinity_normal', 'sb_st_average', 'water_salinity_average',
+                                        'htot_drought', 'htot_normal', 'htot_average']
             columns_to_drop = []
             for column in possible_columns_to_drop:
                 if column in model_output_gdf.columns.values:
@@ -490,7 +505,7 @@ class DMG():
         else:
             possible_columns_to_merge = ['id', 'branch_rank', 'time', 'sb_st_drought', 'water_salinity_drought',
                                          'sb_st_normal', 'water_salinity_normal', 'sb_st_average',
-                                         'water_salinity_average']
+                                         'water_salinity_average', 'htot_drought', 'htot_normal', 'htot_average']
             columns_to_merge = []
             for column in possible_columns_to_merge:
                 if column in double_exploded_output_df.columns.values:
@@ -522,6 +537,8 @@ class DMG():
         """
         filename = "model_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
         self.model_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
+        #filename = "model_ref_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
+        #self.model_output_ref_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
         return
 
     def debug_output(self):
@@ -592,7 +609,7 @@ scenario_settings3 = {"scenarios": ["reference", "2050Hd", "2100Hd", "2150Hd"], 
                       "timeseries": "month", "sim_count": 2, "debug": False, "export": False}
 
 scenario_settings4 = {"scenarios": ["reference", "2050Hd", "2100Hd"], "slr": [0, 0.27, 0.82],
-                      "timeseries": "month", "sim_count": 2, "debug": True, "export": False}
+                      "timeseries": "dummy", "sim_count": 2, "debug": True, "export": True}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

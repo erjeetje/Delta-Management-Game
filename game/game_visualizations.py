@@ -201,7 +201,6 @@ class ApplicationWindow(QMainWindow):
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
         set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
-        print(self.plot_data[set_variable].shape)
         self.pc.set_array(self.plot_data[set_variable])
         title_string = "turn: " + str(self.selected_turn) + " - run: " + str(self.selected_run) + " - " + self.scenario + " - " + f"timestep: {t}"
         self.ax.set_title(title_string[:-8])
@@ -351,19 +350,6 @@ class ApplicationWindow(QMainWindow):
             self.control_widget.on_turn2_button_clicked(run)
         elif turn == 3:
             self.control_widget.on_turn3_button_clicked(run)
-        """
-        if turn == 2:
-            self.control_widget.btn_turn2.setEnabled(True)
-            self.control_widget.on_turn2_button_clicked()
-        elif turn == 3:
-            self.control_widget.btn_turn3.setEnabled(True)
-            self.control_widget.on_turn3_button_clicked()
-        """
-        """
-        elif turn == 4:
-            self.control_widget.btn_turn4.setEnabled(True)
-            self.control_widget.on_turn4_button_clicked()
-        """
         return
 
     def change_inlet_plot(self):
@@ -595,14 +581,12 @@ class ScoreWidget(QWidget):
     def update_text(self):
         inlet_data = self.gui.game.inlet_salinity_tracker.copy()
         inlet_data = inlet_data[(inlet_data["turn"] == self.viz_tracker.turn) & (inlet_data["run"] == self.viz_tracker.run)]
-        #df1 = df[(df.a != -1) & (df.b != -1)]
         if inlet_data.empty:
             print("there seems to be no inlet data yet")
         else:
             inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
             inlet_data = inlet_data.reset_index()
             number_green = len(inlet_data[inlet_data['score_indicator'] == 1])
-            #number_yellow = len(inlet_data[inlet_data['score_indicator'] == 2])
             number_orange = len(inlet_data[inlet_data['score_indicator'] == 2])
             number_red = len(inlet_data[inlet_data['score_indicator'] == 3])
             #score = ((number_green * 1 + number_yellow * 0.75 + number_orange * 0.5 + number_red * 0.25) / 6) * 100
@@ -1015,26 +999,9 @@ class ControlWidget(QWidget):
         self.change_highlights()
         return
 
-    """
-    def on_turn2_button_clicked(self):
-        self.viz_tracker.turn = 2
-        self.gui.show_forcing_conditions()
-        self.gui.plot_inlet_indicators()
-        self.gui.plot_salinity_inlets()
-        self.gui.score_widget.update_text()
-        self.change_highlights()
-        return
-    """
-
     def on_turn2_button_clicked(self, run):
         self.viz_tracker.turn = 2
         self.viz_tracker.run = run
-        """
-        self.viz_tracker.time_steps = list(
-            sorted(set(self.game.model_output_gdf[(self.game.model_output_gdf["turn"] == self.viz_tracker.turn) &
-                                                  (self.game.model_output_gdf["run"] == self.viz_tracker.run)][
-                           "time"])))
-        """
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
@@ -1045,12 +1012,6 @@ class ControlWidget(QWidget):
     def on_turn3_button_clicked(self, run):
         self.viz_tracker.turn = 3
         self.viz_tracker.run = run
-        """
-        self.viz_tracker.time_steps = list(
-            sorted(set(self.game.model_output_gdf[(self.game.model_output_gdf["turn"] == self.viz_tracker.turn) &
-                                                  (self.game.model_output_gdf["run"] == self.viz_tracker.run)][
-                           "time"])))
-        """
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
@@ -1061,12 +1022,6 @@ class ControlWidget(QWidget):
     def on_turn4_button_clicked(self, run):
         self.viz_tracker.turn = 4
         self.viz_tracker.run = run
-        """
-        self.viz_tracker.time_steps = list(
-            sorted(set(self.game.model_output_gdf[(self.game.model_output_gdf["turn"] == self.viz_tracker.turn) &
-                                                  (self.game.model_output_gdf["run"] == self.viz_tracker.run)][
-                           "time"])))
-        """
         self.gui.show_forcing_conditions()
         self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
@@ -1099,23 +1054,6 @@ class ControlWidget(QWidget):
             for key, btn_list in self.turn_buttons.items():
                 for btn in btn_list:
                     btn.setStyleSheet("background-color:lightgray;")
-            """
-            self.btn_turn1.setStyleSheet("background-color:lightgray;")
-            self.btn_turn2_run1.setStyleSheet("background-color:lightgray;")
-            self.btn_turn2_run2.setStyleSheet("background-color:lightgray;")
-            self.btn_turn2_run3.setStyleSheet("background-color:lightgray;")
-            self.btn_turn2_run4.setStyleSheet("background-color:lightgray;")
-            self.btn_turn2_run5.setStyleSheet("background-color:lightgray;")
-            self.btn_turn3.setStyleSheet("background-color:lightgray;")
-            #self.btn_turn4.setStyleSheet("background-color:lightgray;")
-            
-            if self.turn_highlight == 1:
-                self.btn_turn1.setStyleSheet("background-color:cyan;")
-            elif self.turn_highlight == 2:
-                self.btn_turn2.setStyleSheet("background-color:magenta;")
-            elif self.turn_highlight == 3:
-                self.btn_turn3.setStyleSheet("background-color:yellow;")
-            """
             if self.turn_highlight == 1:
                 background_color="background-color:cyan;"
             elif self.turn_highlight == 2:
@@ -1126,7 +1064,6 @@ class ControlWidget(QWidget):
             #elif self.turn_highlight == 4:
             #    self.btn_turn4.setStyleSheet("background-color:green;")
         return
-
 
 
 class VisualizationTracker():

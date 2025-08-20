@@ -566,7 +566,7 @@ class DMG():
             qapp = QApplication(sys.argv)
         time_steps = {1: list(sorted(set(self.model_output_gdf["time"])))}
         time_index = 0
-        starting_variable = "water_salinity"
+        starting_variable = "salinity_category"
         viz_tracker = visualizer.VisualizationTracker(
             starting_turn=self.turn-1, scenarios=self.mode["scenarios"], starting_variable=starting_variable,
             time_steps=time_steps, starting_time=time_index, salinity_range=salinity_range,

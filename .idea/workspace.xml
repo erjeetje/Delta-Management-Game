@@ -7,6 +7,7 @@
     <list default="true" id="761f18cf-aed8-4002-b562-2aab5055ed9d" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game/game_visualizations.py" beforeDir="false" afterPath="$PROJECT_DIR$/game/game_visualizations.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game/input_files/salinity_colorbar_horizontal_mgl_small.png" beforeDir="false" afterPath="$PROJECT_DIR$/game/input_files/salinity_colorbar_horizontal_mgl_small.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game_runfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/game_runfile.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

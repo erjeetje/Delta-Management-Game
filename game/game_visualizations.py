@@ -12,7 +12,7 @@ from PyQt5.QtGui import QFont
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
+from matplotlib.colors import LinearSegmentedColormap
 from pandas import to_datetime
 from functools import partial
 
@@ -71,7 +71,8 @@ class ApplicationWindow(QMainWindow):
         self.figure_layout.addWidget(self.model_canvas, stretch=1)
 
         self.colorbar_label = QLabel(self._main)
-        self.colorbar_label.setPixmap(self.salinity_colorbar_image)
+        #self.colorbar_label.setPixmap(self.salinity_colorbar_image)
+        self.colorbar_label.setPixmap(self.salinity_category_image)
         self.colorbar_label.resize(self.salinity_colorbar_image.width(), self.salinity_colorbar_image.height())
         self.figure_layout.addWidget(self.colorbar_label, alignment=Qt.AlignCenter)
 
@@ -152,12 +153,13 @@ class ApplicationWindow(QMainWindow):
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
         set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
-        self.plot_data.plot(column=set_variable, ax=self.ax, cmap="RdBu_r", markersize=150.0)
+        self.plot_data.plot(column=set_variable, ax=self.ax, cmap=self.viz_tracker.cmaps[self.selected_variable],
+                            markersize=150.0)
 
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
         self.pc = pcs[0]
-        self.pc.set_norm(self.viz_tracker.salinity_norm)
+        self.pc.set_norm(self.viz_tracker.norms[self.selected_variable])
         # code below adds a colorbar to the image, but makes the plots too slow
         #self.colorbar = ScalarMappable(self.viz_tracker.water_level_norm, cmap="Blues_r")
         #self.model_canvas.figure.colorbar(self.colorbar, ax=self.ax)
@@ -178,24 +180,8 @@ class ApplicationWindow(QMainWindow):
             self.scenario = self.viz_tracker.scenario
         if self.selected_variable != self.viz_tracker.viz_variable:
             self.selected_variable = self.viz_tracker.viz_variable
-            if self.selected_variable == "water_salinity":
-                color_map = "RdBu_r"
-                #color_map = "coolwarm"
-                norm = self.viz_tracker.salinity_norm
-            elif self.selected_variable == "water_level":
-                color_map = "viridis_r"
-                norm = self.viz_tracker.water_level_norm
-            elif self.selected_variable == "salinity_category":
-                color_map = "RdYlBu_r"
-                norm = self.viz_tracker.salinity_category_norm
-            elif self.selected_variable == "water_velocity":
-                color_map = "Spectral_r"
-                norm = self.viz_tracker.water_velocity_norm
-            elif self.selected_variable == "water_depth":
-                color_map = "Blues_r"
-                norm = self.viz_tracker.water_depth_norm
-            self.pc.set_cmap(color_map)
-            self.pc.set_norm(norm)
+            self.pc.set_cmap(self.viz_tracker.cmaps[self.selected_variable])
+            self.pc.set_norm(self.viz_tracker.norms[self.selected_variable])
             self.update_colorbars()
         t = self.viz_tracker.get_time_index()
         idx = self.running_simulation["time"] == t
@@ -403,11 +389,12 @@ class GameVisualization(QWidget):
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
         set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
-        self.plot_data.plot(column=set_variable, ax=self.ax, cmap="RdBu_r", aspect=1, markersize=200.0)
+        self.plot_data.plot(column=set_variable, ax=self.ax, cmap=self.viz_tracker.cmaps[self.selected_variable],
+                            aspect=1, markersize=200.0)
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
         self.pc = pcs[0]
-        self.pc.set_norm(self.viz_tracker.salinity_norm)
+        self.pc.set_norm(self.viz_tracker.norms[self.selected_variable])
 
         self.game_timer = self.game_canvas.new_timer(40)
         self.game_timer.add_callback(self.update_plot_model)
@@ -423,24 +410,8 @@ class GameVisualization(QWidget):
             self.running_simulation = self.game.game_output_gdf[turn_idx]
         if self.selected_variable != self.viz_tracker.viz_variable:
             self.selected_variable = self.viz_tracker.viz_variable
-            if self.selected_variable == "water_salinity":
-                color_map = "RdBu_r"
-                #color_map = "coolwarm"
-                norm = self.viz_tracker.salinity_norm
-            elif self.selected_variable == "water_level":
-                color_map = "viridis_r"
-                norm = self.viz_tracker.water_level_norm
-            elif self.selected_variable == "salinity_category":
-                color_map = "RdYlBu_r"
-                norm = self.viz_tracker.salinity_category_norm
-            elif self.selected_variable == "water_velocity":
-                color_map = "Spectral_r"
-                norm = self.viz_tracker.water_velocity_norm
-            elif self.selected_variable == "water_depth":
-                color_map = "Blues_r"
-                norm = self.viz_tracker.water_depth_norm
-            self.pc.set_cmap(color_map)
-            self.pc.set_norm(norm)
+            self.pc.set_cmap(self.viz_tracker.cmaps[self.selected_variable])
+            self.pc.set_norm(self.viz_tracker.norms[self.selected_variable])
             return
         t = self.viz_tracker.get_time_index()
         idx = self.running_simulation["time"] == t
@@ -1077,11 +1048,12 @@ class VisualizationTracker():
         self._sim_type = sim_type
         self._time_steps = time_steps
         self._time_index = starting_time
-        self._salinity_norm = salinity_range
-        self._salinity_category_norm = salinity_category
         self._inlet_to_plot = inlet_to_plot
-        #self._water_level_norm = water_level_range
-        #self._water_velocity_norm = water_velocity_range
+        self._cmaps = {"water_salinity": LinearSegmentedColormap.from_list("", [
+            "midnightblue", "lightskyblue", "mistyrose", "lightsalmon", "salmon", "indianred", "firebrick", "darkred",
+            "maroon"]),
+                       "salinity_category": "RdYlBu_r"}
+        self._norms = {"water_salinity": salinity_range, "salinity_category": salinity_category}
         return
 
     def get_time_index(self):
@@ -1112,12 +1084,6 @@ class VisualizationTracker():
     def sim_type(self):
         return self._sim_type
 
-    """
-    @property
-    def game_variable(self):
-        return self._game_variable
-    """
-
     @property
     def time_steps(self):
         return self._time_steps
@@ -1127,26 +1093,16 @@ class VisualizationTracker():
         return self._time_index
 
     @property
-    def salinity_norm(self):
-        return self._salinity_norm
-
-    @property
-    def salinity_category_norm(self):
-        return self._salinity_category_norm
-
-    @property
     def inlet_to_plot(self):
         return self._inlet_to_plot
 
-    """
     @property
-    def water_level_norm(self):
-        return self._water_level_norm
+    def cmaps(self):
+        return self._cmaps
 
     @property
-    def water_velocity_norm(self):
-        return self._water_velocity_norm
-    """
+    def norms(self):
+        return self._norms
 
     @turn.setter
     def turn(self, turn):
@@ -1173,13 +1129,6 @@ class VisualizationTracker():
     def sim_type(self, variable):
         self._sim_type = variable
         return
-
-    """
-    @game_variable.setter
-    def game_variable(self, variable):
-        self._game_variable = variable
-        return
-    """
 
     @time_steps.setter
     def time_steps(self, new_time_steps):

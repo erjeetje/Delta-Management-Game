@@ -5,7 +5,7 @@ import json
 import numpy as np
 
 
-def create_calibration_file(polygons, save=False, path=""):
+def create_calibration_file(polygons, new_polygons, save=False, path=""):
     """
     Function that creates the calibration file (json format) and returns the
     transforms that can be used by other functions.
@@ -73,16 +73,16 @@ def create_calibration_file(polygons, save=False, path=""):
     world_bottom_right = [111205, 400643]
     """
     # EPSG:4326
-    world_top_left = [3.834043, 52.0718455]
-    world_top_right = [4.7631053, 52.0655544]
-    world_bottom_left = [3.8340423, 51.5933656]
-    world_bottom_right = [4.7551842, 51.5929827]
-
-    # TODO switch to these coordinates with the new polygon mapping
-    #world_top_left = [3.84, 52.075]  # [3.834043, 52.0718455]
-    #world_top_right = [4.82, 52.07]  # [4.7631053, 52.0655544]
-    #world_bottom_left = [3.84, 51.65]  # [3.8340423, 51.5933656]
-    #world_bottom_right = [4.82, 51.645]  # [4.7551842, 51.5929827]
+    if new_polygons:
+        world_top_left = [3.84, 52.075]
+        world_top_right = [4.82, 52.07]
+        world_bottom_left = [3.84, 51.65]
+        world_bottom_right = [4.82, 51.645]
+    else:
+        world_top_left = [3.834043, 52.0718455]
+        world_top_right = [4.7631053, 52.0655544]
+        world_bottom_left = [3.8340423, 51.5933656]
+        world_bottom_right = [4.7551842, 51.5929827]
 
     def get_bbox(polygons):
         x_coor = []

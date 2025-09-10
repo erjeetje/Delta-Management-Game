@@ -49,9 +49,10 @@ class DMG():
         self.load_model()
         # options to send: mirror (-1, 0 or 1), test (bool), save (bool), debug (bool)
         self.table = game_table.Table(self, mirror=1, test=True, save=True)
-        self.load_shapes()
+        new_polygons = True
+        self.load_shapes(new_polygons)
         self.load_inlets()
-        self.transform_functions()
+        self.transform_functions(new_polygons)
         self.build_game_network()
         self.index_channels()
         self.run_table(update=False)
@@ -115,7 +116,7 @@ class DMG():
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.input_files = os.path.join(dir_path, "game", "input_files")
         self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\09 Prototype refinement summer 2025\coding (notebooks)\hydrodynamics test"
-        self.debug_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\08 Prototype building\debug"
+        self.debug_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\09 Prototype refinement summer 2025\debug"
         return
 
     def load_model(self):
@@ -130,15 +131,16 @@ class DMG():
         self.model_network_gdf = model_network_df
         return
 
-    def load_shapes(self):
+    def load_shapes(self, new_polygons):
         """
         load polygons (world map) and hexagon shapes (board).
         """
-        self.world_polygons = load_files.read_json_features(filename='hexagon_shapes_in_layers_Bouke_network.json',
-                                                            path=self.input_files)
-        # TODO switch to the polygon load below, it works, but it requires new test/debug files
-        #self.world_polygons = load_files.read_json_features(filename='new_RMM_polygons.json',
-        #                                                    path=self.input_files)
+        if new_polygons:
+            self.world_polygons = load_files.read_json_features(filename='new_RMM_polygons.json',
+                                                                path=self.input_files)
+        else:
+            self.world_polygons = load_files.read_json_features(filename='hexagon_shapes_in_layers_Bouke_network.json',
+                                                                path=self.input_files)
         self.game_hexagons = load_files.read_geojson(filename='hexagons_clean.geojson', path=self.input_files)
         return
 
@@ -426,11 +428,11 @@ class DMG():
             print("no channel key provided (should be string), channel not split")
         return
 
-    def transform_functions(self):
+    def transform_functions(self, new_polygons):
         """
         create transform functions and transform polygons to correct (world) coordinates.
         """
-        self.transform_calibration = transform_func.create_calibration_file(self.world_polygons)
+        self.transform_calibration = transform_func.create_calibration_file(self.world_polygons, new_polygons)
         self.world_polygons = transform_func.transform(self.world_polygons, self.transform_calibration,
                                                        export="warped", path="")
         self.game_hexagons = game_sync.find_neighbours(self.game_hexagons)

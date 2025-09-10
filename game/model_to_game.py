@@ -397,6 +397,8 @@ def output_df_to_gdf(double_exploded_output_df):
 
 def add_polygon_ids(network_model_output_gdf, polygons):
     output_gdf = network_model_output_gdf.copy()
+    output_slice_gdf = output_gdf.copy()
+    output_slice_gdf = output_slice_gdf[output_slice_gdf["time"] == output_slice_gdf.iloc[0]["time"]]
     def match_points_to_polygon(point, polygon):
         for polygon in polygon.features:
             poly_geom = shape(polygon.geometry)
@@ -404,9 +406,12 @@ def add_polygon_ids(network_model_output_gdf, polygons):
                 return polygon.id
         return np.nan
 
-    output_gdf["polygon_id"] = output_gdf.apply(
+    output_slice_gdf["polygon_id"] = output_slice_gdf.apply(
         lambda row: match_points_to_polygon(row["geometry"], polygons), axis=1)
-    output_gdf = output_gdf.dropna()
+    output_slice_gdf = output_slice_gdf.dropna()
+    output_slice_gdf["polygon_id"] = output_slice_gdf["polygon_id"].astype(int)
+    output_slice_gdf = output_slice_gdf[["id", "polygon_id"]]
+    output_gdf = output_gdf.reset_index().merge(output_slice_gdf, on="id").set_index("index")
 
     def update_branch_ranks(rank, branch, correction):
         branch_correction = correction[branch]

@@ -204,23 +204,23 @@ def calc_respons(self,ch_id):
     # look at transports in and out of a channel
     # =============================================================================
     
-    fig, ax = plt.subplots(1,3,figsize = (10,3))
+    fig, model_output_ax = plt.subplots(1,3,figsize = (10,3))
     
     xloc = 0
-    ax[0].plot(self.ch_outp[ch_id]['TQ'][:,xloc])
-    ax[0].plot(self.ch_outp[ch_id]['TE'][:,xloc])
-    ax[0].plot(self.ch_outp[ch_id]['TD'][:,xloc])
-    ax[0].plot(self.ch_outp[ch_id]['TT'][:,xloc])
-    ax[0].plot((self.ch_outp[ch_id]['TQ']+self.ch_outp[ch_id]['TE']+self.ch_outp[ch_id]['TD']+self.ch_outp[ch_id]['TT'])[:,xloc], c= 'black')
+    model_output_ax[0].plot(self.ch_outp[ch_id]['TQ'][:,xloc])
+    model_output_ax[0].plot(self.ch_outp[ch_id]['TE'][:,xloc])
+    model_output_ax[0].plot(self.ch_outp[ch_id]['TD'][:,xloc])
+    model_output_ax[0].plot(self.ch_outp[ch_id]['TT'][:,xloc])
+    model_output_ax[0].plot((self.ch_outp[ch_id]['TQ']+self.ch_outp[ch_id]['TE']+self.ch_outp[ch_id]['TD']+self.ch_outp[ch_id]['TT'])[:,xloc], c= 'black')
     
     xloc = -1
-    ax[1].plot(self.ch_outp[ch_id]['TQ'][:,xloc])
-    ax[1].plot(self.ch_outp[ch_id]['TE'][:,xloc])
-    ax[1].plot(self.ch_outp[ch_id]['TD'][:,xloc])
-    ax[1].plot(self.ch_outp[ch_id]['TT'][:,xloc])
-    ax[1].plot((self.ch_outp[ch_id]['TQ']+self.ch_outp[ch_id]['TE']+self.ch_outp[ch_id]['TD']+self.ch_outp[ch_id]['TT'])[:,xloc] , c='black')
+    model_output_ax[1].plot(self.ch_outp[ch_id]['TQ'][:,xloc])
+    model_output_ax[1].plot(self.ch_outp[ch_id]['TE'][:,xloc])
+    model_output_ax[1].plot(self.ch_outp[ch_id]['TD'][:,xloc])
+    model_output_ax[1].plot(self.ch_outp[ch_id]['TT'][:,xloc])
+    model_output_ax[1].plot((self.ch_outp[ch_id]['TQ']+self.ch_outp[ch_id]['TE']+self.ch_outp[ch_id]['TD']+self.ch_outp[ch_id]['TT'])[:,xloc] , c='black')
 
-    ax[2].plot(tot_salt)
+    model_output_ax[2].plot(tot_salt)
     
     plt.tight_layout()
     plt.show()   

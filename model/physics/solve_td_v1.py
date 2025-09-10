@@ -293,9 +293,7 @@ def model_ti(self):
     Qw_inp = self.Qweir[:,0] if len(self.Qweir) >0 else []
     Qh_inp = self.Qhar[:,0]  if len(self.Qhar)  >0 else []
     ns_inp = self.n_sea[:,0]  if len(self.n_sea)  >0 else []
-    Qnow = self.Qdist_calc((Qr_inp , Qw_inp , Qh_inp, ns_inp))
-    #print("ti Qin:", Qr_inp, Qw_inp, Qh_inp)
-    #print("ti Qnow:", Qnow)
+    Qnow = self.Qdist_calc((Qr_inp , Qw_inp , Qh_inp, ns_inp))[0]
     
     sr_inp = self.sri[:,0] if len(self.sri) >0 else []
     sw_inp = self.swe[:,0] if len(self.swe) >0 else []
@@ -408,10 +406,8 @@ def model_td(self, init):
         Qw_inp = self.Qweir[:,tt] if len(self.Qweir) >0 else []
         Qh_inp = self.Qhar[:,tt]  if len(self.Qhar)  >0 else []
         ns_inp = self.n_sea[:,tt]  if len(self.n_sea)  >0 else []
-        Qnow   = self.Qdist_calc((Qr_inp , Qw_inp , Qh_inp, ns_inp))
-        #print("td Qin:", Qr_inp, Qw_inp, Qh_inp)
-        #print("td Qnow:", Qnow)
-
+        Qnow   = self.Qdist_calc((Qr_inp , Qw_inp , Qh_inp, ns_inp))[0]
+        
         sr_inp = self.sri[:,tt] if len(self.sri) >0 else []
         sw_inp = self.swe[:,tt] if len(self.swe) >0 else []
         so_inp = self.soc[:,tt] if len(self.soc) >0 else []
@@ -432,15 +428,10 @@ def run_model(self):
     
     tijd2 = time.time()
     #preparations
-    print("1")
     self.indices()
-    print("2")
     self.prep_junc()
-    print("3")
     self.tide_calc()
-    print("4")
     self.subtidal_module()
-    print("5")
     
     # =============================================================================
     # first run the equilibrium simulation for the start of the simulation
@@ -454,7 +445,7 @@ def run_model(self):
     # =============================================================================
     self.out = model_td(self, inita)
     
-    print('The total simulation time is ' , time.time()-tijd2, ' seconds')
+    print('The total simualation time is ' , time.time()-tijd2, ' seconds')
 
 
 

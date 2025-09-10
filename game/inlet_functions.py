@@ -51,6 +51,7 @@ def get_inlet_salinity(water_inlets_data_gdf, model_output_gdf, turn, run):
         turn_model_output[columns_to_merge], left_index=True, right_index=True)
     turn_inlet_salinity = turn_inlet_salinity.reset_index()
     turn_inlet_salinity = turn_inlet_salinity.set_index("name")
+    turn_inlet_salinity.crs = "EPSG:4326"
     return turn_inlet_salinity
 
 

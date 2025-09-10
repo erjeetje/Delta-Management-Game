@@ -179,7 +179,7 @@ def model_ti(self):
     tijd = time.time()
 
     #quantities for the entire simulation
-    Qnow = self.Qdist_calc((self.Qriv, self.Qweir, self.Qhar, self.n_sea))
+    Qnow = self.Qdist_calc((self.Qriv, self.Qweir, self.Qhar, self.n_sea))[0]
     snow = (self.sri , self.swe , self.soc)
 
     #spin up from subtidal model. Lets hope that does the job. 

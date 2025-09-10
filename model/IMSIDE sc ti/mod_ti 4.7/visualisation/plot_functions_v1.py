@@ -24,7 +24,7 @@ def plot_sst(self,sss):
     #make contourplot
     fig,ax = plt.subplots(figsize=(10,7))
     l1=ax.contourf(pxh.T,self.pz.T,  s.T, cmap='RdBu_r',levels=(np.linspace(0,self.soc,36)))
-    #ax.quiver(qx,qz,qu.transpose(),qw.transpose(),color='white')
+    #model_output_ax.quiver(qx,qz,qu.transpose(),qw.transpose(),color='white')
     cb0 = fig.colorbar(l1, ax=ax,orientation='horizontal', pad=0.16)
     cb0.set_label(label='Salinity [psu]',fontsize=16)
     ax.set_xlabel('$x$ [km]',fontsize=16) 
@@ -336,11 +336,11 @@ def plot_next(self, sss, version):
     
     #check 2
     F2 = - 1j * tid_geg['omega'] * sp[:,-1] * tid_geg['eta'][0,:,0] / self.H
-    fig, ax = plt.subplots(2,1)
-    ax[0].plot(np.real(F))
-    ax[0].plot(np.real(F2))
-    ax[1].plot(np.imag(F))
-    ax[1].plot(np.imag(F2))
+    fig, model_output_ax = plt.subplots(2,1)
+    model_output_ax[0].plot(np.real(F))
+    model_output_ax[0].plot(np.real(F2))
+    model_output_ax[1].plot(np.imag(F))
+    model_output_ax[1].plot(np.imag(F2))
     plt.show()
     
     #check 3
@@ -524,9 +524,9 @@ def animate_salt(self, sss, name_ani):
 
     #ANIMATION 
     def init():
-        #l1=ax.contourf(px,pz, s_tot[:,:,0], cmap='RdBu_r',levels=(np.linspace(np.min(s_tot),np.max(s_tot),15)))
+        #l1=model_output_ax.contourf(px,pz, s_tot[:,:,0], cmap='RdBu_r',levels=(np.linspace(np.min(s_tot),np.max(s_tot),15)))
         l1=ax.contourf(px_tide,pz_tide[:,:,0], stot[:,:,0].T, cmap='RdBu_r',levels=(np.linspace(0,35,15)))#,extend='both')
-        #ax.quiver(qx_tide,qz_tide[:,:,0],qut[:,:,0].T,qw.T,color='black',scale=15)
+        #model_output_ax.quiver(qx_tide,qz_tide[:,:,0],qut[:,:,0].T,qw.T,color='black',scale=15)
         cb0 = fig.colorbar(l1, ax=ax,orientation='vertical')
         cb0.set_label(label='Salinity [psu]',fontsize=14)
         ax.set_xlabel('$x$ [km]',fontsize=14) 
@@ -535,17 +535,17 @@ def animate_salt(self, sss, name_ani):
         ax.set_ylim(-np.max(self.H),np.max(eta)*1.25)
         ax.set_xlim(-50,5), ax.set_xlim(px_tide[0,0],0)
   
-        return #ax.cla()
+        return #model_output_ax.cla()
     def animate(t):
         ax.clear()  
         ax.contourf(px_tide,pz_tide[:,:,t], stot[:,:,t].T, cmap='RdBu_r',levels=(np.linspace(0,35,15)))#,extend='both')
-        #ax.quiver(qx_tide,qz_tide[:,:,t],qut[:,:,t].T,qw.T,color='black',scale=15)
+        #model_output_ax.quiver(qx_tide,qz_tide[:,:,t],qut[:,:,t].T,qw.T,color='black',scale=15)
         ax.set_xlabel('$x$ [km]',fontsize=14) 
         ax.set_ylabel('$z$ [m]',fontsize=14) 
         ax.set_title('Time in tidal cycle: '+str(np.round(t/self.nt*12.42,1))+' hours')
         ax.tick_params(axis='both', which='major', labelsize=12)
         ax.set_ylim(-np.max(self.H),np.max(eta)*1.25)
-        ax.set_xlim(-50,5) #, ax.set_xlim(px_tide[0,0],0)
+        ax.set_xlim(-50,5) #, model_output_ax.set_xlim(px_tide[0,0],0)
 
         return ax
      
@@ -611,14 +611,14 @@ def plt_salt(self, sss):
     def contourplot(t):
         fig, ax = plt.subplots(1,1)
         l1=ax.contourf(px_tide,pz_tide[:,:,t], stot[:,:,t].T, cmap='RdBu_r')#,levels=(np.linspace(0,35,15)),extend='both')
-        #ax.quiver(qx_tide,qz_tide[:,:,0],qut[:,:,0].T,qw.T,color='black',scale=15)
+        #model_output_ax.quiver(qx_tide,qz_tide[:,:,0],qut[:,:,0].T,qw.T,color='black',scale=15)
         cb0 = fig.colorbar(l1, ax=ax,orientation='vertical')
         cb0.set_label(label='Salinity [psu]',fontsize=14)
         ax.set_xlabel('$x$ [km]',fontsize=14) 
         ax.set_ylabel('$z$ [m]',fontsize=14) 
         ax.tick_params(axis='both', which='major', labelsize=12)
         ax.set_ylim(-np.max(self.H),np.max(eta)*1.25)
-        ax.set_xlim(-10,5) #, ax.set_xlim(px_tide[0,0],0)
+        ax.set_xlim(-10,5) #, model_output_ax.set_xlim(px_tide[0,0],0)
         
         plt.show()
         return

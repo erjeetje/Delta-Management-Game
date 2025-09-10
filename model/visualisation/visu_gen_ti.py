@@ -60,12 +60,12 @@ def plot_Qs_simple(self,show_inds=False,arrow_scale =0.01,arc = 'black'):
     ax[1].set_xlabel('degrees E '),ax[0].set_ylabel('degrees N '),ax[1].set_ylabel('degrees N ')
     ax[0].set_facecolor('lightgrey'),ax[1].set_facecolor('lightgrey')
     
-    #ax[1].set_xlim(4,4.6) , ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
+    #model_output_ax[1].set_xlim(4,4.6) , model_output_ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
     
     cbar_ax = fig.add_axes([0.2, 0.02, 0.6, 0.033])
     cb=fig.colorbar(line, cax=cbar_ax,orientation='horizontal')
     cb.set_label(label='Depth-averaged salinity [g/kg]')    
-    #cb.ax.tick_params(labelsize=15)
+    #cb.model_output_ax.tick_params(labelsize=15)
     plt.show()
     
     return 
@@ -93,7 +93,7 @@ def plot_s_gen(self):
     ax.set_xlabel('degrees E '),ax.set_ylabel('degrees N ')
     ax.set_facecolor('lightgrey')
     
-    #ax.set_xlim(4,4.5) #, ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
+    #model_output_ax.set_xlim(4,4.5) #, model_output_ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
     
     #plot the salt intrusion limit
     for key in self.ch_keys:
@@ -110,7 +110,7 @@ def plot_s_gen(self):
     cb=fig.colorbar(line, cax=cbar_ax,orientation='vertical')
     cb.set_label(label='Depth-averaged salinity [g/kg]')    
     
-    #cb.ax.tick_params(labelsize=15)
+    #cb.model_output_ax.tick_params(labelsize=15)
     plt.show()
 
     return 

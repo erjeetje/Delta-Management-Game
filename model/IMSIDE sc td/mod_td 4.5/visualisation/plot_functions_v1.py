@@ -23,7 +23,7 @@ def plot_sst(self,sss, indi):
     #make contourplot   
     fig,ax = plt.subplots(figsize=(10,7))
     l1=ax.contourf(pxh,self.pz,  s, cmap='RdBu_r',levels=(np.linspace(0,self.soc_sca,36)))
-    #ax.quiver(qx,qz,qu.transpose(),qw.transpose(),color='white')
+    #model_output_ax.quiver(qx,qz,qu.transpose(),qw.transpose(),color='white')
     cb0 = fig.colorbar(l1, ax=ax,orientation='horizontal', pad=0.16)
     cb0.set_label(label='Salinity [psu]',fontsize=16)
     ax.set_xlabel('$x$ [km]',fontsize=16) 

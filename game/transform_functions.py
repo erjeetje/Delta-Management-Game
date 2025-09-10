@@ -58,16 +58,15 @@ def create_calibration_file(polygons, save=False, path=""):
     img_x = int(round(img_y * 1.3861874976470018770202169598726))
 
     calibration = {}
-    # coordinates for playable area of the RMM SOBEK schematisation #TODO
     """
-    # EPSG:3897
+    # EPSG:3897 - note: variables out of date
     world_top_left = [426804, 6813127]
     world_top_right = [530228, 6811988]
     world_bottom_left = [426804, 6726933]
     world_bottom_right = [530228, 6726933]
     """
     """
-    # EPSG:28992
+    # EPSG:28992 - note: variables out of date
     world_top_left = [48518, 454868]
     world_top_right = [112205, 453213]
     world_bottom_left = [47381, 401643]
@@ -79,11 +78,11 @@ def create_calibration_file(polygons, save=False, path=""):
     world_bottom_left = [3.8340423, 51.5933656]
     world_bottom_right = [4.7551842, 51.5929827]
 
-    x_world_min = 530228  # left side
-    x_world_max = 426804  # right side
-
-    y_world_max = 6813127  # top
-    y_world_min = 6726933  # bottom
+    # TODO switch to these coordinates with the new polygon mapping
+    #world_top_left = [3.84, 52.075]  # [3.834043, 52.0718455]
+    #world_top_right = [4.82, 52.07]  # [4.7631053, 52.0655544]
+    #world_bottom_left = [3.84, 51.65]  # [3.8340423, 51.5933656]
+    #world_bottom_right = [4.82, 51.645]  # [4.7551842, 51.5929827]
 
     def get_bbox(polygons):
         x_coor = []

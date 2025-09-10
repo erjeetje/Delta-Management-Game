@@ -3,6 +3,7 @@ import sys
 import time
 import geojson
 import pandas as pd
+import geopandas as gpd
 #import numpy as np
 from datetime import timedelta
 from copy import deepcopy
@@ -134,8 +135,11 @@ class DMG():
         load polygons (world map) and hexagon shapes (board).
         """
         self.world_polygons = load_files.read_json_features(filename='hexagon_shapes_in_layers_Bouke_network.json',
-                                                       path=self.input_files)
-        self.game_hexagons = load_files.read_geojson(filename='hexagons_clean0.geojson', path=self.input_files)
+                                                            path=self.input_files)
+        # TODO switch to the polygon load below, it works, but it requires new test/debug files
+        #self.world_polygons = load_files.read_json_features(filename='new_RMM_polygons.json',
+        #                                                    path=self.input_files)
+        self.game_hexagons = load_files.read_geojson(filename='hexagons_clean.geojson', path=self.input_files)
         return
 
     def load_inlets(self):
@@ -432,6 +436,14 @@ class DMG():
         self.game_hexagons = game_sync.find_neighbours(self.game_hexagons)
         self.world_polygons = game_sync.match_hexagon_properties(self.world_polygons, self.game_hexagons,
                                                                  "neighbours")
+        if False:
+            polygons_gdf = gpd.GeoDataFrame.from_features(self.world_polygons.features)
+            filename = "polygons_gdf.xlsx"
+            polygons_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
+
+            hexagons_gdf = gpd.GeoDataFrame.from_features(self.game_hexagons.features)
+            filename = "hexagons_gdf.xlsx"
+            hexagons_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
         return
 
     def build_game_network(self):
@@ -537,8 +549,8 @@ class DMG():
         """
         filename = "model_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
         self.model_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
-        #filename = "model_ref_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
-        #self.model_output_ref_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
+        filename = "game_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
+        self.game_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
         return
 
     def debug_output(self):

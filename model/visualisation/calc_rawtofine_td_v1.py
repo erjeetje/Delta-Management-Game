@@ -7,6 +7,58 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def subtidal_water_level(self, rd, fac = 10, thres =2e-6, flag = True):
+    #reconstruct subtidal water level channel, depending on discharge. 
+    
+    out = {}
+    
+    #some preparations. 
+    for i_ch in range(len(self.ch_keys)):
+        key = self.ch_keys[i_ch]
+        wl_x_L = rd[i_ch,1]
+        nxna = [0]
+        for seg in range(self.ch_pars[key]['n_seg']): 
+            temp = np.sum(self.ch_pars[key]['nxn'][:seg+1])
+            nxna.append(temp)
+        
+        wl_xx = np.zeros(nxna[-1])
+        
+        for seg in range(self.ch_pars[key]['n_seg']):
+            #parameters per segment
+            Q_seg = rd[i_ch,0]
+            b_seg = self.ch_pars[key]['b'][nxna[seg]:nxna[seg+1]]
+            H_seg = self.ch_pars[key]['H'][nxna[seg]:nxna[seg+1]]
+            Av_seg = self.ch_pars[key]['Av'][nxna[seg]:nxna[seg+1]]
+            Lb_seg = self.ch_pars[key]['bex'][nxna[seg]:nxna[seg+1]]
+            b0_seg = self.ch_gegs[key]['b'][seg]
+            
+            #compute eta from integrating deta/dx, depending on b constant or not. 
+            if self.ch_gegs[key]['b'][seg] == self.ch_gegs[key]['b'][seg+1]:
+                x_seg = np.linspace(0,self.ch_gegs[key]['L'][seg],self.ch_pars[key]['nxn'][seg])
+                wl = - 6/5 * Q_seg * Av_seg/ (self.g*b_seg*H_seg**3) * x_seg
+            else: 
+                wl = 6/5 * Lb_seg * Q_seg * Av_seg/ (self.g*H_seg**3) * (1/b_seg - 1/b0_seg)
+                
+            
+            if flag: #flag values with a too large gradient. 
+                wl_dx = np.zeros(len(wl))   
+                wl_dx[1:-1] = (wl[2:] - wl[:-2])/(2*self.ch_pars[key]['dl'][self.ch_pars[key]['di'][seg]+1:self.ch_pars[key]['di'][seg+1]-1]*self.Lsc) 
+                wl_dx[0]  = (-3*wl[0] +4*wl[1] - wl[2]) / (2*self.Lsc*self.ch_pars[key]['dl'][self.ch_pars[key]['di'][seg]])
+                wl_dx[-1] = (3*wl[-1] -4*wl[-2] + wl[-3]) / (2*self.Lsc*self.ch_pars[key]['dl'][self.ch_pars[key]['di'][seg+1]-1])
+                #remove values with a too large gradient.             
+                wl[np.abs(wl_dx) > thres] = np.nan
+                        
+            #add values 
+            wl_xx[nxna[seg]:nxna[seg+1]] = wl_x_L + wl
+            wl_x_L = wl_x_L + wl[-1]
+                
+        #save
+        out[key] = wl_xx * fac #correction factor. reason from discussion in overspill paper 
+        
+    return out 
+
+
+
 
 def calc_output(self):
     
@@ -16,12 +68,20 @@ def calc_output(self):
     nnp = np.arange(1,self.M)*np.pi #n*pi
 
     #discharge time series for each channel
-    Q_all = {}
-    for key in self.ch_keys: Q_all[key] = []
+    Q_all, wl_all = {}, {}
+    for key in self.ch_keys: Q_all[key], wl_all[key] = [] , []
     for t in range(self.T): 
-        Qnow = self.Qdist_calc((self.Qriv[:,t], self.Qweir[:,t], self.Qhar[:,t], self.n_sea[:,t]))
-        for key in self.ch_keys: Q_all[key].append(Qnow[key])
-    for key in self.ch_keys: Q_all[key] = np.array(Q_all[key])
+        Qnow, rdnow = self.Qdist_calc((self.Qriv[:,t], self.Qweir[:,t], self.Qhar[:,t], self.n_sea[:,t]))
+        wlnow = subtidal_water_level(self, rdnow)
+        for key in self.ch_keys: 
+            Q_all[key].append(Qnow[key])
+            wl_all[key].append(wlnow[key])
+    for key in self.ch_keys:  
+        Q_all[key] = np.array(Q_all[key]) 
+        wl_all[key] = np.array(wl_all[key]) 
+    # rd_all = np.array(rd_all)
+    #water level
+    
     
     #do the operations for every channel
     for key in self.ch_keys:
@@ -66,6 +126,57 @@ def calc_output(self):
                 temp[self.ch_pars[key]['di'][dom] : self.ch_pars[key]['di'][dom] + len(tid_out['stci_x=-L'][dom])]     += tid_out['stci_x=-L'][dom]
                 temp[self.ch_pars[key]['di'][dom+1] - len(tid_out['stci_x=0'][dom]) : self.ch_pars[key]['di'][dom+1] ] += tid_out['stci_x=0'][dom]
             self.ch_outp[key]['sti'][t] = temp
+ 
+        # =============================================================================
+        # calculate velocities and water level with hourly timesteps
+        # =============================================================================
+
+        dth = 3600 #seconds in an hour
+        
+        #daily time vector
+        #self.Tvec = np.zeros(self.T)
+        #for t in range(self.T-1): self.Tvec[t+1] = np.sum(self.DT[:t+1])/(3600*24)
+        #hourly time vector
+        #Tvec_new = np.arange(0,np.sum(self.DT)+dth,dth)/86400
+        Tvec_new = np.arange(0, np.sum(self.DT), dth) / 86400
+        
+        #subtract amplitude and phase
+        eta_abs , eta_ang = np.abs(self.ch_pars[key]['eta'][0,:,0]) , np.angle(self.ch_pars[key]['eta'][0,:,0])
+       
+        #insert subtidal water levels in right time format
+        wl_st_series = np.zeros((len(Tvec_new),self.ch_pars[key]['di'][-1]))
+        for x in range(self.ch_pars[key]['di'][-1]):
+            wl_st_series[:,x] = np.interp(Tvec_new , self.Tvec, wl_all[key][:,x])
+        
+        #interpolate tidal to hourly
+        eta_series = np.zeros((len(Tvec_new),self.ch_pars[key]['di'][-1]))+np.nan
+        for x in range(self.ch_pars[key]['di'][-1]):
+            eta_series[:,x] = np.real(eta_abs[x] * np.exp(1j*(self.omega*Tvec_new*86400 + eta_ang[x])))
+
+        #velocities
+        #calculate subtidal velocities. 
+        u_st = Q_all[key][:,np.newaxis,np.newaxis] * self.ch_pars[key]['bH_1'][np.newaxis,:,np.newaxis] \
+            * (self.ch_pars[key]['g1'][np.newaxis,:,np.newaxis] + 1 + self.ch_pars[key]['g2'][np.newaxis,:,np.newaxis] * self.z_nd**2) \
+            + self.ch_pars[key]['alf'][np.newaxis,:,np.newaxis] * self.ch_outp[key]['sb_st_x'][:,:,np.newaxis] \
+            * (self.ch_pars[key]['g3'][np.newaxis,:,np.newaxis] + self.ch_pars[key]['g4'][np.newaxis,:,np.newaxis] * self.z_nd**2 + self.ch_pars[key]['g5'] * self.z_nd**3)
+        
+        #subtidal, only interpolate to hourly time step
+        u_st_h = np.zeros((len(Tvec_new),self.ch_pars[key]['di'][-1],self.nz)) + np.nan
+        for x in range(self.ch_pars[key]['di'][-1]):
+            for z in range(self.nz):
+                u_st_h[:,x,z] = np.interp(Tvec_new , self.Tvec, u_st[:,x,z])
+
+        #tidal, same method as for water level
+        u_ti_h = np.zeros((len(Tvec_new),self.ch_pars[key]['di'][-1],self.nz)) + np.nan
+        for x in range(self.ch_pars[key]['di'][-1]):
+            for z in range(self.nz):
+                ut_abs, ut_ang = np.abs(self.ch_pars[key]['ut'][0,x,z]) , np.angle(self.ch_pars[key]['ut'][0,x,z])
+                u_ti_h[:,x,z] = np.real(ut_abs * np.exp(1j*(self.omega*Tvec_new*86400 + ut_ang)))
+        
+        #save total water depth
+        self.ch_outp[key]['htot'] = eta_series + self.ch_pars[key]['H'] + wl_st_series
+        #save total velocity
+        self.ch_outp[key]['utot'] = u_ti_h + u_st_h
 
         # =============================================================================
         # transport components        
@@ -77,103 +188,55 @@ def calc_output(self):
         self.ch_outp[key]['TD'] = self.ch_outp[key]['CS'] *- self.ch_pars[key]['Kh']*self.ch_outp[key]['sb_st_x'] #transport by horizontal diffusion
         self.ch_outp[key]['TT'] = 1/4 * np.real(np.mean(np.conj(self.ch_outp[key]['sti'])*self.ch_outp[key]['uti'] + self.ch_outp[key]['sti'] * np.conj(self.ch_outp[key]['uti']),2)) * self.ch_outp[key]['CS'] #transport by tides
 
-        # =============================================================================
-        # calculate velocities and water level with hourly timesteps
-        # =============================================================================
-
-        # hourly time vector
-        dth = 3600  # seconds in an hour
-        #Tvec_new = np.arange(0, np.sum(self.DT) + dth, dth) / 86400
-        # this removes the last timestep, giving 24 hours * X days output, and not 24+1 hours output for the last day.
-        Tvec_new = np.arange(0, np.sum(self.DT), dth) / 86400
-
-        # water level
-
-        # subtract amplitude and phase
-        eta_abs, eta_ang = np.abs(self.ch_pars[key]['eta'][0, :, 0]), np.angle(self.ch_pars[key]['eta'][0, :, 0])
-
-        # interpolate to hourly
-        eta_series = np.zeros((len(Tvec_new), self.ch_pars[key]['di'][-1])) + np.nan
-        for x in range(self.ch_pars[key]['di'][-1]):
-            eta_series[:, x] = np.real(eta_abs[x] * np.exp(1j * (self.omega * Tvec_new * 86400 + eta_ang[x])))
-
-        # velocities
-        # calculate subtidal velocities.
-        u_st = Q_all[key][:, np.newaxis, np.newaxis] * self.ch_pars[key]['bH_1'][np.newaxis, :, np.newaxis] \
-               * (self.ch_pars[key]['g1'][np.newaxis, :, np.newaxis] + 1 + self.ch_pars[key]['g2'][np.newaxis, :,
-                                                                           np.newaxis] * self.z_nd ** 2) \
-               + self.ch_pars[key]['alf'][np.newaxis, :, np.newaxis] * self.ch_outp[key]['sb_st_x'][:, :, np.newaxis] \
-               * (self.ch_pars[key]['g3'][np.newaxis, :, np.newaxis] + self.ch_pars[key]['g4'][np.newaxis, :,
-                                                                       np.newaxis] * self.z_nd ** 2 + self.ch_pars[key][
-                      'g5'] * self.z_nd ** 3)
-
-        # subtidal, only interpolate to hourly time step
-        u_st_h = np.zeros((len(Tvec_new), self.ch_pars[key]['di'][-1], self.nz)) + np.nan
-        for x in range(self.ch_pars[key]['di'][-1]):
-            for z in range(self.nz):
-                u_st_h[:, x, z] = np.interp(Tvec_new, self.Tvec, u_st[:, x, z])
-
-        # tidal, same method as for water level
-        u_ti_h = np.zeros((len(Tvec_new), self.ch_pars[key]['di'][-1], self.nz)) + np.nan
-        for x in range(self.ch_pars[key]['di'][-1]):
-            for z in range(self.nz):
-                ut_abs, ut_ang = np.abs(self.ch_pars[key]['ut'][0, x, z]), np.angle(self.ch_pars[key]['ut'][0, x, z])
-                u_ti_h[:, x, z] = np.real(ut_abs * np.exp(1j * (self.omega * Tvec_new * 86400 + ut_ang)))
-
-
-        # save total water depth
-        self.ch_outp[key]['htot'] = eta_series + self.ch_pars[key]['H']
-        # save total velocity
-        self.ch_outp[key]['utot'] = u_ti_h + u_st_h
-
 
         # =============================================================================
         # remove sea and river domain
         # =============================================================================
         #remove sea domain
-        if self.ch_gegs[key]['loc x=0'][0] == 's':
+        if self.ch_gegs[key]['loc x=0'][0] == 's':           
             self.ch_outp[key]['px'] = self.ch_outp[key]['px'][:-self.nx_sea]+self.length_sea
             #self.ch_outp[key]['eta'] = self.ch_outp[key]['eta'][:-self.nx_sea]
             self.ch_outp[key]['s_st'] = self.ch_outp[key]['s_st'][:,:-self.nx_sea]
             #self.ch_outp[key]['ss_st'] = self.ch_outp[key]['ss_st'][:-self.nx_sea]
-            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,:-self.nx_sea]
+            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,:-self.nx_sea] 
             self.ch_outp[key]['sn_st'] = self.ch_outp[key]['sn_st'][:,:-self.nx_sea]
             #self.ch_outp[key]['u_st'] = self.ch_outp[key]['u_st'][:-self.nx_sea]
             #self.ch_outp[key]['sb_st_x'] = self.ch_outp[key]['sb_st_x'][:-self.nx_sea]
             #self.ch_outp[key]['eta_r'] = self.ch_outp[key]['eta_r'][:-self.nx_sea]
             #self.ch_outp[key]['ut_r'] = self.ch_outp[key]['ut_r'][:-self.nx_sea]
             #self.ch_outp[key]['wt_r'] = self.ch_outp[key]['wt_r'][:-self.nx_sea]
-            #self.ch_outp[key]['s_ti'] = self.ch_outp[key]['s_ti'][:-self.nx_sea]
-            #self.ch_outp[key]['s_ti_r'] = self.ch_outp[key]['s_ti_r'][:-self.nx_sea]
-
+            #self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:-self.nx_sea]
+            #self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:-self.nx_sea]
+            self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, :-self.nx_sea]
+            self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, :-self.nx_sea, :]
+            
             self.ch_outp[key]['TQ'] = self.ch_outp[key]['TQ'][:,:-self.nx_sea]
             self.ch_outp[key]['TE'] = self.ch_outp[key]['TE'][:,:-self.nx_sea]
             self.ch_outp[key]['TD'] = self.ch_outp[key]['TD'][:,:-self.nx_sea]
             self.ch_outp[key]['TT'] = self.ch_outp[key]['TT'][:,:-self.nx_sea]
             tot_L = np.sum(self.ch_gegs[key]['L'][:-1])
-            self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][:-self.nx_sea]
-            self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][:-self.nx_sea]
-
-            # added for game
-            self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, :-self.nx_sea]
-            self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, :-self.nx_sea, :]
+            self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][:-self.nx_sea] 
+            self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][:-self.nx_sea] 
 
         elif self.ch_gegs[key]['loc x=-L'][0] == 's':
             self.ch_outp[key]['px'] = self.ch_outp[key]['px'][self.nx_sea:]
             #self.ch_outp[key]['eta'] = self.ch_outp[key]['eta'][self.nx_sea:]
             self.ch_outp[key]['s_st'] = self.ch_outp[key]['s_st'][:,self.nx_sea:]
             #self.ch_outp[key]['ss_st'] = self.ch_outp[key]['ss_st'][self.nx_sea:]
-            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,self.nx_sea:]
+            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,self.nx_sea:] 
             self.ch_outp[key]['sn_st'] = self.ch_outp[key]['sn_st'][:,self.nx_sea:]
             #self.ch_outp[key]['u_st'] = self.ch_outp[key]['u_st'][self.nx_sea:]
             #self.ch_outp[key]['sb_st_x'] = self.ch_outp[key]['sb_st_x'][self.nx_sea:]
             #self.ch_outp[key]['eta_r'] = self.ch_outp[key]['eta_r'][self.nx_sea:]
             #self.ch_outp[key]['ut_r'] = self.ch_outp[key]['ut_r'][self.nx_sea:]
             #self.ch_outp[key]['wt_r'] = self.ch_outp[key]['wt_r'][self.nx_sea:]
-            #self.ch_outp[key]['s_ti'] = self.ch_outp[key]['s_ti'][self.nx_sea:]
-            #self.ch_outp[key]['s_ti_r'] = self.ch_outp[key]['s_ti_r'][self.nx_sea:]
-            self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][self.nx_sea:]
-            self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][self.nx_sea:]
+            #self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][self.nx_sea:]
+            #self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][self.nx_sea:]
+            self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, self.nx_sea:]
+            self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, self.nx_sea:, :]
+            
+            self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][self.nx_sea:] 
+            self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][self.nx_sea:] 
             self.ch_outp[key]['TQ'] = self.ch_outp[key]['TQ'][:,self.nx_sea:]
             self.ch_outp[key]['TE'] = self.ch_outp[key]['TE'][:,self.nx_sea:]
             self.ch_outp[key]['TD'] = self.ch_outp[key]['TD'][:,self.nx_sea:]
@@ -181,27 +244,24 @@ def calc_output(self):
 
             tot_L = np.sum(self.ch_gegs[key]['L'][1:])
 
-            # added for game
-            self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, self.nx_sea:]
-            self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, self.nx_sea:, :]
-
-
-
+                    
         #remove river domain
         if self.ch_gegs[key]['loc x=0'][0] == 'r':
             self.ch_outp[key]['px'] = self.ch_outp[key]['px'][:-self.nx_riv]+self.length_riv
             #self.ch_outp[key]['eta'] = self.ch_outp[key]['eta'][:-self.nx_riv]
             self.ch_outp[key]['s_st'] = self.ch_outp[key]['s_st'][:,:-self.nx_riv]
             #self.ch_outp[key]['ss_st'] = self.ch_outp[key]['ss_st'][:-self.nx_riv]
-            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,:-self.nx_riv]
+            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,:-self.nx_riv] 
             self.ch_outp[key]['sn_st'] = self.ch_outp[key]['sn_st'][:,:-self.nx_riv]
             #self.ch_outp[key]['u_st'] = self.ch_outp[key]['u_st'][:-self.nx_riv]
             #self.ch_outp[key]['sb_st_x'] = self.ch_outp[key]['sb_st_x'][:-self.nx_riv]
             #self.ch_outp[key]['eta_r'] = self.ch_outp[key]['eta_r'][:-self.nx_riv]
             #self.ch_outp[key]['ut_r'] = self.ch_outp[key]['ut_r'][:-self.nx_riv]
             #self.ch_outp[key]['wt_r'] = self.ch_outp[key]['wt_r'][:-self.nx_riv]
-            #self.ch_outp[key]['s_ti'] = self.ch_outp[key]['s_ti'][:-self.nx_riv]
-            #self.ch_outp[key]['s_ti_r'] = self.ch_outp[key]['s_ti_r'][:-self.nx_riv]
+            #self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:-self.nx_riv]
+            #self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:-self.nx_riv]
+            self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, :-self.nx_riv]
+            self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, :-self.nx_riv, :]
             self.ch_outp[key]['TQ'] = self.ch_outp[key]['TQ'][:,:-self.nx_riv]
             self.ch_outp[key]['TE'] = self.ch_outp[key]['TE'][:,:-self.nx_riv]
             self.ch_outp[key]['TD'] = self.ch_outp[key]['TD'][:,:-self.nx_riv]
@@ -211,36 +271,30 @@ def calc_output(self):
             self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][:-self.nx_riv]
             self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][:-self.nx_riv]
 
-            #added for game
-            self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, :-self.nx_riv]
-            self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, :-self.nx_riv, :]
-
         elif self.ch_gegs[key]['loc x=-L'][0] == 'r':
             self.ch_outp[key]['px'] = self.ch_outp[key]['px'][self.nx_riv:]
             #self.ch_outp[key]['eta'] = self.ch_outp[key]['eta'][self.nx_riv:]
             self.ch_outp[key]['s_st'] = self.ch_outp[key]['s_st'][:,self.nx_riv:]
             #self.ch_outp[key]['ss_st'] = self.ch_outp[key]['ss_st'][self.nx_riv:]
-            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,self.nx_riv:]
+            self.ch_outp[key]['sb_st'] = self.ch_outp[key]['sb_st'][:,self.nx_riv:] 
             self.ch_outp[key]['sn_st'] = self.ch_outp[key]['sn_st'][:,self.nx_riv:]
             #self.ch_outp[key]['u_st'] = self.ch_outp[key]['u_st'][self.nx_riv:]
             #self.ch_outp[key]['sb_st_x'] = self.ch_outp[key]['sb_st_x'][self.nx_riv:]
             #self.ch_outp[key]['eta_r'] = self.ch_outp[key]['eta_r'][self.nx_riv:]
             #self.ch_outp[key]['ut_r'] = self.ch_outp[key]['ut_r'][self.nx_riv:]
             #self.ch_outp[key]['wt_r'] = self.ch_outp[key]['wt_r'][self.nx_riv:]
-            #self.ch_outp[key]['s_ti'] = self.ch_outp[key]['s_ti'][self.nx_riv:]
-            #self.ch_outp[key]['s_ti_r'] = self.ch_outp[key]['s_ti_r'][self.nx_riv:]
+            #self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][self.nx_riv:]
+            #self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][self.nx_riv:]
+            self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, self.nx_riv:]
+            self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, self.nx_riv:, :]
             self.ch_outp[key]['TQ'] = self.ch_outp[key]['TQ'][:,self.nx_riv:]
             self.ch_outp[key]['TE'] = self.ch_outp[key]['TE'][:,self.nx_riv:]
             self.ch_outp[key]['TD'] = self.ch_outp[key]['TD'][:,self.nx_riv:]
             self.ch_outp[key]['TT'] = self.ch_outp[key]['TT'][:,self.nx_riv:]
 
-            tot_L = np.sum(self.ch_gegs[key]['L'][1:])
+            tot_L = np.sum(self.ch_gegs[key]['L'][1:])          
             self.ch_outp[key]['CS'] = self.ch_outp[key]['CS'][self.nx_riv:]
             self.ch_outp[key]['dl'] = self.ch_outp[key]['dl'][self.nx_riv:]
-
-            # added for game
-            self.ch_outp[key]['htot'] = self.ch_outp[key]['htot'][:, self.nx_riv:]
-            self.ch_outp[key]['utot'] = self.ch_outp[key]['utot'][:, self.nx_riv:, :]
 
         # added for game: reshape and transpose to get htot and utot output shape (days, location, hours)
         n_days = len(self.Tvec)
@@ -253,7 +307,6 @@ def calc_output(self):
         self.ch_outp[key]['utot'] = np.reshape(self.ch_outp[key]['utot'], utot_shape_new)
         self.ch_outp[key]['utot'] = np.transpose(self.ch_outp[key]['utot'], axes=(0, 2, 1, 3))
 
-
         # =============================================================================
         # prepare some plotting quantities, x and y coordinates in map plots
         # =============================================================================
@@ -263,12 +316,11 @@ def calc_output(self):
         self.ch_outp[key]['plot d'] = (self.ch_outp[key]['plot d']-self.ch_outp[key]['plot d'][-1])/self.ch_outp[key]['plot d'][-1]*tot_L
         self.ch_outp[key]['plot xs'] = np.interp(self.ch_outp[key]['px'],self.ch_outp[key]['plot d'],self.ch_gegs[key]['plot x'])
         self.ch_outp[key]['plot ys'] = np.interp(self.ch_outp[key]['px'],self.ch_outp[key]['plot d'],self.ch_gegs[key]['plot y'])
-
+            
         self.ch_outp[key]['points'] = np.array([self.ch_outp[key]['plot xs'],self.ch_outp[key]['plot ys']]).T.reshape(-1, 1, 2)
         self.ch_outp[key]['segments'] = np.concatenate([self.ch_outp[key]['points'][:-1], self.ch_outp[key]['points'][1:]], axis=1)
 
-#calc_output(delta)
-
+# calc_output(delta)
 
 
 

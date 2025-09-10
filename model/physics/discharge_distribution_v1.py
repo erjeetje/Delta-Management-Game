@@ -235,17 +235,18 @@ def Qdist_calc(self, Qall, prt = False):
     
     if prt == True: print('The river discharge over the channels is, respectively:',rd[:self.n_ch], '\n')
     
-    #add the calculated river discharge to the object so it can be used for the salinity calculations
+    #save the calculated river discharge so it can be used for the salinity calculations
     
     Qsave = {}
-    
     count = 0
     for key in self.ch_keys:
         Qsave[key] = rd[count]
         count+=1
     
+    #for reconstructing water level. 
+    rdout= solvec_to_solch(rd)
     
-    return Qsave
+    return Qsave, rdout 
 
    
 

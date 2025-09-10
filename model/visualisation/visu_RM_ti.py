@@ -405,7 +405,7 @@ def anim_new_compRM(self,savename):
         ax_cen.set_xlabel('degrees E ')
         ax_cen.set_facecolor('grey')
     
-        #cb1=plt.colorbar(line1, ax=ax_cen,orientation='vertical')
+        #cb1=plt.colorbar(line1, model_output_ax=ax_cen,orientation='vertical')
         #cb1.set_label(label=r'$\bar{s}$ [g/kg]')    
 
         #Plot the salinity in the tidal cycle in 2DV
@@ -645,7 +645,7 @@ def plot_tide_pointRM(self):
     ax[0].scatter(punten[np.where(~np.isnan(aM2_mod))[0]],amp_M2[np.where(~np.isnan(aM2_mod))[0]],marker='D',label='obs',color='blue')
     ax[0].scatter(punten[np.where(~np.isnan(aM2_mod))[0]],aM2_mod[np.where(~np.isnan(aM2_mod))[0]],marker='D',label='mod',color='red')
     #plt.errorbar(punten[np.where(~np.isnan(aM2_mod))[0]],amp_M2[np.where(~np.isnan(aM2_mod))[0]], yerr=amp_M2n[np.where(~np.isnan(aM2_mod))[0]], fmt="o")
-    #ax[0].set_xticks(rotation = 90) # Rotates X-Axis Ticks by 45-degrees
+    #model_output_ax[0].set_xticks(rotation = 90) # Rotates X-Axis Ticks by 45-degrees
     ax[0].xaxis.set_ticklabels([])
     ax[0].grid()
     ax[0].set_ylim(0,1)
@@ -654,7 +654,7 @@ def plot_tide_pointRM(self):
     ax[1].scatter(punten[np.where(~np.isnan(aM2_mod))[0]],pha_M2[np.where(~np.isnan(aM2_mod))[0]],marker='D',label='obs',color='blue')
     ax[1].scatter(punten[np.where(~np.isnan(aM2_mod))[0]],pM2_mod[np.where(~np.isnan(aM2_mod))[0]],marker='D',label='mod',color='red')
     #plt.errorbar(punten[np.where(~np.isnan(aM2_mod))[0]],pha_M2[np.where(~np.isnan(aM2_mod))[0]], yerr=pha_M2n[np.where(~np.isnan(aM2_mod))[0]], fmt="o")
-    #ax[1].xticks(rotation = 90) # Rotates X-Axis Ticks by 45-degrees
+    #model_output_ax[1].xticks(rotation = 90) # Rotates X-Axis Ticks by 45-degrees
     ax[1].grid(),ax[1].set_ylim(0,180)
     ax[1].set_ylabel('Phase M$_2$ tide [deg]')
     ax[1].tick_params(labelrotation=90)
@@ -705,12 +705,12 @@ def plot_strat_RMD(self):
     ax0.set_ylabel('degrees N ')
     ax0.set_xlabel('degrees E ')
     
-    #ax[1].set_xlim(4,4.6) , ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
+    #model_output_ax[1].set_xlim(4,4.6) , model_output_ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
     
     cbar_ax = fig.add_axes([0.2, 0.02, 0.6, 0.033])
     cb=fig.colorbar(line, cax=cbar_ax,orientation='horizontal')
     cb.set_label(label='Salinity [g/kg]')    
-    #cb.ax.tick_params(labelsize=15)
+    #cb.model_output_ax.tick_params(labelsize=15)
 
     ax1.contourf(self.ch_outp['Nieuwe Waterweg v2']['px']/1000, self.z_nd, self.ch_outp['Nieuwe Waterweg v2']['s_st'].T, cmap='RdBu_r')
     ax2.plot(self.ch_outp['Nieuwe Waterweg v2']['px']/1000,self.ch_outp['Nieuwe Waterweg v2']['s_st'][:,0]-self.ch_outp['Nieuwe Waterweg v2']['s_st'][:,-1],c='black',lw=2)
@@ -792,13 +792,13 @@ def plot_junc_tid(self):
     '''    #time vector
     ttt = np.linspace(0,44700,self.nt)/3600
     
-    fig, ax = plt.subplots(2,1,figsize = (7,7))
+    fig, model_output_ax = plt.subplots(2,1,figsize = (7,7))
     
-    ax[0].plot(ttt,u_HY)
-    ax[0].plot(ttt,u_OM2)
-    ax[0].plot(ttt,u_OM3)
+    model_output_ax[0].plot(ttt,u_HY)
+    model_output_ax[0].plot(ttt,u_OM2)
+    model_output_ax[0].plot(ttt,u_OM3)
     
-    ax[1].plot(ttt,s_HY)
+    model_output_ax[1].plot(ttt,s_HY)
     '''
   
 
@@ -1040,7 +1040,7 @@ def plot2_tide_pointRM(self):
     ax[0].scatter(ind_map,amp_M2[np.where(~np.isnan(aM2_mod))[0]],marker='D',label='obs',color='blue')
     ax[0].scatter(ind_map,aM2_mod[np.where(~np.isnan(aM2_mod))[0]],marker='D',label='mod',color='red')
     #plt.errorbar(punten[np.where(~np.isnan(aM2_mod))[0]],amp_M2[np.where(~np.isnan(aM2_mod))[0]], yerr=amp_M2n[np.where(~np.isnan(aM2_mod))[0]], fmt="o")
-    #ax[0].set_xticks(rotation = 90) # Rotates X-Axis Ticks by 45-degrees
+    #model_output_ax[0].set_xticks(rotation = 90) # Rotates X-Axis Ticks by 45-degrees
     ax[0].xaxis.set_ticklabels([])
     ax[0].grid()
     ax[0].set_ylim(0,1)
@@ -1049,7 +1049,7 @@ def plot2_tide_pointRM(self):
     ax[1].scatter(ind_map,pha_M2[np.where(~np.isnan(aM2_mod))[0]],marker='D',label='obs',color='blue')
     ax[1].scatter(ind_map,pM2_mod[np.where(~np.isnan(aM2_mod))[0]],marker='D',label='mod',color='red')
     #plt.errorbar(punten[np.where(~np.isnan(aM2_mod))[0]],pha_M2[np.where(~np.isnan(aM2_mod))[0]], yerr=pha_M2n[np.where(~np.isnan(aM2_mod))[0]], fmt="o")
-    #ax[1].xticks(rotation = 90) # Rotates X-Axis Ticks by 45-degrees
+    #model_output_ax[1].xticks(rotation = 90) # Rotates X-Axis Ticks by 45-degrees
     ax[1].grid(),ax[1].set_ylim(0,180)
     ax[1].set_ylabel('Phase M$_2$ tide [deg]')
     ax[1].tick_params(labelrotation=90)

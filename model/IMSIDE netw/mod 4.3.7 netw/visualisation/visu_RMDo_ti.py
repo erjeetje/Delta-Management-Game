@@ -32,12 +32,12 @@ def plot_s_RMDo(self):
     ax.set_xlabel('degrees E '),ax.set_ylabel('degrees N ')
     ax.set_facecolor('lightgrey')
     
-    #ax[1].set_xlim(4,4.6) , ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
+    #model_output_ax[1].set_xlim(4,4.6) , model_output_ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
 
     cbar_ax = fig.add_axes([0.2, 0.02, 0.6, 0.033])
     cb=fig.colorbar(line, cax=cbar_ax,orientation='horizontal')
     cb.set_label(label='Depth-averaged salinity [g/kg]')    
-    #cb.ax.tick_params(labelsize=15)
+    #cb.model_output_ax.tick_params(labelsize=15)
     plt.show()
     
 
@@ -72,11 +72,11 @@ def anim_tide_wl(self,savename):
             line0=ax.add_collection(self.ch_outp[key]['p1'])
 
         ax.imshow(img)
-        #ax.axis('scaled')
-        #ax.set_xlabel('degrees E '),ax.set_ylabel('degrees N ')
-        #ax.set_facecolor('lightgrey')
+        #model_output_ax.axis('scaled')
+        #model_output_ax.set_xlabel('degrees E '),model_output_ax.set_ylabel('degrees N ')
+        #model_output_ax.set_facecolor('lightgrey')
         
-        #ax[1].set_xlim(4,4.6) , ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
+        #model_output_ax[1].set_xlim(4,4.6) , model_output_ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
         cb0=fig.colorbar(line0, ax=ax,orientation='vertical')
         cb0.set_label(label='Water level [m]') 
            
@@ -92,9 +92,9 @@ def anim_tide_wl(self,savename):
             line0=ax.add_collection(self.ch_outp[key]['p1'])
             
         ax.imshow(img)
-        #ax.axis('scaled')
-        #ax.set_xlabel('degrees E '),ax.set_ylabel('degrees N ')
-        #ax.set_facecolor('lightgrey')
+        #model_output_ax.axis('scaled')
+        #model_output_ax.set_xlabel('degrees E '),model_output_ax.set_ylabel('degrees N ')
+        #model_output_ax.set_facecolor('lightgrey')
 
         return ax 
 
@@ -137,15 +137,15 @@ def plot_strat_RMDo(self):
         line=ax0.add_collection(self.ch_outp[key]['lc'])
     
     ax0.axis('scaled')
-    #x[0].set_xlabel('degrees E '),ax[0].set_ylabel('degrees N ')
+    #x[0].set_xlabel('degrees E '),model_output_ax[0].set_ylabel('degrees N ')
     ax0.set_facecolor('lightgrey')
     
-    #ax[1].set_xlim(4,4.6) , ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
+    #model_output_ax[1].set_xlim(4,4.6) , model_output_ax[1].set_ylim(51.75,52.05) #zoom in on mouth RM
     
     cbar_ax = fig.add_axes([0.2, 0.02, 0.6, 0.033])
     cb=fig.colorbar(line, cax=cbar_ax,orientation='horizontal')
     cb.set_label(label='Depth-averaged salinity [g/kg]')    
-    #cb.ax.tick_params(labelsize=15)
+    #cb.model_output_ax.tick_params(labelsize=15)
     
     print(self.ch_keys)
     print(self.ch_outp['Scheur']['s_st'].shape)

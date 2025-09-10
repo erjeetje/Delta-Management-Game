@@ -138,13 +138,13 @@ class ApplicationWindow(QMainWindow):
         return
 
     def add_plot_model(self, bbox):
-        self.ax = self.model_canvas.figure.subplots()
-        #self.ax.axis(bbox)
-        #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.CartoDB.PositronNoLabels)
-        #ctx.add_basemap(self.ax, source=ctx.providers.Esri.WorldGrayCanvas, zoom=12)
-        #ctx.add_basemap(self.ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
-        self.ax.set_axis_off()
-        self.ax.set_position([0.1, 0.1, 0.8, 0.8])
+        self.model_output_ax = self.model_canvas.figure.subplots()
+        #self.model_output_ax.axis(bbox)
+        #ctx.add_basemap(self.model_output_ax, alpha=0.5, source=ctx.providers.CartoDB.PositronNoLabels)
+        #ctx.add_basemap(self.model_output_ax, source=ctx.providers.Esri.WorldGrayCanvas, zoom=12)
+        #ctx.add_basemap(self.model_output_ax, alpha=0.5, source=ctx.providers.OpenStreetMap.Mapnik)
+        self.model_output_ax.set_axis_off()
+        self.model_output_ax.set_position([0.1, 0.1, 0.8, 0.8])
         turn_idx = (self.game.model_output_gdf["turn"] == self.selected_turn) & (
                 self.game.model_output_gdf["run"] == self.selected_run)
         self.running_simulation = self.game.model_output_gdf[turn_idx]
@@ -153,16 +153,16 @@ class ApplicationWindow(QMainWindow):
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
         set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
-        self.plot_data.plot(column=set_variable, ax=self.ax, cmap=self.viz_tracker.cmaps[self.selected_variable],
-                            markersize=150.0)
+        self.plot_data.plot(column=set_variable, ax=self.model_output_ax, cmap=self.viz_tracker.cmaps[self.selected_variable],
+                            norm=self.viz_tracker.norms[self.selected_variable], markersize=150.0)
 
-        pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
+        pcs = [child for child in self.model_output_ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
-        self.pc = pcs[0]
-        self.pc.set_norm(self.viz_tracker.norms[self.selected_variable])
+        self.model_output_pc = pcs[0]
+        #self.model_output_pc.set_norm(self.viz_tracker.norms[self.selected_variable])
         # code below adds a colorbar to the image, but makes the plots too slow
         #self.colorbar = ScalarMappable(self.viz_tracker.water_level_norm, cmap="Blues_r")
-        #self.model_canvas.figure.colorbar(self.colorbar, ax=self.ax)
+        #self.model_canvas.figure.colorbar(self.colorbar, model_output_ax=self.model_output_ax)
 
         self.model_timer = self.model_canvas.new_timer(40)
         self.model_timer.add_callback(self.update_plot_model)
@@ -180,16 +180,16 @@ class ApplicationWindow(QMainWindow):
             self.scenario = self.viz_tracker.scenario
         if self.selected_variable != self.viz_tracker.viz_variable:
             self.selected_variable = self.viz_tracker.viz_variable
-            self.pc.set_cmap(self.viz_tracker.cmaps[self.selected_variable])
-            self.pc.set_norm(self.viz_tracker.norms[self.selected_variable])
+            self.model_output_pc.set_cmap(self.viz_tracker.cmaps[self.selected_variable])
+            self.model_output_pc.set_norm(self.viz_tracker.norms[self.selected_variable])
             self.update_colorbars()
         t = self.viz_tracker.get_time_index()
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
         set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
-        self.pc.set_array(self.plot_data[set_variable])
+        self.model_output_pc.set_array(self.plot_data[set_variable])
         title_string = "turn: " + str(self.selected_turn) + " - run: " + str(self.selected_run) + " - " + self.scenario + " - " + f"timestep: {t}"
-        self.ax.set_title(title_string[:-8])
+        self.model_output_ax.set_title(title_string[:-8]) #, y=1.1
         self.model_canvas.draw()
         self.viz_tracker.time_index = 1
         return
@@ -215,9 +215,10 @@ class ApplicationWindow(QMainWindow):
         return
 
     def plot_inlet_indicators(self):
+        """
         self.inlet_canvas.figure.clf()
-        ax = self.inlet_canvas.figure.subplots()
-        ax.set_axis_off()
+        model_output_ax = self.inlet_canvas.figure.subplots()
+        model_output_ax.set_axis_off()
 
         model_output = self.game.model_output_gdf.copy()
         model_output = model_output[
@@ -226,8 +227,8 @@ class ApplicationWindow(QMainWindow):
         if model_output.empty:
             print("there seems to be no output data yet")
         else:
-            model_output.plot(ax=ax, color="deepskyblue", markersize=50)
-
+            model_output.plot(model_output_ax=model_output_ax, color="deepskyblue", markersize=50)
+        """
         inlet_data = self.game.inlet_salinity_tracker.copy()
         inlet_data = inlet_data[
             (inlet_data["turn"] == self.viz_tracker.turn) & (inlet_data["run"] == self.viz_tracker.run)]
@@ -237,10 +238,27 @@ class ApplicationWindow(QMainWindow):
             inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
             inlet_data = inlet_data.reset_index()
             cmap = LinearSegmentedColormap.from_list("", ["green", "orange", "red"])
-            inlet_data.plot("score_indicator", ax=ax, cmap=cmap, vmin=1, vmax=3, markersize=300)  # , legend=True)
+            inlet_data.plot("score_indicator", ax=self.model_output_ax, cmap=cmap, vmin=1, vmax=3, markersize=300)
+            pcs = [child for child in self.model_output_ax.get_children() if
+                   isinstance(child, matplotlib.collections.PathCollection)]
+            assert len(pcs) == 2, "expected 2 pathcollection after plotting"
+            self.inlet_pc = pcs[1]
             for x, y, label in zip(inlet_data["geometry"].x, inlet_data["geometry"].y, inlet_data["name"]):
-                ax.annotate(label, xy=(x, y), xytext=(0, 12), ha='center', textcoords="offset points", size=10)
+                self.model_output_ax.annotate(label, xy=(x, y), xytext=(0, 12), ha='center', textcoords="offset points",
+                                              size=10)
         self.inlet_canvas.draw()
+        return
+
+    def update_inlet_indicators(self):
+        inlet_data = self.game.inlet_salinity_tracker.copy()
+        inlet_data = inlet_data[
+            (inlet_data["turn"] == self.viz_tracker.turn) & (inlet_data["run"] == self.viz_tracker.run)]
+        if inlet_data.empty:
+            print("there seems to be no inlet data yet")
+        else:
+            inlet_data = inlet_data[inlet_data["time"] == inlet_data.iloc[0]["time"]]
+            #inlet_data = inlet_data.reset_index()
+        self.inlet_pc.set_array(inlet_data["score_indicator"])
         return
 
     def plot_salinity_inlets(self, combined_plot=True):
@@ -378,7 +396,7 @@ class GameVisualization(QWidget):
 
     def add_plot_model(self, bbox):
         self.ax = self.game_canvas.figure.subplots()
-        #self.ax.set_aspect(1)
+        #self.model_output_ax.set_aspect(1)
         self.ax.axis(bbox)
         self.ax.set_axis_off()
         turn_idx = (self.game.game_output_gdf["turn"] == self.selected_turn) & (
@@ -390,11 +408,11 @@ class GameVisualization(QWidget):
         self.plot_data = self.running_simulation[idx]
         set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
         self.plot_data.plot(column=set_variable, ax=self.ax, cmap=self.viz_tracker.cmaps[self.selected_variable],
-                            aspect=1, markersize=200.0)
+                            norm=self.viz_tracker.norms[self.selected_variable], aspect=1, markersize=200.0)
         pcs = [child for child in self.ax.get_children() if isinstance(child, matplotlib.collections.PathCollection)]
         assert len(pcs) == 1, "expected 1 pathcollection after plotting"
-        self.pc = pcs[0]
-        self.pc.set_norm(self.viz_tracker.norms[self.selected_variable])
+        self.game_output_pc = pcs[0]
+        #self.game_output_pc.set_norm(self.viz_tracker.norms[self.selected_variable])
 
         self.game_timer = self.game_canvas.new_timer(40)
         self.game_timer.add_callback(self.update_plot_model)
@@ -410,15 +428,15 @@ class GameVisualization(QWidget):
             self.running_simulation = self.game.game_output_gdf[turn_idx]
         if self.selected_variable != self.viz_tracker.viz_variable:
             self.selected_variable = self.viz_tracker.viz_variable
-            self.pc.set_cmap(self.viz_tracker.cmaps[self.selected_variable])
-            self.pc.set_norm(self.viz_tracker.norms[self.selected_variable])
+            self.game_output_pc.set_cmap(self.viz_tracker.cmaps[self.selected_variable])
+            self.game_output_pc.set_norm(self.viz_tracker.norms[self.selected_variable])
             return
         t = self.viz_tracker.get_time_index()
         idx = self.running_simulation["time"] == t
         self.plot_data = self.running_simulation[idx]
         set_variable = self.selected_variable + "_" + self.viz_tracker.sim_type
-        self.pc.set_array(self.plot_data[set_variable])
-        #self.ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
+        self.game_output_pc.set_array(self.plot_data[set_variable])
+        #self.model_output_ax.set_title(f"timestep: {t} - scenario {self.selected_scenario}")
         self.game_canvas.draw()
         return
 
@@ -964,7 +982,8 @@ class ControlWidget(QWidget):
                            "time"])))
         """
         self.gui.show_forcing_conditions()
-        self.gui.plot_inlet_indicators()
+        self.gui.update_inlet_indicators()
+        #self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
         self.gui.score_widget.update_text()
         self.change_highlights()
@@ -974,7 +993,8 @@ class ControlWidget(QWidget):
         self.viz_tracker.turn = 2
         self.viz_tracker.run = run
         self.gui.show_forcing_conditions()
-        self.gui.plot_inlet_indicators()
+        self.gui.update_inlet_indicators()
+        # self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
         self.gui.score_widget.update_text()
         self.change_highlights()
@@ -984,7 +1004,8 @@ class ControlWidget(QWidget):
         self.viz_tracker.turn = 3
         self.viz_tracker.run = run
         self.gui.show_forcing_conditions()
-        self.gui.plot_inlet_indicators()
+        self.gui.update_inlet_indicators()
+        # self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
         self.gui.score_widget.update_text()
         self.change_highlights()
@@ -994,7 +1015,8 @@ class ControlWidget(QWidget):
         self.viz_tracker.turn = 4
         self.viz_tracker.run = run
         self.gui.show_forcing_conditions()
-        self.gui.plot_inlet_indicators()
+        self.gui.update_inlet_indicators()
+        # self.gui.plot_inlet_indicators()
         self.gui.plot_salinity_inlets()
         self.gui.score_widget.update_text()
         self.change_highlights()

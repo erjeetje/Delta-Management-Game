@@ -237,7 +237,7 @@ def anim_RM_st(self,savename):
         ax_cen.set_xlabel('degrees E ')
         ax_cen.set_facecolor('grey')
     
-        #cb1=plt.colorbar(line1, ax=ax_cen,orientation='vertical')
+        #cb1=plt.colorbar(line1, model_output_ax=ax_cen,orientation='vertical')
         #cb1.set_label(label=r'$\bar{s}$ [g/kg]')    
 
         #Plot the salinity in the tidal cycle in 2DV

@@ -74,10 +74,10 @@ def create_calibration_file(polygons, new_polygons, save=False, path=""):
     """
     # EPSG:4326
     if new_polygons:
-        world_top_left = [3.84, 52.075]
-        world_top_right = [4.82, 52.07]
-        world_bottom_left = [3.84, 51.65]
-        world_bottom_right = [4.82, 51.645]
+        world_top_left = [3.84, 52.075]  # [3.84, 52.075]
+        world_top_right = [4.87, 52.07]  # [4.82, 52.07]
+        world_bottom_left = [3.84, 51.65]  # [3.84, 51.65]
+        world_bottom_right = [4.87, 51.645]  # [4.82, 51.645]
     else:
         world_top_left = [3.834043, 52.0718455]
         world_top_right = [4.7631053, 52.0655544]

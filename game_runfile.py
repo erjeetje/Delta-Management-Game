@@ -34,8 +34,8 @@ class DMG():
         self.sim_count = self.mode["sim_count"]
         self.export = self.mode["export"]
         self.simulations = ["drought", "normal", "average"]
-        operational = {0: ['Qhag', 5, 0, True], 1: ['Qhar', 50, 1, True], 2: ['Qhar_threshold', 1100, 1, True],
-                       3: ['Qhij', 2, 0, True], 4: ['Qhij_threshold', 800, 0, True]}
+        operational = {5: ['Qhag', 5, 0, True], 6: ['Qhar', 50, 1, True], 7: ['Qhar_threshold', 1100, 1, True],
+                       8: ['Qhij', 2, 0, True], 9: ['Qhij_threshold', 800, 0, True]}
         self.operational_df = pd.DataFrame.from_dict(
             operational, orient='index', columns=['Qtype', 'Qvalue', 'red_markers', 'red_changed'])
         self.weir_tracker = 3  # there are already 2 weirs in the default schematization, next number to add is 3
@@ -115,7 +115,7 @@ class DMG():
         """
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.input_files = os.path.join(dir_path, "game", "input_files")
-        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\09 Prototype refinement summer 2025\coding (notebooks)\hydrodynamics test"
+        self.save_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\09 Prototype refinement summer 2025\coding (notebooks)\inlet locations on board"
         self.debug_path = r"C:\Werkzaamheden\Onderzoek\2 SaltiSolutions\09 Prototype refinement summer 2025\debug"
         return
 
@@ -136,10 +136,10 @@ class DMG():
         load polygons (world map) and hexagon shapes (board).
         """
         if new_polygons:
-            self.world_polygons = load_files.read_json_features(filename='new_RMM_polygons.json',
+            self.world_polygons = load_files.read_json_features(filename='new_RMM_polygons3.json',
                                                                 path=self.input_files)
         else:
-            self.world_polygons = load_files.read_json_features(filename='hexagon_shapes_in_layers_Bouke_network.json',
+            self.world_polygons = load_files.read_json_features(filename='RMM_polygons.json',
                                                                 path=self.input_files)
         self.game_hexagons = load_files.read_geojson(filename='hexagons_clean.geojson', path=self.input_files)
         return
@@ -167,6 +167,7 @@ class DMG():
         return
 
     def update_inlet_salinity(self):
+        start_time = time.perf_counter()
         inlet_salinity_tracker = inlet_func.get_inlet_salinity(
             self.inlets, self.model_output_gdf, turn=self.turn, run=self.turn_count) #, turn_count = self.turn_count):
         inlet_salinity_tracker = inlet_func.get_exceedance_at_inlets(inlet_salinity_tracker)
@@ -174,6 +175,8 @@ class DMG():
             self.inlet_salinity_tracker = inlet_salinity_tracker
         else:
             self.inlet_salinity_tracker = pd.concat([self.inlet_salinity_tracker, inlet_salinity_tracker])
+        duration = timedelta(seconds=time.perf_counter() - start_time)
+        print('Inlet salinity update took:', duration)
         return
 
     def run_simulations(self):
@@ -347,6 +350,9 @@ class DMG():
             pass
         self.turn += 1
         self.turn_count = 1
+        #print(self.model_network_gdf.columns.values)
+        self.model_network_gdf["ref_Hn"] = self.model_network_gdf["ref_Hn"] + (
+                self.mode["slr"][self.turn - 1] - self.mode["slr"][self.turn - 2])
 
         if self.turn <= len(self.mode["scenarios"]):
             self.scenario = self.mode["scenarios"][self.turn - 1]
@@ -553,6 +559,8 @@ class DMG():
         self.model_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
         filename = "game_output_gdf%s_%d.xlsx" % (self.turn, self.turn_count)
         self.game_output_gdf.to_excel(os.path.join(self.save_path, filename), index=True)
+        filename = "inlets.xlsx"
+        self.inlets.to_excel(os.path.join(self.save_path, filename), index=True)
         return
 
     def debug_output(self):

@@ -210,9 +210,9 @@ def update_channel_geometry(turn_model_network_df):
         for i, change in enumerate(ver_change):
             #print(change)
             if change == "deepen":
-                branch_depth[i] *= 1.25
+                branch_depth[i] *= 1.20 # 1.25 # changed values to avoid model crash (no convergence). TODO: check cause
             if change == "undeepen":
-                branch_depth[i] *= 0.75
+                branch_depth[i] *= 0.80 # 1.25 # changed values to avoid model crash (no convergence). TODO: check cause
         return branch_depth
     model_network_df["Hn"] = model_network_df.apply(
         lambda row: update_depth(row["Hn"], row["changed"], row["ver_changed_segments"]), axis=1)
